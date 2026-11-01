@@ -231,46 +231,14 @@
 
         </p>
 
-        <div id="tool-options" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {[
-            "Midjourney",
-            "DALL·E",
-            "ChatGPT",
-            "Stable Diffusion",
-            "Flux",
-            "Leonardo AI",
-            "Ideogram",
-            "Runway",
-            "Kling AI",
-            "Veo",
-            "Sora",
-            "Other",
-          ].map((tool) => (
-            <label class="check-card">
-              <input type="checkbox" name="ai-tool" value={tool} />
-              <span>{tool}</span>
-            </label>
-          ))}
+        <div id="tool-options" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <input id="new-ai-tool" class="form-control min-w-0 flex-1" maxlength="60" placeholder="New AI tool name" />
+          <button type="button" id="add-ai-tool" class="secondary-button">Add</button>
         </div>
+        <p class="mt-2 text-xs text-gray-500">Use Edit or Delete beside a tool to manage the shared list. Most-used tools appear first.</p>
       </div>
 
-      <div>
-        <div class="mb-2 flex items-center justify-between">
-          <label class="field-label">Related shortcuts</label>
-          <span id="shortcut-count" class="selection-count">0 selected</span>
-        </div>
-
-        <div id="shortcut-chips" class="selected-chips"></div>
-
-        <input
-          id="shortcut-search"
-          type="search"
-          class="form-control mb-3"
-          placeholder="Search shortcuts..."
-        />
-
-        <div id="shortcut-options" class="choice-list"></div>
-      </div>
     </section>
 
     <div class="section-divider"></div>
@@ -533,6 +501,9 @@
 
   .choice-item input, .check-card input { flex-shrink: 0; accent-color: #22d3ee; }
   .choice-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .choice-actions { display:flex; gap:5px; margin-left:auto; }
+  .choice-actions button { border:1px solid rgb(255 255 255 / 14%); border-radius:6px; padding:3px 6px; color:#a5f3fc; font-size:10px; }
+  .choice-actions .delete-choice { color:#fda4af; border-color:#fb718544; }
   .choice-empty { grid-column: 1 / -1; padding: 16px 8px; color: #71717a; font-size: 12px; text-align: center; }
 
   .secondary-button {
@@ -588,19 +559,15 @@
 
   const categoryList = document.querySelector("#category-options");
   const tagList = document.querySelector("#tag-options");
-  const shortcutList = document.querySelector("#shortcut-options");
 
   const categoryChips = document.querySelector("#category-chips");
   const tagChips = document.querySelector("#tag-chips");
-  const shortcutChips = document.querySelector("#shortcut-chips");
 
   const categoryCount = document.querySelector("#category-count");
   const tagCount = document.querySelector("#tag-count");
-  const shortcutCount = document.querySelector("#shortcut-count");
 
   const categorySearch = document.querySelector("#category-search");
   const tagSearch = document.querySelector("#tag-search");
-  const shortcutSearch = document.querySelector("#shortcut-search");
 
   const thumbnailInput = document.querySelector("#prompt-thumbnail");
   const thumbnailPreview = document.querySelector("#thumbnail-preview");
@@ -613,11 +580,11 @@
 
   const selectedCategories = new Map();
   const selectedTags = new Map();
-  const selectedShortcuts = new Map();
 
   let categories = [];
   let tags = [];
-  let shortcuts = [];
+  let aiTools = [];
+  const toolOptions = document.querySelector("#tool-options");
   let optionsLoaded = false;
   let saving = false;
   let previewUrl = null;
@@ -682,94 +649,98 @@
     countElement.textContent = `${map.size} selected`;
   }
 
-  function renderChoiceList(items, container, map, search) {
+  function renderChoiceList(items, container, map, search, kind) {
     container.replaceChildren();
-
     const query = search.value.trim().toLowerCase();
-    const filtered = items.filter((item) =>
-      item.name.toLowerCase().includes(query)
-    );
-
+    const filtered = items.filter((item) => item.name.toLowerCase().includes(query));
     if (!filtered.length) {
-      const empty = document.createElement("p");
-      empty.className = "choice-empty";
-      empty.textContent = items.length
-        ? "No matching results."
-        : "No entries available yet.";
-      container.append(empty);
-      return;
+      const empty = document.createElement("p"); empty.className = "choice-empty";
+      empty.textContent = items.length ? "No matching results." : "No entries available yet.";
+      container.append(empty); return;
     }
-
     filtered.forEach((item) => {
-      const label = document.createElement("label");
-      label.className = "choice-item";
+      const label = document.createElement("label"); label.className = "choice-item";
+      const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.checked = map.has(item.id);
+      const name = document.createElement("span"); name.textContent = item.name;
+      checkbox.addEventListener("change", () => { if (checkbox.checked) map.set(item.id,item.name); else map.delete(item.id); renderAll(); });
+      const actions = document.createElement("span"); actions.className = "choice-actions";
+      const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "Edit";
+      edit.addEventListener("click", async (event) => { event.preventDefault(); event.stopPropagation(); const next = window.prompt(`Rename ${kind}:`, item.name); if (!next || !next.trim() || next.trim() === item.name) return; await renameOption(kind,item,next.trim()); });
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "delete-choice"; remove.textContent = "Delete";
+      remove.addEventListener("click", async (event) => { event.preventDefault(); event.stopPropagation(); await deleteOption(kind,item); });
+      actions.append(edit,remove); label.append(checkbox,name,actions); container.append(label);
+    });
+  }
 
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = map.has(item.id);
-
-      const name = document.createElement("span");
-      name.textContent = item.name;
-
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) {
-          map.set(item.id, item.name);
-        } else {
-          map.delete(item.id);
-        }
-
-        renderAll();
-      });
-
-      label.append(checkbox, name);
-      container.append(label);
+  function renderToolOptions() {
+    toolOptions.replaceChildren();
+    aiTools.forEach((tool) => {
+      const label=document.createElement("label"); label.className="check-card";
+      const checkbox=document.createElement("input"); checkbox.type="checkbox"; checkbox.name="ai-tool"; checkbox.value=tool.name;
+      const selected = new Set(Array.from(document.querySelectorAll('input[name="ai-tool"]:checked')).map(x=>x.value));
+      checkbox.checked=selected.has(tool.name);
+      const name=document.createElement("span"); name.textContent=tool.name;
+      const actions=document.createElement("span"); actions.className="choice-actions";
+      const edit=document.createElement("button"); edit.type="button"; edit.textContent="Edit";
+      edit.addEventListener("click",(e)=>{e.preventDefault();e.stopPropagation(); const next=window.prompt("Rename AI tool:",tool.name); if(next && next.trim() && next.trim()!==tool.name) renameOption("tool",tool,next.trim());});
+      const del=document.createElement("button"); del.type="button"; del.className="delete-choice"; del.textContent="Delete";
+      del.addEventListener("click",(e)=>{e.preventDefault();e.stopPropagation();deleteOption("tool",tool);});
+      actions.append(edit,del); label.append(checkbox,name,actions); toolOptions.append(label);
     });
   }
 
   function renderAll() {
-    renderChoiceList(categories, categoryList, selectedCategories, categorySearch);
-    renderChoiceList(tags, tagList, selectedTags, tagSearch);
-    renderChoiceList(shortcuts, shortcutList, selectedShortcuts, shortcutSearch);
-
+    renderChoiceList(categories, categoryList, selectedCategories, categorySearch, "category");
+    renderChoiceList(tags, tagList, selectedTags, tagSearch, "tag");
     renderChips(selectedCategories, categoryChips, categoryCount);
     renderChips(selectedTags, tagChips, tagCount);
-    renderChips(selectedShortcuts, shortcutChips, shortcutCount);
+    renderToolOptions();
+  }
+
+  async function renameOption(kind,item,name) {
+    const table=kind==="category"?"categories":kind==="tag"?"tags":"ai_tools";
+    const values=kind==="category"?{name,slug:slugify(name)}:{name};
+    const {data,error}=await supabase.from(table).update(values).eq("id",item.id).select("id,name").single();
+    if(error){setMessage(`Could not rename ${kind}: ${error.message}`,"error");return;}
+    const list=kind==="category"?categories:kind==="tag"?tags:aiTools;
+    const map=kind==="category"?selectedCategories:kind==="tag"?selectedTags:null;
+    const old=item.name; item.name=data.name;
+    if(map?.has(item.id)) map.set(item.id,data.name);
+    if(kind==="tool") document.querySelectorAll('input[name="ai-tool"]').forEach(x=>{if(x.value===old)x.checked=false;});
+    list.sort((a,b)=>(b.usage_count||0)-(a.usage_count||0)||a.name.localeCompare(b.name));
+    renderAll(); setMessage(`${kind} renamed to "${name}".`,"success");
+  }
+
+  async function deleteOption(kind,item) {
+    if(!window.confirm(`Delete ${kind} "${item.name}"? Existing linked records may prevent deletion.`)) return;
+    const table=kind==="category"?"categories":kind==="tag"?"tags":"ai_tools";
+    const {error}=await supabase.from(table).delete().eq("id",item.id);
+    if(error){setMessage(`Could not delete ${kind}: ${error.message}`,"error");return;}
+    if(kind==="category"){categories=categories.filter(x=>x.id!==item.id);selectedCategories.delete(item.id);}
+    else if(kind==="tag"){tags=tags.filter(x=>x.id!==item.id);selectedTags.delete(item.id);}
+    else {aiTools=aiTools.filter(x=>x.id!==item.id);}
+    renderAll(); setMessage(`${kind} deleted.`,"success");
   }
 
   async function loadOptions() {
-    setMessage("Loading categories, tags and shortcuts...");
-
-    const [
-      categoryResult,
-      tagResult,
-      shortcutResult,
-    ] = await Promise.all([
-      supabase.from("categories").select("id, name").order("name"),
-      supabase.from("tags").select("id, name").order("name"),
-      supabase.from("shortcuts").select("id, name").order("name"),
+    setMessage("Loading categories, tags and AI tools...");
+    const [catRes,tagRes,toolRes,promptRes,pcRes,ptRes]=await Promise.all([
+      supabase.from("categories").select("id,name,slug"),
+      supabase.from("tags").select("id,name"),
+      supabase.from("ai_tools").select("id,name"),
+      supabase.from("prompts").select("ai_tools"),
+      supabase.from("prompt_categories").select("category_id"),
+      supabase.from("prompt_tags").select("tag_id")
     ]);
-
-    const error =
-      categoryResult.error ||
-      tagResult.error ||
-      shortcutResult.error;
-
-    if (error) {
-      optionsLoaded = false;
-      setMessage(`Could not load options: ${error.message}`, "error");
-      return;
-    }
-
-    categories = categoryResult.data || [];
-    tags = tagResult.data || [];
-    shortcuts = shortcutResult.data || [];
-
-    optionsLoaded = true;
-    renderAll();
-
-    setMessage(
-      `Loaded ${categories.length} categories, ${tags.length} tags and ${shortcuts.length} shortcuts.`
-    );
+    const error=catRes.error||tagRes.error||toolRes.error||promptRes.error||pcRes.error||ptRes.error;
+    if(error){optionsLoaded=false;setMessage(`Could not load options: ${error.message}. Ensure the ai_tools table migration has been run.`,"error");return;}
+    const countBy=(rows,key)=>{const m=new Map();(rows||[]).forEach(r=>m.set(r[key],(m.get(r[key])||0)+1));return m;};
+    const catCounts=countBy(pcRes.data,"category_id"),tagCounts=countBy(ptRes.data,"tag_id"),toolCounts=new Map();
+    (promptRes.data||[]).forEach(p=>(p.ai_tools||[]).forEach(n=>toolCounts.set(n,(toolCounts.get(n)||0)+1)));
+    categories=(catRes.data||[]).map(x=>({...x,usage_count:catCounts.get(x.id)||0})).sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    tags=(tagRes.data||[]).map(x=>({...x,usage_count:tagCounts.get(x.id)||0})).sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    aiTools=(toolRes.data||[]).map(x=>({...x,usage_count:toolCounts.get(x.name)||0})).sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    optionsLoaded=true;renderAll();setMessage(`Loaded ${categories.length} categories, ${tags.length} tags and ${aiTools.length} AI tools.`);
   }
 
   async function createCategory() {
@@ -812,8 +783,8 @@
       return;
     }
 
-    categories.push(data);
-    categories.sort((a, b) => a.name.localeCompare(b.name));
+    categories.push({...data,usage_count:0});
+    categories.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
     selectedCategories.set(data.id, data.name);
 
     input.value = "";
@@ -854,8 +825,8 @@
       return;
     }
 
-    tags.push(data);
-    tags.sort((a, b) => a.name.localeCompare(b.name));
+    tags.push({...data,usage_count:0});
+    tags.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
     selectedTags.set(data.id, data.name);
 
     input.value = "";
@@ -863,12 +834,24 @@
     setMessage(`Tag "${data.name}" created and selected.`, "success");
   }
 
+
+  async function createAiTool() {
+    const input=document.querySelector("#new-ai-tool"); const name=input.value.trim();
+    if(!name){setMessage("Enter an AI tool name first.","error");input.focus();return;}
+    if(aiTools.some(x=>x.name.toLowerCase()===name.toLowerCase())){setMessage("That AI tool already exists.","error");return;}
+    const {data,error}=await supabase.from("ai_tools").insert({name}).select("id,name").single();
+    if(error){setMessage(`AI tool creation failed: ${error.message}`,"error");return;}
+    aiTools.push({...data,usage_count:0}); aiTools.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    input.value="";renderAll();setMessage(`AI tool "${name}" added.`,"success");
+  }
+  document.querySelector("#add-ai-tool").addEventListener("click",createAiTool);
+  document.querySelector("#new-ai-tool").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();createAiTool();}});
+
   document.querySelector("#add-category").addEventListener("click", createCategory);
   document.querySelector("#add-tag").addEventListener("click", createTag);
 
   categorySearch.addEventListener("input", renderAll);
   tagSearch.addEventListener("input", renderAll);
-  shortcutSearch.addEventListener("input", renderAll);
 
   document.querySelector("#new-category").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1011,7 +994,7 @@
 
   async function performSave({
     title, content, description, promptType, status, file,
-    categoryIds, tagIds, shortcutIds, selectedTools,
+    categoryIds, tagIds, selectedTools,
   }) {
     let uploadedPath = null;
     let promptId = editingPromptId;
@@ -1047,7 +1030,6 @@
       const relationSets = [
         ["prompt_categories", "category_id", categoryIds],
         ["prompt_tags", "tag_id", tagIds],
-        ["prompt_shortcuts", "shortcut_id", shortcutIds],
       ];
 
       for (const [table, field, ids] of relationSets) {
@@ -1075,8 +1057,7 @@
       form.reset();
       selectedCategories.clear();
       selectedTags.clear();
-      selectedShortcuts.clear();
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = null;
       thumbnailPreview.removeAttribute("src");
       thumbnailPreview.hidden = true;
@@ -1110,7 +1091,6 @@
 
     const categoryIds = [...selectedCategories.keys()];
     const tagIds = [...selectedTags.keys()];
-    const shortcutIds = [...selectedShortcuts.keys()];
 
     const selectedTools = Array.from(
       document.querySelectorAll('input[name="ai-tool"]:checked')
@@ -1175,7 +1155,6 @@
         file,
         categoryIds,
         tagIds,
-        shortcutIds,
         selectedTools,
       });
     } catch (error) {
@@ -1195,12 +1174,11 @@
     const { data: prompt, error } = await supabase.from("prompts").select("*").eq("id", id).single();
     if (error) { setMessage(error.message, "error"); return; }
 
-    const [cat, tag, shortcut] = await Promise.all([
+    const [cat, tag] = await Promise.all([
       supabase.from("prompt_categories").select("category_id").eq("prompt_id", id),
       supabase.from("prompt_tags").select("tag_id").eq("prompt_id", id),
-      supabase.from("prompt_shortcuts").select("shortcut_id").eq("prompt_id", id),
     ]);
-    const relationError = cat.error || tag.error || shortcut.error;
+    const relationError = cat.error || tag.error;
     if (relationError) { setMessage(relationError.message, "error"); return; }
 
     editingPromptId = id;
@@ -1213,7 +1191,6 @@
 
     selectedCategories.clear();
     selectedTags.clear();
-    selectedShortcuts.clear();
     for (const row of cat.data || []) {
       const item = categories.find((x) => x.id === row.category_id);
       if (item) selectedCategories.set(item.id, item.name);
@@ -1221,10 +1198,6 @@
     for (const row of tag.data || []) {
       const item = tags.find((x) => x.id === row.tag_id);
       if (item) selectedTags.set(item.id, item.name);
-    }
-    for (const row of shortcut.data || []) {
-      const item = shortcuts.find((x) => x.id === row.shortcut_id);
-      if (item) selectedShortcuts.set(item.id, item.name);
     }
     document.querySelectorAll('input[name="ai-tool"]').forEach((input) => {
       input.checked = (prompt.ai_tools || []).includes(input.value);
@@ -1256,7 +1229,6 @@
     form.reset();
     selectedCategories.clear();
     selectedTags.clear();
-    selectedShortcuts.clear();
     renderAll();
     document.querySelector("#form-heading").textContent = "Add new prompt";
     saveButton.textContent = "Publish prompt";
@@ -1293,12 +1265,10 @@
       optionsLoaded = false;
       categories = [];
       tags = [];
-      shortcuts = [];
 
       selectedCategories.clear();
       selectedTags.clear();
-      selectedShortcuts.clear();
-
+  
       renderAll();
       setMessage("Sign in as an administrator to load categories and tags.");
     }
