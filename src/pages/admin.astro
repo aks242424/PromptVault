@@ -835,8 +835,8 @@ import PromptForm from "../components/PromptForm.astro";
       if (tagResult.error) throw tagResult.error;
       if (existingResult.error) throw existingResult.error;
 
-      const categories = new Map((categoryResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
-      const tags = new Map((tagResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
+      const categories = new Map<string, any>((categoryResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
+      const tags = new Map<string, any>((tagResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
       const existingTitles = new Set((existingResult.data || []).map((item: any) => normalizeTitle(item.title || "")));
       const existingContents = new Set((existingResult.data || []).map((item: any) => normalizeContent(item.content || "")));
       const seenTitles = new Set<string>();
@@ -854,10 +854,9 @@ import PromptForm from "../components/PromptForm.astro";
         if (!content) issues.push("content is required");
         if (!["image", "video", "other"].includes(promptType)) issues.push("prompt_type must be image, video, or other");
 
-        const categoryIds = categoryNames.map((name) => categories.get(name.toLowerCase())?.id);
-        const tagIds = tagNames.map((name) => tags.get(name.toLowerCase())?.id);
-        categoryNames.forEach((name, i) => { if (!categoryIds[i]) issues.push(`category does not exist: ${name}`); });
-        tagNames.forEach((name, i) => { if (!tagIds[i]) issues.push(`tag does not exist: ${name}`); });
+        // Missing categories and tags are created during import; they are not validation errors.
+        const categoryIds = categoryNames.map((name) => categories.get(name.trim().toLowerCase())?.id).filter(Boolean);
+        const tagIds = tagNames.map((name) => tags.get(name.trim().toLowerCase())?.id).filter(Boolean);
 
         const normalizedTitle = normalizeTitle(title), normalized = normalizeContent(content);
         const duplicateReasons: string[] = [];
@@ -871,7 +870,7 @@ import PromptForm from "../components/PromptForm.astro";
         validatedRows.push({
           line, title, content, prompt_type: promptType,
           description: get("description") || null, ai_tools: aiTools,
-          categoryIds: categoryIds.filter(Boolean), tagIds: tagIds.filter(Boolean), normalized,
+          categoryNames, tagNames, categoryIds, tagIds, normalized,
           state: issues.length ? "invalid" : duplicateReasons.length ? "duplicate" : "ready",
           reason: [...issues, ...duplicateReasons].join("; "),
           selected: issues.length === 0 && duplicateReasons.length === 0
@@ -897,6 +896,98 @@ import PromptForm from "../components/PromptForm.astro";
       updateSelectionCount();
     }
   });
+
+  async function ensureNamedRecords(tableName: "categories" | "tags", names: string[]) {
+    const uniqueNames = Array.from(
+      new Map(names.map((name) => [name.trim().toLowerCase(), name.trim()])).values()
+    ).filter(Boolean);
+    if (!uniqueNames.length) return new Map<string, string>();
+
+    const table = supabase.from(tableName as any);
+    const { data: existing, error: readError } = await table.select("id, name");
+    if (readError) throw readError;
+
+    const ids = new Map<string, string>();
+    (existing || []).forEach((record: any) => {
+      if (record?.name && record?.id) {
+        ids.set(String(record.name).trim().toLowerCase(), record.id);
+      }
+    });
+
+    const slugifyCategory = (value: string) => value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    for (const name of uniqueNames) {
+      const key = name.toLowerCase();
+      if (ids.has(key)) continue;
+
+      // Keep category creation identical to PromptForm.astro's existing schema.
+      let payload: Record<string, string>;
+      if (tableName === "categories") {
+        const slug = slugifyCategory(name);
+        if (!slug) throw new Error(`Category "${name}" cannot be converted into a valid slug.`);
+        payload = { name, slug, applies_to: "prompt" };
+      } else {
+        payload = { name };
+      }
+
+      let createError: any = null;
+      let created: any = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const result = await supabase
+          .from(tableName as any)
+          .insert(payload)
+          .select("id, name")
+          .single();
+        createError = result.error;
+        created = result.data;
+
+        if (!createError && created?.id) break;
+
+        // A concurrent import may have created the same name after our initial read.
+        const { data: refreshed, error: refreshError } = await supabase
+          .from(tableName as any)
+          .select("id, name");
+        if (refreshError) throw refreshError;
+        const match = (refreshed || []).find(
+          (record: any) => String(record?.name || "").trim().toLowerCase() === key
+        );
+        if (match?.id) {
+          ids.set(key, match.id);
+          created = null;
+          createError = null;
+          break;
+        }
+
+        // Retry a category slug collision when a different name normalizes to the same slug.
+        if (
+          tableName === "categories" &&
+          attempt === 0 &&
+          (createError?.code === "23505" || /duplicate key|unique constraint/i.test(createError?.message || ""))
+        ) {
+          payload.slug = `${slugifyCategory(name)}-${crypto.randomUUID().slice(0, 6)}`;
+          continue;
+        }
+        break;
+      }
+
+      if (ids.has(key)) continue;
+      if (!createError && created?.id) {
+        ids.set(String(created.name || name).trim().toLowerCase(), created.id);
+        continue;
+      }
+
+      const detail = createError?.message || "The database did not return the created record.";
+      throw new Error(
+        `Could not create ${tableName === "categories" ? "category" : "tag"} "${name}": ${detail}`
+      );
+    }
+
+    return ids;
+  }
 
   csvImportButton.addEventListener("click", async () => {
     if (!validationReady) return;
@@ -924,6 +1015,34 @@ import PromptForm from "../components/PromptForm.astro";
       ].filter(Boolean);
       return parts.length ? parts.join(" · ") : String(error);
     };
+
+    // Create/reuse categories and tags before inserting prompts, so each prompt
+    // can be linked using the same relationship tables as PromptForm.astro.
+    try {
+      const categoryNames = selected.flatMap((item) => item.categoryNames || []);
+      const tagNames = selected.flatMap((item) => item.tagNames || []);
+      const categoryIdsByName = await ensureNamedRecords("categories", categoryNames);
+      const tagIdsByName = await ensureNamedRecords("tags", tagNames);
+
+      selected.forEach((item) => {
+        item.categoryIds = (item.categoryNames || [])
+          .map((name: string) => categoryIdsByName.get(name.trim().toLowerCase()))
+          .filter(Boolean);
+        item.tagIds = (item.tagNames || [])
+          .map((name: string) => tagIdsByName.get(name.trim().toLowerCase()))
+          .filter(Boolean);
+      });
+    } catch (error: any) {
+      const message = error?.message || getSupabaseError(error);
+      showCsvErrors([`Could not prepare categories/tags: ${message}`]);
+      csvValidation.className = "bulk-validation error";
+      csvValidation.textContent = "Import stopped before creating prompts because categories or tags could not be prepared.";
+      csvValidateButton.disabled = !selectedCsvFile;
+      csvValidateButton.textContent = "1. Validate CSV";
+      csvImportButton.textContent = "2. Import selected";
+      updateSelectionCount();
+      return;
+    }
 
     for (const item of selected) {
       let insertedPromptId: string | null = null;
