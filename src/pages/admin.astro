@@ -641,18 +641,33 @@ import PromptForm from "../components/PromptForm.astro";
     updateBulkActionBar();
   }
 
+  let shortcutTypeColumnAvailable = true;
+
   async function loadDashboard() {
     dashboardMessage.textContent = "Refreshing...";
     $("#shortcut-message").textContent = "Refreshing shortcuts...";
-    const [promptsResult, shortcutsResult, categoriesResult, promptDraftsResult, shortcutDraftsResult, promptsDataResult, shortcutsDataResult] = await Promise.all([
+    const [promptsResult, shortcutsResult, categoriesResult, promptDraftsResult, shortcutDraftsResult, promptsDataResult] = await Promise.all([
       supabase.from("prompts").select("id", { count: "exact", head: true }),
       supabase.from("shortcuts").select("id", { count: "exact", head: true }),
       supabase.from("categories").select("id", { count: "exact", head: true }),
       supabase.from("prompts").select("id", { count: "exact", head: true }).eq("status", "draft"),
       supabase.from("shortcuts").select("id", { count: "exact", head: true }).eq("status", "draft"),
-      supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false }),
-      supabase.from("shortcuts").select("id, name, description, shortcut_type, status, created_at").order("created_at", { ascending: false })
+      supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false })
     ]);
+
+    // Older databases may not yet have shortcuts.shortcut_type. Keep the rest of
+    // the admin dashboard usable while clearly disabling only that optional field.
+    let shortcutsDataResult = await supabase.from("shortcuts")
+      .select("id, name, description, shortcut_type, status, created_at")
+      .order("created_at", { ascending: false });
+    if (shortcutsDataResult.error && /shortcut_type|column .* does not exist|schema cache/i.test(shortcutsDataResult.error.message || "")) {
+      shortcutTypeColumnAvailable = false;
+      shortcutsDataResult = await supabase.from("shortcuts")
+        .select("id, name, description, status, created_at")
+        .order("created_at", { ascending: false });
+    } else if (!shortcutsDataResult.error) {
+      shortcutTypeColumnAvailable = true;
+    }
     const errors = [promptsResult.error, shortcutsResult.error, categoriesResult.error, promptDraftsResult.error, shortcutDraftsResult.error, promptsDataResult.error, shortcutsDataResult.error].filter(Boolean);
     if (errors.length) {
       const message = errors[0]?.message || "Could not load dashboard data.";
@@ -732,7 +747,12 @@ import PromptForm from "../components/PromptForm.astro";
         type.append(option);
       });
       type.value = ["Image", "Video", "Other"].includes(shortcut.shortcut_type) ? shortcut.shortcut_type : "Other";
+      if (!shortcutTypeColumnAvailable) {
+        type.disabled = true;
+        type.title = "Add the shortcuts.shortcut_type database column to enable shortcut types.";
+      }
       type.addEventListener("change", async () => {
+        if (!shortcutTypeColumnAvailable) return;
         const previousType = shortcut.shortcut_type || "Other";
         type.disabled = true;
         try {
