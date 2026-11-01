@@ -186,8 +186,9 @@ import MainLayout from "../layouts/MainLayout.astro";
         card.append(top);
 
         const meta = makeElement("div", "card-meta");
-        meta.append(makeElement("span", "category-name", (item.categories || [])[0] || "Shortcut"));
-        meta.append(makeElement("span", "command-label", item.shortcut_type || "Other"));
+        if ((item.categories || []).length) {
+          meta.append(makeElement("span", "category-name", item.categories[0]));
+        }
         card.append(meta);
 
         card.append(makeElement("h3", "", item.name));
@@ -253,18 +254,10 @@ import MainLayout from "../layouts/MainLayout.astro";
       grid.replaceChildren(makeElement("p", "load-state", "Loading published shortcuts..."));
       errorMessage?.classList.add("hidden");
       try {
-        // shortcut_type is optional on older deployments. The public library must
-        // still load if that migration has not yet been applied.
-        let baseResult = await supabase.from("shortcuts")
-          .select("id, name, description, shortcut_type, created_at")
+        const baseResult = await supabase.from("shortcuts")
+          .select("id, name, description, created_at")
           .eq("status", "published")
           .order("created_at", { ascending: false });
-        if (baseResult.error && /shortcut_type|column .* does not exist|schema cache/i.test(baseResult.error.message || "")) {
-          baseResult = await supabase.from("shortcuts")
-            .select("id, name, description, created_at")
-            .eq("status", "published")
-            .order("created_at", { ascending: false });
-        }
         if (baseResult.error) throw baseResult.error;
         const rows = baseResult.data || [];
         const ids = rows.map((row: any) => row.id);
@@ -298,7 +291,6 @@ import MainLayout from "../layouts/MainLayout.astro";
         const tagNames = new Map((tagsResult.data || []).map((row: any) => [row.id, row.name]));
         shortcuts = rows.map((row: any) => ({
           ...row,
-          shortcut_type: row.shortcut_type || "Other",
           categories: categoryRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => categoryNames.get(rel.category_id)).filter(Boolean),
           tags: tagRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => tagNames.get(rel.tag_id)).filter(Boolean),
         }));
@@ -730,16 +722,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     font-family: "JetBrains Mono",monospace;
     font-size: 9px;
   }
-
-  .command-label {
-    padding-left: 10px;
-    border-left: 1px solid rgba(255,255,255,.15);
-    color: #858692;
-    font-family: "JetBrains Mono",monospace;
-    font-size: 9px;
-  }
-
-  .shortcut-card h3 {
+.shortcut-card h3 {
     position: relative;
     z-index: 1;
     margin: 13px 0 0;
