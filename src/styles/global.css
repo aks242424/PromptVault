@@ -223,37 +223,6 @@ img, svg, video {
   border-color: color-mix(in srgb, var(--section-accent, var(--pv-violet)) 35%, transparent);
 }
 
-.utility-button {
-  display: flex;
-  width: 42px;
-  height: 42px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, .025);
-  color: #aaa8b4;
-  transition: transform .2s ease, background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
-}
-
-.utility-button:hover {
-  transform: translateY(-2px);
-  border-color: rgba(167, 139, 250, .32);
-  background: linear-gradient(135deg, rgba(139, 92, 246, .16), rgba(34, 211, 238, .08));
-  color: #eee8ff;
-  box-shadow: 0 7px 22px rgba(91, 54, 155, .18);
-}
-
-.utility-button svg {
-  width: 19px;
-  height: 19px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 button:not(.utility-button) {
   transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease, filter .2s ease;
 }
@@ -284,10 +253,6 @@ hr {
     padding-bottom: 88px;
   }
 
-  .utility-mobile .utility-button {
-    width: 44px;
-    height: 42px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
