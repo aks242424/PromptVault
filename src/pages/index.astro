@@ -1,8 +1,8 @@
 ---
 import MainLayout from "../layouts/MainLayout.astro";
 
-const pageTitle = "PromptVault — Find inspiration. Create without limits.";
-const pageDescription = "Discover curated AI image prompts, cinematic video prompts and creative shortcuts in one modern library.";
+const pageTitle = "PromptVault | AI Image & Video Prompt Library";
+const pageDescription = "Search and discover curated AI image prompts, cinematic video prompts, and creative shortcuts in PromptVault.";
 ---
 
 <MainLayout title={pageTitle} description={pageDescription}>
@@ -16,10 +16,11 @@ const pageDescription = "Discover curated AI image prompts, cinematic video prom
         <div class="hero-badge"><span class="badge-dot"></span> THE CREATIVE PROMPT LIBRARY</div>
         <h1 id="hero-title">Find your next <span class="hero-gradient">great idea.</span><span class="hero-subtitle">Create without limits.</span></h1>
         <p class="hero-description">A curated space for striking AI images, cinematic video, and useful creative shortcuts. Find a starting point, then make it yours.</p>
-        <form action="/explore" method="get" class="search-box" role="search">
+        <div class="search-label">SEARCH THE LIBRARY <span>·</span> PROMPTS &amp; SHORTCUTS</div>
+        <form action="/explore" method="get" class="search-box" role="search" aria-label="Search prompts and shortcuts">
           <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg>
-          <input name="q" type="search" autocomplete="off" placeholder="Search prompts, styles, shortcuts..." aria-label="Search the PromptVault library" />
-          <button type="submit">Explore <span aria-hidden="true">↗</span></button>
+          <input name="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Try “cinematic portrait”, “4K”, or “/windy”..." aria-label="Search prompts, styles, and shortcuts" />
+          <button type="submit"><span class="button-word">Search</span><span class="button-arrow" aria-hidden="true">↗</span></button>
         </form>
         <nav class="popular-searches" aria-label="Popular searches">
           <span>TRY</span>
@@ -84,13 +85,13 @@ const pageDescription = "Discover curated AI image prompts, cinematic video prom
   .hero-gradient{display:block;background:linear-gradient(100deg,#b69aff 5%,#8eb5ff 52%,#ff9b9b 100%);background-clip:text;-webkit-background-clip:text;color:transparent}
   .hero-subtitle{display:block;margin-top:7px;color:#f4f0fa;font-size:.69em;letter-spacing:-.06em}
   .hero-description{max-width:640px;margin:25px auto 0;color:#aaa9b7;font-size:16px;line-height:1.85}
-  .search-box{display:flex;align-items:center;gap:13px;width:min(100%,650px);min-height:68px;margin:36px auto 0;padding:9px 10px 9px 20px;border:1px solid rgba(255,255,255,.13);border-radius:17px;background:linear-gradient(130deg,rgba(31,31,41,.94),rgba(17,18,25,.96));box-shadow:0 20px 65px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(20px);transition:border-color .2s,box-shadow .2s}
+  .search-label{width:min(100%,650px);margin:28px auto -25px;text-align:left;color:#8d8b9b;font:600 9px "JetBrains Mono",monospace;letter-spacing:.16em}.search-label span{padding:0 5px;color:#67e8f9}.search-box{display:flex;align-items:center;gap:13px;width:min(100%,650px);min-height:68px;margin:36px auto 0;padding:9px 10px 9px 20px;border:1px solid rgba(255,255,255,.13);border-radius:17px;background:linear-gradient(130deg,rgba(31,31,41,.94),rgba(17,18,25,.96));box-shadow:0 20px 65px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(20px);transition:border-color .2s,box-shadow .2s}
   .search-box:focus-within{border-color:rgba(103,232,249,.5);box-shadow:0 0 0 3px rgba(103,232,249,.08),0 20px 65px rgba(0,0,0,.35)}
   .search-icon{width:19px;height:19px;flex:none;fill:none;stroke:#67d9ed;stroke-width:1.8;stroke-linecap:round}
   .search-box input{width:100%;min-width:0;height:45px;padding:0;border:0;outline:0;background:transparent;color:#f5f3f8;font:400 14px "DM Sans",sans-serif;box-shadow:none}
   .search-box input:focus{border:0;outline:0;box-shadow:none}.search-box input::placeholder{color:#858593}
-  .search-box button{flex:none;min-width:105px;height:45px;padding:0 17px;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:linear-gradient(115deg,#b69aff,#8eb5ff);color:#171321;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s}
-  .search-box button:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(142,181,255,.24)}.search-box button span{margin-left:7px}
+  .search-box button{display:inline-flex;align-items:center;justify-content:center;flex:none;min-width:118px;height:45px;padding:0 17px;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:linear-gradient(115deg,#b69aff,#8eb5ff);color:#171321;font-size:13px;font-weight:700;cursor:pointer;transition:transform .2s,box-shadow .2s}
+  .search-box button:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(142,181,255,.24)}.search-box button:focus-visible{outline:3px solid rgba(103,232,249,.65);outline-offset:3px}.search-box button .button-arrow{margin-left:9px}.search-box button .button-word{margin-left:0}
   .popular-searches{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:19px;margin-top:20px;color:#858492;font:10px "JetBrains Mono",monospace}.popular-searches>span{color:#6f6e7c;letter-spacing:.12em}.popular-searches a{color:#aaa8b5;transition:color .2s}.popular-searches a:hover{color:#83e8f2}
   .hero-footer{position:absolute;right:6%;bottom:22px;left:6%;display:flex;justify-content:space-between;color:#666775;font:9px "JetBrains Mono",monospace;letter-spacing:.13em}
   .library-section{width:min(calc(100% - 48px),1250px);margin:0 auto;padding:66px 0 80px}
@@ -108,7 +109,7 @@ const pageDescription = "Discover curated AI image prompts, cinematic video prom
   .bottom-note{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:38px;color:#656573;font:9px "JetBrains Mono",monospace;letter-spacing:.16em}.note-line{width:48px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.18))}.note-line:last-child{transform:rotate(180deg)}
   @media(min-width:1400px){.hero{min-height:660px}}
   @media(max-width:900px){.category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{min-height:570px}}
-  @media(max-width:600px){.hero{min-height:570px;padding:72px 19px 92px}.hero h1{margin-top:27px;font-size:clamp(43px,11vw,62px)}.hero-description{margin-top:20px;font-size:14px}.search-box{gap:9px;margin-top:28px;padding:7px 8px 7px 13px}.search-box button{min-width:82px;padding:0 11px;font-size:12px}.search-box input{font-size:12px}.popular-searches{gap:12px;font-size:9px}.hero-footer{right:19px;left:19px;font-size:8px}.library-section{width:calc(100% - 36px);padding:48px 0 65px}.section-heading{align-items:flex-start}.view-all{padding:9px 10px;font-size:10px}.category-grid{gap:11px}.category-card{min-height:190px;padding:16px}.category-icon{width:41px;height:41px}.card-content h3{font-size:17px}.card-content p{font-size:11px}.card-watermark{font-size:120px}.bottom-note{font-size:8px;gap:10px}}
+  @media(max-width:600px){.hero{min-height:570px;padding:72px 19px 92px}.hero h1{margin-top:27px;font-size:clamp(43px,11vw,62px)}.hero-description{margin-top:20px;font-size:14px}.search-box{gap:9px;margin-top:28px;padding:7px 8px 7px 13px}.search-box button{min-width:88px;padding:0 11px;font-size:12px}.search-label{margin-top:24px;font-size:8px}.search-box input{font-size:12px}.popular-searches{gap:12px;font-size:9px}.hero-footer{right:19px;left:19px;font-size:8px}.library-section{width:calc(100% - 36px);padding:48px 0 65px}.section-heading{align-items:flex-start}.view-all{padding:9px 10px;font-size:10px}.category-grid{gap:11px}.category-card{min-height:190px;padding:16px}.category-icon{width:41px;height:41px}.card-content h3{font-size:17px}.card-content p{font-size:11px}.card-watermark{font-size:120px}.bottom-note{font-size:8px;gap:10px}}
   @media(max-width:380px){.category-grid{grid-template-columns:1fr}.category-card{min-height:165px}.section-heading{flex-direction:column}.view-all{align-self:flex-start}}
   @media(prefers-reduced-motion:reduce){.category-card,.view-all,.search-box,.search-box button,.category-card::before{transition:none}}
 </style>
