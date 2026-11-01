@@ -120,7 +120,7 @@ import PromptForm from "../components/PromptForm.astro";
               <li>Prompts require <code>title</code>, <code>content</code> and <code>prompt_type</code> (<code>image</code>, <code>video</code> or <code>other</code>).</li>
               <li>Shortcuts require <code>name</code> and <code>description</code>.</li>
               <li>All imported prompts and shortcuts are saved as <code>draft</code>, even if the CSV contains a status value.</li>
-              <li>Separate categories and tags with <code>|</code>. AI tools apply to prompts only.</li>
+              <li>Separate each category and tag with <code>|</code> or <code>;</code>. Each value is created and linked individually. AI tools apply to prompts only.</li>
               <li>Use standard CSV quotes around values containing commas, quotes or line breaks.</li>
             </ul>
             <div class="csv-example"><span>Example rows</span><code>prompt,"Neon Portrait",,"A cinematic neon-lit portrait...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft<br />shortcut,,"Copy prompt shortcut",,"Quick description",,"Productivity|Writing","Workflow|Copy",,published</code></div>
@@ -950,13 +950,19 @@ import PromptForm from "../components/PromptForm.astro";
   }
 
   function splitList(value: string) {
+    // CSV category/tag cells may use either pipe or semicolon separators.
+    // Treat every token as a separate database category/tag, and deduplicate
+    // case-insensitively within the same CSV cell.
     const seen = new Set<string>();
-    return value.split("|").map((part) => part.trim()).filter((part) => {
-      const key = part.toLocaleLowerCase();
-      if (!part || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    return value
+      .split(/[|;\n\r]+/)
+      .map((part) => part.trim().replace(/^(["'])|(["'])$/g, "").trim())
+      .filter((part) => {
+        const key = part.toLocaleLowerCase();
+        if (!part || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
   }
   function normalizeContent(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
   function normalizeTitle(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
