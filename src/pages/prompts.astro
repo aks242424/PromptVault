@@ -92,33 +92,36 @@ import MainLayout from "../layouts/MainLayout.astro";
     }
 
     function renderCard(prompt: any, index: number) {
-      const isVideo = prompt.prompt_type === "video";
-      const card = element("article", `prompt-card ${isVideo ? "prompt-video" : "prompt-image"}`);
-      const searchable = [
-        prompt.title,
-        prompt.description,
-        prompt.categories.join(" "),
-        prompt.tags.join(" "),
-        (prompt.ai_tools || []).join(" "),
-      ].filter(Boolean).join(" ").toLowerCase();
+      const promptType = String(prompt.prompt_type || "other").toLowerCase();
+      const isVideo = promptType === "video";
+      const isImage = promptType === "image";
+      const card = element("article", `prompt-card ${isVideo ? "prompt-video" : isImage ? "prompt-image" : "prompt-other"}`);
+      const categories = Array.isArray(prompt.categories) ? prompt.categories : [];
+      const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
+      const content = String(prompt.content || "");
+      const title = String(prompt.title || "Untitled prompt");
+      const description = String(prompt.description || "");
+      const searchable = [title, description, content, categories.join(" "), tags.join(" "), (prompt.ai_tools || []).join(" ")]
+        .filter(Boolean).join(" ").toLowerCase();
 
       card.id = `prompt-${prompt.id}`;
       card.dataset.id = String(prompt.id);
-      card.dataset.type = prompt.prompt_type || "other";
-      card.dataset.categories = JSON.stringify(prompt.categories || []);
+      card.dataset.type = promptType;
+      card.dataset.categories = JSON.stringify(categories);
       card.dataset.search = searchable;
 
       const top = element("div", "card-topline");
-      top.append(element("span", "type-mark", isVideo ? "▶" : "✳"));
-      const topActions = element("div", "card-actions");
+      const mark = element("span", "type-mark", isVideo ? "▶" : isImage ? "✳" : "✦");
+      mark.setAttribute("aria-label", `${promptType} prompt`);
+      const topActions = element("div", "card-top-actions");
       topActions.append(element("span", "card-number", String(index + 1).padStart(2, "0")));
       const favourite = element("button", "utility-favourite", "☆") as HTMLButtonElement;
       favourite.type = "button";
       favourite.dataset.utilityFavourite = "true";
       favourite.dataset.itemType = "prompt";
       favourite.dataset.itemId = String(prompt.id);
-      favourite.dataset.itemTitle = prompt.title || "Untitled prompt";
-      favourite.setAttribute("aria-label", `Add ${prompt.title || "prompt"} to favourites`);
+      favourite.dataset.itemTitle = title;
+      favourite.setAttribute("aria-label", `Add ${title} to favourites`);
       favourite.setAttribute("aria-pressed", "false");
       favourite.addEventListener("click", () => {
         const key = "promptvault:favourites";
@@ -130,22 +133,23 @@ import MainLayout from "../layouts/MainLayout.astro";
         const exists = saved.some((item) => item.type === "prompt" && String(item.id) === String(prompt.id));
         saved = exists
           ? saved.filter((item) => !(item.type === "prompt" && String(item.id) === String(prompt.id)))
-          : [...saved, { type: "prompt", id: String(prompt.id), title: prompt.title || "Untitled prompt", url: "/prompts" }];
+          : [...saved, { type: "prompt", id: String(prompt.id), title, url: "/prompts" }];
         localStorage.setItem(key, JSON.stringify(saved));
-        const active = !exists;
-        favourite.textContent = active ? "★" : "☆";
-        favourite.setAttribute("aria-pressed", String(active));
-        favourite.setAttribute("aria-label", `${active ? "Remove" : "Add"} ${prompt.title || "prompt"} ${active ? "from" : "to"} favourites`);
+        favourite.textContent = exists ? "☆" : "★";
+        favourite.classList.toggle("is-favourite", !exists);
+        favourite.setAttribute("aria-pressed", String(!exists));
+        favourite.setAttribute("aria-label", `${exists ? "Add" : "Remove"} ${title} ${exists ? "to" : "from"} favourites`);
         window.dispatchEvent(new CustomEvent("promptvault:favourites-updated"));
       });
       topActions.append(favourite);
-      top.append(topActions);
+      top.append(mark, topActions);
       card.append(top);
 
       try {
         const saved = JSON.parse(localStorage.getItem("promptvault:favourites") || "[]");
         const active = Array.isArray(saved) && saved.some((item) => item.type === "prompt" && String(item.id) === String(prompt.id));
         favourite.textContent = active ? "★" : "☆";
+        favourite.classList.toggle("is-favourite", active);
         favourite.setAttribute("aria-pressed", String(active));
       } catch {}
 
@@ -154,7 +158,7 @@ import MainLayout from "../layouts/MainLayout.astro";
         if (data?.publicUrl) {
           const image = element("img", "prompt-thumbnail") as HTMLImageElement;
           image.src = data.publicUrl;
-          image.alt = prompt.title || "Prompt thumbnail";
+          image.alt = title;
           image.loading = "lazy";
           image.addEventListener("error", () => image.remove(), { once: true });
           card.append(image);
@@ -162,43 +166,43 @@ import MainLayout from "../layouts/MainLayout.astro";
       }
 
       const meta = element("div", "card-meta");
-      meta.append(element("span", "category-name", prompt.categories.join(" · ") || "Uncategorized"));
-      meta.append(element("span", "type-name", isVideo ? "VIDEO" : "IMAGE"));
+      meta.append(element("span", "category-name", categories.join(" · ") || "Uncategorized"));
+      meta.append(element("span", "type-name", promptType.toUpperCase()));
       card.append(meta);
+      card.append(element("h3", "", title));
+      card.append(element("p", "card-description", description));
 
-      card.append(element("h3", "", prompt.title || "Untitled prompt"));
-      card.append(element("p", "card-description", prompt.description || ""));
+      if (tags.length) {
+        const tagList = element("div", "tag-list");
+        tags.slice(0, 4).forEach((tag: string) => tagList.append(element("span", "", `#${tag}`)));
+        card.append(tagList);
+      }
 
-      const tags = element("div", "tag-list");
-      (prompt.tags || []).forEach((tag: string) => tags.append(element("span", "", `#${tag}`)));
-      card.append(tags);
-
-      const preview = element("div", "prompt-preview");
-      const details = element("details", "preview-details");
-      const summary = element("summary");
-      summary.append(element("span", "", "Preview prompt"), element("span", "preview-arrow", "⌄"));
-      const content = element("div", "preview-content");
-      const promptText = element("p", "", prompt.content || "");
+      const footer = element("div", "card-footer");
+      const ready = element("span", "ready-label", "READY TO USE");
       const copy = element("button", "copy-prompt") as HTMLButtonElement;
       copy.type = "button";
-      copy.dataset.copy = prompt.content || "";
+      copy.disabled = !content.trim();
       copy.append(element("span", "copy-icon", "▢"), document.createTextNode(" Copy prompt"));
       copy.addEventListener("click", async () => {
-        if (!copy.dataset.copy) return;
+        if (!content.trim()) return;
         try {
-          await navigator.clipboard.writeText(copy.dataset.copy);
+          await navigator.clipboard.writeText(content);
           copy.replaceChildren(element("span", "copy-icon", "✓"), document.createTextNode(" Copied"));
+          copy.classList.add("copied");
           window.setTimeout(() => {
             copy.replaceChildren(element("span", "copy-icon", "▢"), document.createTextNode(" Copy prompt"));
-          }, 1500);
+            copy.classList.remove("copied");
+          }, 1600);
         } catch {
-          copy.textContent = "Copy failed";
+          copy.replaceChildren(document.createTextNode("Copy unavailable"));
         }
       });
-      content.append(promptText, copy);
-      details.append(summary, content);
-      details.addEventListener("toggle", () => {
-        if (!details.open) return;
+      footer.append(ready, copy);
+      card.append(footer);
+
+      card.addEventListener("click", (event) => {
+        if ((event.target as HTMLElement).closest("button")) return;
         const key = "promptvault:recent";
         let recent: any[] = [];
         try {
@@ -206,12 +210,10 @@ import MainLayout from "../layouts/MainLayout.astro";
           recent = Array.isArray(parsed) ? parsed : [];
         } catch {}
         recent = recent.filter((item) => !(item.type === "prompt" && String(item.id) === String(prompt.id)));
-        recent.unshift({ type: "prompt", id: String(prompt.id), title: prompt.title || "Untitled prompt", url: "/prompts" });
+        recent.unshift({ type: "prompt", id: String(prompt.id), title, url: "/prompts" });
         localStorage.setItem(key, JSON.stringify(recent.slice(0, 20)));
         window.dispatchEvent(new CustomEvent("promptvault:recent-updated"));
       });
-      preview.append(details);
-      card.append(preview);
       return card;
     }
 
@@ -223,7 +225,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       Array.from(grid?.querySelectorAll<HTMLElement>(".prompt-card") || []).forEach((card) => {
         const show =
           (card.dataset.search || "").includes(query) &&
-          (activeType === "all" || card.dataset.type === activeType) &&
+          (activeType === "all" || (card.dataset.type || "").toLowerCase() === activeType) &&
           (category === "all" || JSON.parse(card.dataset.categories || "[]").includes(category));
         card.classList.toggle("hidden", !show);
         if (show) visible++;
@@ -650,7 +652,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   .prompt-grid {
     display: grid;
     grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 16px;
+    align-items: stretch;
+    gap: 18px;
   }
 
   .prompt-card {
@@ -659,7 +662,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     position: relative;
     display: flex;
     min-width: 0;
-    min-height: 330px;
+    min-height: 290px;
     flex-direction: column;
     overflow: hidden;
     padding: 21px;
@@ -671,8 +674,23 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .prompt-video {
-    --accent: #fda4af;
-    --accent-rgb: 251,113,133;
+    --accent: #c4b5fd;
+    --accent-rgb: 167,139,250;
+  }
+
+  .prompt-other {
+    --accent: #67e8f9;
+    --accent-rgb: 34,211,238;
+  }
+
+  .prompt-card:nth-child(3n + 2):not(.prompt-video):not(.prompt-other) {
+    --accent: #f9a8d4;
+    --accent-rgb: 236,72,153;
+  }
+
+  .prompt-card:nth-child(3n):not(.prompt-video):not(.prompt-other) {
+    --accent: #86efac;
+    --accent-rgb: 74,222,128;
   }
 
   .prompt-card::after {
@@ -749,6 +767,34 @@ import MainLayout from "../layouts/MainLayout.astro";
     font-size: 20px;
   }
 
+  .card-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .utility-favourite {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.11);
+    border-radius: 10px;
+    background: rgba(255,255,255,.035);
+    color: #a1a1aa;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .utility-favourite:hover,
+  .utility-favourite.is-favourite {
+    border-color: rgba(var(--accent-rgb),.48);
+    background: rgba(var(--accent-rgb),.13);
+    color: var(--accent);
+  }
+
   .card-number {
     color: #696b77;
     font-family: "JetBrains Mono",monospace;
@@ -783,9 +829,9 @@ import MainLayout from "../layouts/MainLayout.astro";
     position: relative;
     z-index: 1;
     margin: 13px 0 0;
-    color: #f2f0f5;
+    color: var(--accent);
     font-family: "Space Grotesk",sans-serif;
-    font-size: 19px;
+    font-size: clamp(19px,2vw,24px);
     font-weight: 600;
     letter-spacing: -.035em;
     overflow-wrap: anywhere;
@@ -821,81 +867,72 @@ import MainLayout from "../layouts/MainLayout.astro";
     font-size: 9px;
   }
 
-  .prompt-preview {
+  .card-footer {
     position: relative;
     z-index: 1;
-    margin-top: 18px;
-    padding-top: 13px;
-    border-top: 1px solid rgba(255,255,255,.09);
-  }
-
-  .preview-details summary {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: var(--accent);
-    cursor: pointer;
-    font-size: 11px;
-    font-weight: 600;
-    list-style: none;
+    gap: 12px;
+    margin-top: auto;
+    padding-top: 17px;
+    border-top: 1px solid rgba(255,255,255,.09);
   }
 
-  .preview-details summary::-webkit-details-marker {
-    display: none;
+  .ready-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #777985;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .1em;
   }
 
-  .preview-arrow {
-    font-size: 17px;
-    transition: transform .2s ease;
-  }
-
-  .preview-details[open] .preview-arrow {
-    transform: rotate(180deg);
-  }
-
-  .preview-content {
-    margin-top: 13px;
-    padding: 14px;
-    border: 1px solid rgba(255,255,255,.07);
-    border-radius: 11px;
-    background: rgba(7,8,12,.62);
-  }
-
-  .preview-content p {
-    max-height: 230px;
-    overflow: auto;
-    color: #b5b4bf;
-    font-size: 11px;
-    line-height: 1.8;
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+  .ready-label::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 10px rgba(74,222,128,.65);
+    content: "";
   }
 
   .copy-prompt {
-    display: flex;
-    width: 100%;
-    min-height: 38px;
+    display: inline-flex;
+    min-height: 42px;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    margin-top: 13px;
-    border: 1px solid rgba(var(--accent-rgb),.24);
-    border-radius: 9px;
-    background: rgba(var(--accent-rgb),.12);
+    padding: 0 15px;
+    border: 1px solid rgba(var(--accent-rgb),.3);
+    border-radius: 10px;
+    background: rgba(var(--accent-rgb),.11);
     color: var(--accent);
     font-size: 11px;
-    font-weight: 600;
-    transition: background .2s ease,border-color .2s ease;
+    font-weight: 650;
+    cursor: pointer;
+    transition: background .2s ease,border-color .2s ease,transform .2s ease;
   }
 
-  .copy-prompt:hover {
-    border-color: rgba(var(--accent-rgb),.5);
-    background: rgba(var(--accent-rgb),.2);
+  .copy-prompt:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(var(--accent-rgb),.55);
+    background: rgba(var(--accent-rgb),.19);
   }
 
-  .copy-icon {
-    font-size: 15px;
+  .copy-prompt:disabled {
+    opacity: .4;
+    cursor: not-allowed;
   }
+
+  .copy-prompt.copied {
+    border-color: rgba(74,222,128,.4);
+    background: rgba(74,222,128,.1);
+    color: #86efac;
+  }
+
+  .copy-icon { font-size: 15px; }
 
   .empty-state {
     padding: 75px 20px;
@@ -1002,7 +1039,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .prompt-card,.preview-arrow,.copy-prompt,.type-button,.search-field {
+    .prompt-card,.copy-prompt,.type-button,.search-field {
       transition: none;
     }
   }
