@@ -81,6 +81,16 @@ import PromptForm from "../components/PromptForm.astro";
               <option value="all">All statuses</option><option value="draft">Drafts</option><option value="published">Published</option>
             </select>
           </div>
+          <div id="shortcut-bulk-actions" class="bulk-actions" hidden>
+            <div class="bulk-selection-info"><strong id="shortcut-bulk-selected-count">0 selected</strong><span>Apply an action to the selected shortcuts.</span></div>
+            <div class="bulk-action-controls">
+              <button id="select-filtered-shortcuts" class="btn btn-quiet" type="button">Select all filtered</button>
+              <button id="clear-shortcut-selection" class="btn btn-quiet" type="button">Clear selection</button>
+              <button id="bulk-publish-shortcuts" class="btn btn-quiet" type="button">Publish</button>
+              <button id="bulk-unpublish-shortcuts" class="btn btn-quiet" type="button">Unpublish</button>
+              <button id="bulk-delete-shortcuts" class="btn btn-danger" type="button">Delete selected</button>
+            </div>
+          </div>
           <div class="admin-table-wrap">
             <div class="admin-table-head shortcut-table-head"><span>Shortcut</span><span>Status</span><span>Created</span><span>Actions</span></div>
             <div id="shortcut-list"><p class="empty-row">Loading shortcuts...</p></div>
@@ -97,7 +107,7 @@ import PromptForm from "../components/PromptForm.astro";
             <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts and shortcuts from CSV</h2></div>
             <button id="download-csv-template" class="btn btn-quiet" type="button">Download CSV template</button>
           </div>
-          <p class="bulk-intro">Choose <code>item_type</code> and <code>status</code> separately on every row. Missing categories and tags are created automatically.</p>
+          <p class="bulk-intro">Import prompts and shortcuts together. Mark each row as <code>prompt</code> or <code>shortcut</code>; new categories and tags are created automatically.</p>
           <div class="csv-format">
             <div class="csv-format-title">CSV columns</div>
             <code>item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status</code>
@@ -106,12 +116,12 @@ import PromptForm from "../components/PromptForm.astro";
               <p><strong>Shortcut required:</strong> <code>name</code>, <code>description</code>.</p>
             </div>
             <ul>
-              <li><code>item_type</code>: required on every row; use <code>prompt</code> or <code>shortcut</code>. Missing values are rejected.</li>
-              <li><code>status</code>: <code>draft</code> or <code>published</code> for each row (defaults to <code>draft</code>).</li>
-              <li><code>prompt_type</code> for prompts: <code>image</code>, <code>video</code>, or <code>other</code>.</li>
-              <li>Separate multiple categories, tags, or AI tools with <code>|</code>. Missing categories and tags are created.</li>
-              <li>Shortcuts use <code>name</code> and <code>description</code>; the shortcuts schema has no content or AI-tools field.</li>
-              <li>Quote values containing commas or line breaks using standard CSV double quotes.</li>
+              <li><code>item_type</code> is required: <code>prompt</code> or <code>shortcut</code>.</li>
+              <li>Prompts require <code>title</code>, <code>content</code> and <code>prompt_type</code> (<code>image</code>, <code>video</code> or <code>other</code>).</li>
+              <li>Shortcuts require <code>name</code> and <code>description</code>.</li>
+              <li><code>status</code> can be <code>draft</code> or <code>published</code>; it defaults to <code>draft</code>.</li>
+              <li>Separate categories and tags with <code>|</code>. AI tools apply to prompts only.</li>
+              <li>Use standard CSV quotes around values containing commas, quotes or line breaks.</li>
             </ul>
             <div class="csv-example"><span>Example rows</span><code>prompt,"Neon Portrait",,"A cinematic neon-lit portrait...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft<br />shortcut,,"Copy prompt shortcut",,"Quick description",,"Productivity|Writing","Workflow|Copy",,published</code></div>
           </div>
@@ -329,6 +339,8 @@ import PromptForm from "../components/PromptForm.astro";
   .shortcut-toolbar { grid-template-columns:minmax(220px,1fr) 170px; }
   .shortcut-table-head,.admin-shortcut-row { grid-template-columns:minmax(280px,1fr) 130px 170px 220px; min-width:800px; }
   .admin-shortcut-row { display:grid; align-items:center; gap:14px; padding:14px 16px; border-top:1px solid #ffffff0d; }
+  .admin-shortcut-row.is-selected { background:#22d3ee0b; }
+  .admin-shortcut-name-wrap { display:flex; align-items:center; gap:11px; min-width:0; }
   .admin-shortcut-row:hover { background:#ffffff06; }
   .admin-shortcut-row > * { min-width:0; }
   .admin-shortcut-name { color:#e2e8f0; font-size:12px; font-weight:680; overflow-wrap:anywhere; }
@@ -470,12 +482,14 @@ import PromptForm from "../components/PromptForm.astro";
   let currentPage = 1;
   const pageSize = 10;
   const selectedPromptIds = new Set<string>();
+  const selectedShortcutIds = new Set<string>();
   let filteredPromptIds: string[] = [];
+  let filteredShortcutIds: string[] = [];
 
   function updateBulkActionBar() {
     const bar = $<HTMLElement>("#bulk-actions");
     const count = selectedPromptIds.size;
-    bar.hidden = count === 0;
+    bar.hidden = filteredPromptIds.length === 0 && count === 0;
     $("#bulk-selected-count").textContent = `${count} selected`;
     const selectedPrompts = allPrompts.filter((prompt) => selectedPromptIds.has(prompt.id));
     const hasDrafts = selectedPrompts.some((prompt) => prompt.status !== "published");
@@ -641,13 +655,27 @@ import PromptForm from "../components/PromptForm.astro";
     $("#shortcut-message").textContent = "";
   }
 
+  function updateShortcutBulkActionBar() {
+    const bar = $("#shortcut-bulk-actions");
+    const selected = allShortcuts.filter((item) => selectedShortcutIds.has(item.id));
+    bar.hidden = filteredShortcutIds.length === 0 && selected.length === 0;
+    $("#shortcut-bulk-selected-count").textContent = `${selected.length} selected`;
+    $("#bulk-publish-shortcuts").disabled = !selected.some((item) => item.status !== "published");
+    $("#bulk-unpublish-shortcuts").disabled = !selected.some((item) => item.status === "published");
+    $("#bulk-delete-shortcuts").disabled = selected.length === 0;
+  }
+
   function renderShortcuts() {
-    const list = $<HTMLElement>("#shortcut-list");
-    const query = $<HTMLInputElement>("#shortcut-search").value.trim().toLowerCase();
-    const status = $<HTMLSelectElement>("#shortcut-status-filter").value;
+    const list = $("#shortcut-list");
+    const query = $("#shortcut-search").value.trim().toLowerCase();
+    const status = $("#shortcut-status-filter").value;
     const filtered = allShortcuts.filter((item) => (item.name || "").toLowerCase().includes(query) && (status === "all" || item.status === status));
     const pages = Math.max(1, Math.ceil(filtered.length / shortcutPageSize));
-    shortcutPage = Math.min(shortcutPage, pages);
+    shortcutPage = Math.min(Math.max(1, shortcutPage), pages);
+    filteredShortcutIds = filtered.map((item) => item.id);
+    for (const id of Array.from(selectedShortcutIds)) {
+      if (!allShortcuts.some((item) => item.id === id)) selectedShortcutIds.delete(id);
+    }
     const visible = filtered.slice((shortcutPage - 1) * shortcutPageSize, shortcutPage * shortcutPageSize);
     list.replaceChildren();
     if (!visible.length) {
@@ -659,9 +687,24 @@ import PromptForm from "../components/PromptForm.astro";
     visible.forEach((shortcut) => {
       const row = document.createElement("div");
       row.className = "admin-shortcut-row";
+      row.classList.toggle("is-selected", selectedShortcutIds.has(shortcut.id));
+      const nameWrap = document.createElement("div");
+      nameWrap.className = "admin-shortcut-name-wrap";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "prompt-select-checkbox";
+      checkbox.checked = selectedShortcutIds.has(shortcut.id);
+      checkbox.setAttribute("aria-label", `Select ${shortcut.name || "shortcut"}`);
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) selectedShortcutIds.add(shortcut.id);
+        else selectedShortcutIds.delete(shortcut.id);
+        row.classList.toggle("is-selected", checkbox.checked);
+        updateShortcutBulkActionBar();
+      });
       const name = document.createElement("span");
       name.className = "admin-shortcut-name";
       name.textContent = shortcut.name || "(unnamed shortcut)";
+      nameWrap.append(checkbox, name);
       const statusBadge = document.createElement("span");
       statusBadge.className = `admin-status-pill admin-status-${shortcut.status}`;
       statusBadge.textContent = shortcut.status;
@@ -677,7 +720,7 @@ import PromptForm from "../components/PromptForm.astro";
         toggle.disabled = true;
         const nextStatus = shortcut.status === "published" ? "draft" : "published";
         try {
-          const { error } = await supabase.from("shortcuts").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", shortcut.id);
+          const { error } = await supabase.from("shortcuts").update({ status: nextStatus }).eq("id", shortcut.id);
           if (error) throw error;
           $("#shortcut-message").textContent = `Shortcut ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
           await loadDashboard();
@@ -704,13 +747,14 @@ import PromptForm from "../components/PromptForm.astro";
         }
       });
       actions.append(toggle, remove);
-      row.append(name, statusBadge, created, actions);
+      row.append(nameWrap, statusBadge, created, actions);
       list.append(row);
     });
     $("#shortcut-total-label").textContent = `${filtered.length} ${filtered.length === 1 ? "shortcut" : "shortcuts"}`;
     $("#shortcut-page-label").textContent = `Page ${shortcutPage} of ${pages}`;
-    $<HTMLButtonElement>("#shortcut-prev-page").disabled = shortcutPage <= 1;
-    $<HTMLButtonElement>("#shortcut-next-page").disabled = shortcutPage >= pages;
+    $("#shortcut-prev-page").disabled = shortcutPage <= 1;
+    $("#shortcut-next-page").disabled = shortcutPage >= pages;
+    updateShortcutBulkActionBar();
   }
 
   $("#select-filtered-prompts").addEventListener("click", () => {
@@ -725,7 +769,7 @@ import PromptForm from "../components/PromptForm.astro";
 
   function verifyBulkAction(actionWord: "PUBLISH" | "UNPUBLISH" | "DELETE", count: number) {
     const entered = window.prompt(
-      `You are about to ${actionWord.toLowerCase()} ${count} selected prompt(s).\\n\\nType ${actionWord} exactly to confirm.`
+      `You are about to ${actionWord.toLowerCase()} ${count} selected prompt(s).\n\nType ${actionWord} exactly to confirm.`
     );
     return entered === actionWord;
   }
@@ -803,6 +847,65 @@ import PromptForm from "../components/PromptForm.astro";
     await loadDashboard();
   });
 
+  function verifyShortcutBulkAction(actionWord: "PUBLISH" | "UNPUBLISH" | "DELETE", count: number) {
+    return window.prompt(`You are about to ${actionWord.toLowerCase()} ${count} selected shortcut(s).\n\nType ${actionWord} exactly to confirm.`) === actionWord;
+  }
+
+  async function runShortcutBulkStatusUpdate(nextStatus: "published" | "draft") {
+    const ids = Array.from(selectedShortcutIds);
+    if (!ids.length) return;
+    const word = nextStatus === "published" ? "PUBLISH" : "UNPUBLISH";
+    if (!verifyShortcutBulkAction(word, ids.length)) {
+      $("#shortcut-message").textContent = `${word} cancelled. No shortcuts were changed.`;
+      return;
+    }
+    const buttons = ["#bulk-publish-shortcuts", "#bulk-unpublish-shortcuts", "#bulk-delete-shortcuts"].map((id) => $<HTMLButtonElement>(id));
+    buttons.forEach((button) => { button.disabled = true; });
+    $("#shortcut-message").textContent = `Updating ${ids.length} shortcuts...`;
+    try {
+      const { error } = await supabase.from("shortcuts").update({ status: nextStatus }).in("id", ids);
+      if (error) throw error;
+      selectedShortcutIds.clear();
+      $("#shortcut-message").textContent = `${ids.length} shortcut(s) ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
+      await loadDashboard();
+    } catch (error) {
+      $("#shortcut-message").textContent = error instanceof Error ? error.message : "Bulk status update failed.";
+      buttons.forEach((button) => { button.disabled = false; });
+    }
+  }
+
+  $("#select-filtered-shortcuts").addEventListener("click", () => {
+    filteredShortcutIds.forEach((id) => selectedShortcutIds.add(id));
+    renderShortcuts();
+  });
+  $("#clear-shortcut-selection").addEventListener("click", () => {
+    selectedShortcutIds.clear();
+    renderShortcuts();
+  });
+  $("#bulk-publish-shortcuts").addEventListener("click", () => runShortcutBulkStatusUpdate("published"));
+  $("#bulk-unpublish-shortcuts").addEventListener("click", () => runShortcutBulkStatusUpdate("draft"));
+  $("#bulk-delete-shortcuts").addEventListener("click", async () => {
+    const ids = Array.from(selectedShortcutIds);
+    if (!ids.length) return;
+    if (!verifyShortcutBulkAction("DELETE", ids.length)) {
+      $("#shortcut-message").textContent = "DELETE cancelled. No shortcuts were removed.";
+      return;
+    }
+    const buttons = ["#bulk-publish-shortcuts", "#bulk-unpublish-shortcuts", "#bulk-delete-shortcuts"].map((id) => $<HTMLButtonElement>(id));
+    buttons.forEach((button) => { button.disabled = true; });
+    $("#shortcut-message").textContent = `Deleting ${ids.length} shortcuts...`;
+    try {
+      const { error } = await supabase.from("shortcuts").delete().in("id", ids);
+      if (error) throw error;
+      selectedShortcutIds.clear();
+      $("#shortcut-message").textContent = `${ids.length} shortcut(s) deleted.`;
+      await loadDashboard();
+    } catch (error) {
+      $("#shortcut-message").textContent = error instanceof Error ? error.message : "Bulk delete failed.";
+      buttons.forEach((button) => { button.disabled = false; });
+    }
+  });
+
   const csvInput = $<HTMLInputElement>("#bulk-csv-file");
   const csvValidateButton = $<HTMLButtonElement>("#bulk-validate-button");
   const csvImportButton = $<HTMLButtonElement>("#bulk-import-button");
@@ -839,7 +942,15 @@ import PromptForm from "../components/PromptForm.astro";
     return rows;
   }
 
-  function splitList(value: string) { return value.split("|").map((part) => part.trim()).filter(Boolean); }
+  function splitList(value: string) {
+    const seen = new Set<string>();
+    return value.split("|").map((part) => part.trim()).filter((part) => {
+      const key = part.toLocaleLowerCase();
+      if (!part || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
   function normalizeContent(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
   function normalizeTitle(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
   function slugify(value: string) { return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
@@ -1178,8 +1289,8 @@ import PromptForm from "../components/PromptForm.astro";
   });
   $("#prev-page").addEventListener("click", () => { currentPage--; renderPrompts(); });
   $("#next-page").addEventListener("click", () => { currentPage++; renderPrompts(); });
-  window.addEventListener("promptvault:prompt-saved", loadDashboard);
-  window.addEventListener("promptvault:shortcut-saved", loadDashboard);
+  window.addEventListener("promptvault:prompt-saved", () => { void loadDashboard(); });
+  window.addEventListener("promptvault:shortcut-saved", () => { void loadDashboard(); });
 
   async function initializeDashboard() {
     const { data: { user }, error } = await supabase.auth.getUser();
