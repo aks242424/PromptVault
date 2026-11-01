@@ -77,6 +77,7 @@ import PromptForm from "../components/PromptForm.astro";
           </div>
           <div class="toolbar shortcut-toolbar">
             <input id="shortcut-search" type="search" placeholder="Search shortcuts..." aria-label="Search shortcuts" />
+            <button id="auto-detect-shortcut-types" class="btn btn-quiet" type="button">Auto-detect types</button>
             <select id="shortcut-status-filter" aria-label="Filter shortcuts by status">
               <option value="all">All statuses</option><option value="draft">Drafts</option><option value="published">Published</option>
             </select>
@@ -110,7 +111,7 @@ import PromptForm from "../components/PromptForm.astro";
           <p class="bulk-intro">Import prompts and shortcuts together. Mark each row as <code>prompt</code> or <code>shortcut</code>. Every imported item is saved as a draft; publish it later from its management list.</p>
           <div class="csv-format">
             <div class="csv-format-title">CSV columns</div>
-            <code>item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status</code>
+            <code>item_type,title,name,content,prompt_type,description,shortcut_type,categories,tags,ai_tools,status</code>
             <div class="csv-columns">
               <p><strong>Prompt required:</strong> <code>title</code>, <code>content</code>, <code>prompt_type</code>.</p>
               <p><strong>Shortcut required:</strong> <code>name</code>, <code>description</code>.</p>
@@ -118,7 +119,7 @@ import PromptForm from "../components/PromptForm.astro";
             <ul>
               <li><code>item_type</code> is required: <code>prompt</code> or <code>shortcut</code>.</li>
               <li>Prompts require <code>title</code>, <code>content</code> and <code>prompt_type</code> (<code>image</code>, <code>video</code> or <code>other</code>).</li>
-              <li>Shortcuts require <code>name</code> and <code>description</code>.</li>
+              <li>Shortcuts require <code>name</code> and <code>description</code>. Optional <code>shortcut_type</code>: <code>Image</code>, <code>Video</code> or <code>Other</code>; if blank, the importer suggests a type from the name and description.</li>
               <li>All imported prompts and shortcuts are saved as <code>draft</code>, even if the CSV contains a status value.</li>
               <li>Separate each category and tag with <code>|</code> or <code>;</code>. Each value is created and linked individually. AI tools apply to prompts only.</li>
               <li>Use standard CSV quotes around values containing commas, quotes or line breaks.</li>
@@ -364,6 +365,9 @@ import PromptForm from "../components/PromptForm.astro";
   .admin-row-actions { align-items: center; justify-content: flex-start; min-width: 190px; }
   .admin-prompt-name { min-width: 0; color: #e2e8f0; font-size: 12px; font-weight: 680; overflow-wrap: anywhere; }
   .admin-prompt-meta { color: #a5b4c5; font-size: 11px; text-transform: capitalize; }
+  .admin-shortcut-type-select { width:100%; max-width:100px; padding:7px 9px; border:1px solid #ffffff24; border-radius:8px; background:#111820; color:#cbd5e1; font:inherit; font-size:11px; }
+  .admin-shortcut-type-select:focus { outline:1px solid #22d3ee; border-color:#22d3ee; }
+  .admin-shortcut-type-select:disabled { opacity:.5; cursor:wait; }
   .admin-status-pill {
     justify-self: start;
     border: 1px solid transparent;
@@ -638,36 +642,106 @@ import PromptForm from "../components/PromptForm.astro";
     updateBulkActionBar();
   }
 
+  let shortcutTypeColumnAvailable = true;
+
+  // Conservative keyword classification. Ambiguous shortcuts remain Other.
+  function inferShortcutType(name = "", description = ""): "Image" | "Video" | "Other" {
+    const text = `${name} ${description}`.toLowerCase();
+    const imageTerms = ["image", "photo", "photograph", "portrait", "illustration", "logo", "thumbnail", "wallpaper", "painting", "sketch", "render", "midjourney", "stable diffusion", "dall-e", "flux", "visual art", "character design"];
+    const videoTerms = ["video", "animation", "animate", "motion", "film", "footage", "clip", "cinematic video", "camera movement", "sora", "veo", "runway", "kling", "luma", "pika"];
+    const imageScore = imageTerms.reduce((score, term) => score + (text.includes(term) ? 1 : 0), 0);
+    const videoScore = videoTerms.reduce((score, term) => score + (text.includes(term) ? 1 : 0), 0);
+    if (imageScore > videoScore && imageScore > 0) return "Image";
+    if (videoScore > imageScore && videoScore > 0) return "Video";
+    return "Other";
+  }
+
   async function loadDashboard() {
     dashboardMessage.textContent = "Refreshing...";
     $("#shortcut-message").textContent = "Refreshing shortcuts...";
-    const [promptsResult, shortcutsResult, categoriesResult, promptDraftsResult, shortcutDraftsResult, promptsDataResult, shortcutsDataResult] = await Promise.all([
+    const [promptsResult, shortcutsResult, categoriesResult, promptDraftsResult, shortcutDraftsResult, promptsDataResult] = await Promise.all([
       supabase.from("prompts").select("id", { count: "exact", head: true }),
       supabase.from("shortcuts").select("id", { count: "exact", head: true }),
       supabase.from("categories").select("id", { count: "exact", head: true }),
       supabase.from("prompts").select("id", { count: "exact", head: true }).eq("status", "draft"),
       supabase.from("shortcuts").select("id", { count: "exact", head: true }).eq("status", "draft"),
-      supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false }),
-      supabase.from("shortcuts").select("id, name, description, status, created_at").order("created_at", { ascending: false })
+      supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false })
     ]);
-    const errors = [promptsResult.error, shortcutsResult.error, categoriesResult.error, promptDraftsResult.error, shortcutDraftsResult.error, promptsDataResult.error, shortcutsDataResult.error].filter(Boolean);
-    if (errors.length) {
-      const message = errors[0]?.message || "Could not load dashboard data.";
-      dashboardMessage.textContent = message;
-      $("#shortcut-message").textContent = message;
+
+    // Fetch shortcuts separately so a missing optional type column cannot block
+    // the prompt dashboard or shortcut management list.
+    let shortcutsDataResult = await supabase.from("shortcuts")
+      .select("id, name, description, shortcut_type, status, created_at")
+      .order("created_at", { ascending: false });
+    if (shortcutsDataResult.error && /shortcut_type|column .* does not exist|schema cache/i.test(shortcutsDataResult.error.message || "")) {
+      shortcutTypeColumnAvailable = false;
+      shortcutsDataResult = await supabase.from("shortcuts")
+        .select("id, name, description, status, created_at")
+        .order("created_at", { ascending: false });
+    } else if (!shortcutsDataResult.error) {
+      shortcutTypeColumnAvailable = true;
+    }
+
+    const fatalErrors = [promptsDataResult.error, shortcutsDataResult.error].filter(Boolean);
+    if (fatalErrors.length) {
+      dashboardMessage.textContent = fatalErrors[0]?.message || "Could not load management lists.";
+      $("#shortcut-message").textContent = dashboardMessage.textContent;
       return;
     }
-    $("#total-prompts").textContent = String(promptsResult.count ?? 0);
-    $("#total-shortcuts").textContent = String(shortcutsResult.count ?? 0);
-    $("#total-categories").textContent = String(categoriesResult.count ?? 0);
-    $("#total-drafts").textContent = String((promptDraftsResult.count ?? 0) + (shortcutDraftsResult.count ?? 0));
+    // Counts are useful but nonessential: keep the lists available if a count
+    // query is blocked by an RLS policy.
+    $("#total-prompts").textContent = promptsResult.error ? "—" : String(promptsResult.count ?? 0);
+    $("#total-shortcuts").textContent = shortcutsResult.error ? "—" : String(shortcutsResult.count ?? 0);
+    $("#total-categories").textContent = categoriesResult.error ? "—" : String(categoriesResult.count ?? 0);
+    $("#total-drafts").textContent = (promptDraftsResult.error || shortcutDraftsResult.error)
+      ? "—" : String((promptDraftsResult.count ?? 0) + (shortcutDraftsResult.count ?? 0));
     allPrompts = promptsDataResult.data || [];
-    allShortcuts = shortcutsDataResult.data || [];
+    allShortcuts = (shortcutsDataResult.data || []).map((item: any) => ({
+      ...item,
+      shortcut_type: item.shortcut_type || inferShortcutType(item.name || "", item.description || "")
+    }));
     renderPrompts();
     renderShortcuts();
     dashboardMessage.textContent = "";
     $("#shortcut-message").textContent = "";
   }
+
+  $("#auto-detect-shortcut-types").addEventListener("click", async () => {
+    if (!shortcutTypeColumnAvailable) {
+      $("#shortcut-message").textContent = "The shortcuts.shortcut_type column is missing. Add it in Supabase before classifying shortcuts.";
+      return;
+    }
+    const candidates = allShortcuts.filter((item) => !item.shortcut_type || item.shortcut_type === "Other");
+    const changes = candidates.map((item) => ({ item, type: inferShortcutType(item.name || "", item.description || "") }))
+      .filter(({ item, type }) => type !== "Other" && type !== item.shortcut_type);
+    if (!changes.length) {
+      $("#shortcut-message").textContent = `No clear Image or Video matches found among ${candidates.length} shortcuts. Ambiguous items remain Other.`;
+      return;
+    }
+    const button = $("#auto-detect-shortcut-types") as HTMLButtonElement;
+    button.disabled = true;
+    button.textContent = "Classifying...";
+    let updated = 0;
+    const failures: string[] = [];
+    try {
+      for (const type of ["Image", "Video"] as const) {
+        const ids = changes.filter((change) => change.type === type).map((change) => change.item.id);
+        for (const batch of chunkIds(ids)) {
+          const { error } = await supabase.from("shortcuts").update({ shortcut_type: type }).in("id", batch);
+          if (error) throw error;
+          updated += batch.length;
+        }
+      }
+      changes.forEach(({ item, type }) => { item.shortcut_type = type; });
+      renderShortcuts();
+      $("#shortcut-message").textContent = `Updated ${updated} shortcut type(s). Ambiguous shortcuts were left as Other.`;
+    } catch (error) {
+      $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not classify shortcut types.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Auto-detect types";
+    }
+  });
 
   function updateShortcutBulkActionBar() {
     const bar = $("#shortcut-bulk-actions");
@@ -719,9 +793,37 @@ import PromptForm from "../components/PromptForm.astro";
       name.className = "admin-shortcut-name";
       name.textContent = shortcut.name || "(unnamed shortcut)";
       nameWrap.append(checkbox, name);
-      const type = document.createElement("span");
-      type.className = "admin-prompt-meta";
-      type.textContent = "Shortcut";
+      const type = document.createElement("select");
+      type.className = "admin-shortcut-type-select";
+      type.setAttribute("aria-label", `Type for ${shortcut.name || "shortcut"}`);
+      ["Image", "Video", "Other"].forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        type.append(option);
+      });
+      type.value = ["Image", "Video", "Other"].includes(shortcut.shortcut_type) ? shortcut.shortcut_type : "Other";
+      if (!shortcutTypeColumnAvailable) {
+        type.disabled = true;
+        type.title = "Add the shortcuts.shortcut_type database column to enable shortcut types.";
+      }
+      type.addEventListener("change", async () => {
+        if (!shortcutTypeColumnAvailable) return;
+        const previousType = shortcut.shortcut_type || "Other";
+        type.disabled = true;
+        try {
+          const { error } = await supabase.from("shortcuts")
+            .update({ shortcut_type: type.value }).eq("id", shortcut.id);
+          if (error) throw error;
+          shortcut.shortcut_type = type.value;
+          $("#shortcut-message").textContent = `Shortcut type updated to ${type.value}.`;
+        } catch (error) {
+          type.value = previousType;
+          $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not update shortcut type.";
+        } finally {
+          type.disabled = false;
+        }
+      });
       const statusBadge = document.createElement("span");
       statusBadge.className = `admin-status-pill admin-status-${shortcut.status}`;
       statusBadge.textContent = shortcut.status;
@@ -1033,9 +1135,9 @@ import PromptForm from "../components/PromptForm.astro";
   }
 
   $("#download-csv-template").addEventListener("click", () => {
-    const sample = 'item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status\r\n' +
-      'prompt,"Neon Portrait",,"A cinematic neon-lit portrait of a subject...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft\r\n' +
-      'shortcut,,"Copy prompt shortcut",,"Quick description of the shortcut",,"Productivity|Writing","Workflow|Copy",,published\r\n';
+    const sample = 'item_type,title,name,content,prompt_type,description,shortcut_type,categories,tags,ai_tools,status\r\n' +
+      'prompt,"Neon Portrait",,"A cinematic neon-lit portrait of a subject...",image,"Neon portrait prompt",,"Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft\r\n' +
+      'shortcut,,"Copy prompt shortcut",,"Quick description of the shortcut",Other,"Productivity|Writing","Workflow|Copy",,published\r\n';
     const url = URL.createObjectURL(new Blob([sample], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = "promptvault-import-template.csv"; anchor.click(); URL.revokeObjectURL(url);
   });
@@ -1079,7 +1181,7 @@ import PromptForm from "../components/PromptForm.astro";
       if (rawRows.length < 2) throw new Error("The CSV must contain a header and at least one data row.");
       const headers = rawRows[0].map((header) => header.trim().toLowerCase().replace(/^\uFEFF/, ""));
       if (new Set(headers).size !== headers.length) throw new Error("CSV contains duplicate column names.");
-      const allowedHeaders = ["item_type", "title", "name", "content", "prompt_type", "description", "categories", "tags", "ai_tools", "status"];
+      const allowedHeaders = ["item_type", "title", "name", "content", "prompt_type", "description", "shortcut_type", "categories", "tags", "ai_tools", "status"];
       const unknownHeaders = headers.filter((header) => !allowedHeaders.includes(header));
       if (unknownHeaders.length) throw new Error(`Unknown CSV columns: ${unknownHeaders.join(", ")}`);
       const index = Object.fromEntries(headers.map((header, i) => [header, i]));
@@ -1138,7 +1240,7 @@ import PromptForm from "../components/PromptForm.astro";
         }
         validatedRows.push({
           line, item_type: itemType, title, name, label, content, prompt_type: promptType,
-          description: get("description") || "", categories: categoryNames, tags: tagNames,
+          description: get("description") || "", shortcut_type: ["image", "video", "other"].includes(get("shortcut_type").toLowerCase()) ? get("shortcut_type").replace(/^./, (c) => c.toUpperCase()) : inferShortcutType(name, get("description")), categories: categoryNames, tags: tagNames,
           ai_tools: aiTools, status,
           state: issues.length ? "invalid" : duplicateReasons.length ? "duplicate" : "ready",
           reason: [...issues, ...duplicateReasons].join("; "),
@@ -1244,7 +1346,7 @@ import PromptForm from "../components/PromptForm.astro";
           inserted = data;
         } else {
           const { data, error } = await supabase.from("shortcuts").insert({
-            slug, name: item.name, description: item.description, status: "draft"
+            slug, name: item.name, description: item.description, shortcut_type: item.shortcut_type || inferShortcutType(item.name, item.description), status: "draft"
           }).select("id").single();
           if (error) throw new Error(getSupabaseError(error));
           inserted = data;
