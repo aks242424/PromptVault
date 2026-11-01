@@ -11,9 +11,9 @@ import MainLayout from "../layouts/MainLayout.astro";
       <div class="hero-light hero-light-cyan"></div>
       <div class="hero-light hero-light-orange"></div>
       <div class="hero-inner">
-        <span class="eyebrow"><i></i> THE PROMPT COLLECTION</span>
-        <h1>Explore <span>the library.</span></h1>
-        <p id="explore-subtitle" class="hero-subtitle">Loading published resources...</p>
+        <span class="eyebrow"><i></i> THE CREATIVE DISCOVERY FEED</span>
+        <h1>Ideas meet <span>inspiration.</span></h1>
+        <p id="explore-subtitle" class="hero-subtitle">Loading prompts and shortcuts...</p>
         <label class="search-field">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="7"></circle>
@@ -30,9 +30,10 @@ import MainLayout from "../layouts/MainLayout.astro";
       <div class="toolbar">
         <div id="type-filters" class="filter-list" aria-label="Filter by content type">
           <button data-filter="all" class="filter-button active" aria-pressed="true">All <span id="all-total">0</span></button>
+          <button data-filter="prompt" class="filter-button" aria-pressed="false">Prompts</button>
           <button data-filter="shortcut" class="filter-button" aria-pressed="false">Shortcuts</button>
-          <button data-filter="image" class="filter-button" aria-pressed="false">Image prompts</button>
-          <button data-filter="video" class="filter-button" aria-pressed="false">Video prompts</button>
+          <button data-filter="image" class="filter-button" aria-pressed="false">Image</button>
+          <button data-filter="video" class="filter-button" aria-pressed="false">Video</button>
         </div>
         <label class="category-select-wrap">
           <span>CATEGORY</span>
@@ -51,7 +52,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       </div>
 
       <div id="content-grid" class="content-grid" aria-live="polite">
-        <p class="load-state">Loading published resources...</p>
+        <p class="load-state">Loading prompts and shortcuts...</p>
       </div>
       <div id="empty-state" class="empty-state hidden">
         <div class="empty-symbol">⌕</div>
@@ -65,6 +66,31 @@ import MainLayout from "../layouts/MainLayout.astro";
   <script>
     import { supabase } from "../lib/supabase.js";
 
+    type PromptRow = {
+      id: string;
+      title: string;
+      description: string | null;
+      prompt_type: string | null;
+      created_at?: string;
+    };
+    type ShortcutRow = {
+      id: string;
+      name: string;
+      description: string | null;
+      created_at?: string;
+    };
+    type RelationRow = { prompt_id?: string; shortcut_id?: string; category_id?: string; tag_id?: string };
+    type ExploreItem = {
+      id: string;
+      title: string;
+      description: string;
+      type: "shortcut" | "image" | "video" | "other";
+      thumbnailUrl?: string | null;
+      categories: string[];
+      tags: string[];
+      href: string;
+    };
+
     const searchInput = document.querySelector<HTMLInputElement>("#explore-search");
     const categorySelect = document.querySelector<HTMLSelectElement>("#category-filter");
     const grid = document.querySelector<HTMLElement>("#content-grid");
@@ -76,7 +102,6 @@ import MainLayout from "../layouts/MainLayout.astro";
     const emptyTitle = document.querySelector<HTMLElement>("#empty-title");
     const errorMessage = document.querySelector<HTMLElement>("#explore-error");
     const resetButton = document.querySelector<HTMLButtonElement>("#reset-filters");
-
     const initialSearch = new URLSearchParams(window.location.search).get("q") || "";
     if (searchInput) searchInput.value = initialSearch;
 
@@ -84,242 +109,194 @@ import MainLayout from "../layouts/MainLayout.astro";
       shortcut: "Shortcut",
       image: "Image prompt",
       video: "Video prompt",
+      other: "Prompt",
     };
-
-    let items: any[] = [];
+    const accents = ["orange", "cyan", "violet", "mint", "rose", "blue", "lime", "purple"];
+    let items: ExploreItem[] = [];
     let activeType = "all";
 
-    function makeElement<K extends keyof HTMLElementTagNameMap>(
-      tag: K,
-      className?: string,
-      text?: string
-    ): HTMLElementTagNameMap[K] {
+    function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text = ""): HTMLElementTagNameMap[K] {
       const node = document.createElement(tag);
       if (className) node.className = className;
-      if (text !== undefined) node.textContent = text;
+      if (text) node.textContent = text;
       return node;
     }
 
-    function renderCard(item: any, index: number) {
-      const accent = item.type === "shortcut" ? "violet" : item.type === "image" ? "cyan" : "orange";
-      const card = makeElement("article", `content-card accent-${accent}`);
-      const searchable = [
-        item.title,
-        item.description,
-        item.categories.join(" "),
-        item.tags.join(" "),
-      ].filter(Boolean).join(" ").toLowerCase();
-
+    function renderCard(item: ExploreItem, index: number): HTMLElement {
+      const card = el("article", `content-card accent-${accents[index % accents.length]}`);
+      const searchText = [item.title, item.type, item.description, ...item.categories, ...item.tags].join(" ").toLowerCase();
       card.dataset.type = item.type;
       card.dataset.categories = JSON.stringify(item.categories);
-      card.dataset.search = searchable;
+      card.dataset.search = searchText;
 
-      const top = makeElement("div", "card-topline");
-      top.append(makeElement("span", "type-mark", item.type === "shortcut" ? "/" : item.type === "image" ? "✳" : "▶"));
-      top.append(makeElement("span", "card-number", String(index + 1).padStart(2, "0")));
+      const top = el("div", "card-topline");
+      const mark = item.type === "shortcut" ? "/" : item.type === "image" ? "✳" : item.type === "video" ? "▶" : "✦";
+      top.append(el("span", "type-mark", mark), el("span", "card-number", String(index + 1).padStart(2, "0")));
       card.append(top);
 
-      const meta = makeElement("div", "card-meta");
-      meta.append(makeElement("span", "category-name", item.categories[0] || typeLabels[item.type]));
-      meta.append(makeElement("span", "type-name", typeLabels[item.type]));
+      const meta = el("div", "card-meta");
+      meta.append(el("span", "category-name", item.categories[0] || (item.type === "shortcut" ? "Quick command" : "Creative prompt")));
+      if (item.type !== "shortcut") meta.append(el("span", "type-name", typeLabels[item.type] || "Prompt"));
       card.append(meta);
 
-      if (item.type !== "shortcut" && item.thumbnailUrl) {
-        const thumbnail = makeElement("img", "content-card-thumbnail") as HTMLImageElement;
-        thumbnail.src = item.thumbnailUrl;
-        thumbnail.alt = `${item.title} thumbnail`;
-        thumbnail.loading = "lazy";
-        thumbnail.decoding = "async";
-        thumbnail.addEventListener("error", () => thumbnail.remove());
-        card.append(thumbnail);
+      if (item.thumbnailUrl && item.type !== "shortcut") {
+        const image = el("img", "content-card-thumbnail") as HTMLImageElement;
+        image.src = item.thumbnailUrl;
+        image.alt = `${item.title} preview`;
+        image.loading = "lazy";
+        image.decoding = "async";
+        image.addEventListener("error", () => image.remove(), { once: true });
+        card.append(image);
+      }
+      card.append(el("h3", "", item.title), el("p", "card-description", item.description));
+
+      if (item.tags.length) {
+        const tagList = el("div", "tag-list");
+        item.tags.slice(0, 5).forEach((tag) => tagList.append(el("span", "", `#${tag}`)));
+        card.append(tagList);
       }
 
-      card.append(makeElement("h3", "", item.title));
-      card.append(makeElement("p", "card-description", item.description || ""));
-
-      const tagList = makeElement("div", "tag-list");
-      item.tags.forEach((tag: string) => tagList.append(makeElement("span", "", `#${tag}`)));
-      card.append(tagList);
-
-      const link = makeElement("a", "card-link") as HTMLAnchorElement;
+      const link = el("a", "card-link") as HTMLAnchorElement;
       link.href = item.href;
-      link.append(makeElement("span", "", "Explore content"));
-      link.append(makeElement("span", "link-arrow", "↗"));
+      link.append(el("span", "", item.type === "shortcut" ? "Browse shortcuts" : "Browse prompts"), el("span", "link-arrow", "↗"));
       card.append(link);
-
       return card;
     }
 
-    function renderItems() {
-      if (!grid) return;
-      grid.replaceChildren();
-      items.forEach((item, index) => grid.append(renderCard(item, index)));
-      if (allTotal) allTotal.textContent = String(items.length);
-      if (subtitle) subtitle.textContent = `${items.length} published resources, ready to discover.`;
-      updateResults();
-    }
-
-    function populateCategories() {
-      if (!categorySelect) return;
-      const selected = categorySelect.value;
-      const names = [...new Set(items.flatMap((item) => item.categories))].sort((a, b) => a.localeCompare(b));
-      categorySelect.replaceChildren(new Option("All categories", "all"));
-      names.forEach((name) => categorySelect.add(new Option(name, name)));
-      categorySelect.value = names.includes(selected) ? selected : "all";
-    }
-
-    function updateResults() {
-      const query = searchInput?.value.trim().toLowerCase() || "";
+    function updateResults(): void {
+      const query = searchInput?.value.trim().toLocaleLowerCase() || "";
       const category = categorySelect?.value || "all";
-      let visibleCount = 0;
-
-      Array.from(grid?.querySelectorAll<HTMLElement>(".content-card") || []).forEach((card) => {
-        const categories = JSON.parse(card.dataset.categories || "[]");
-        const visible =
-          (card.dataset.search || "").includes(query) &&
-          (activeType === "all" || card.dataset.type === activeType) &&
-          (category === "all" || categories.includes(category));
-        card.classList.toggle("hidden", !visible);
-        if (visible) visibleCount++;
+      let visible = 0;
+      grid?.querySelectorAll<HTMLElement>(".content-card").forEach((card) => {
+        let categories: string[] = [];
+        try { categories = JSON.parse(card.dataset.categories || "[]") as string[]; } catch { categories = []; }
+        const type = card.dataset.type || "other";
+        const typeMatch = activeType === "all" ||
+          (activeType === "prompt" && type !== "shortcut") ||
+          (activeType === "shortcut" && type === "shortcut") || type === activeType;
+        const show = (card.dataset.search || "").includes(query) && typeMatch && (category === "all" || categories.includes(category));
+        card.classList.toggle("hidden", !show);
+        if (show) visible++;
       });
-
-      if (resultCount) resultCount.textContent = String(visibleCount);
-      emptyState?.classList.toggle("hidden", visibleCount !== 0);
+      if (resultCount) resultCount.textContent = String(visible);
+      emptyState?.classList.toggle("hidden", visible > 0);
       if (emptyTitle) emptyTitle.textContent = items.length ? "No matching results" : "No published resources yet";
     }
 
-    function updateActiveButton() {
-      filterButtons.forEach((button) => {
-        const active = button.dataset.filter === activeType;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", String(active));
-      });
+    function populateCategories(): void {
+      if (!categorySelect) return;
+      const previous = categorySelect.value;
+      const names = [...new Set(items.flatMap((item) => item.categories))].sort((a, b) => a.localeCompare(b));
+      categorySelect.replaceChildren(new Option("All categories", "all"));
+      names.forEach((name) => categorySelect.add(new Option(name, name)));
+      categorySelect.value = names.includes(previous) ? previous : "all";
     }
 
-    async function loadExploreItems() {
+    function renderItems(): void {
       if (!grid) return;
-      grid.replaceChildren(makeElement("p", "load-state", "Loading published resources..."));
-      errorMessage?.classList.add("hidden");
+      grid.replaceChildren();
+      if (!items.length) {
+        grid.append(el("p", "load-state", "No published prompts or shortcuts yet."));
+      } else {
+        const fragment = document.createDocumentFragment();
+        items.forEach((item, index) => fragment.append(renderCard(item, index)));
+        grid.append(fragment);
+      }
+      if (allTotal) allTotal.textContent = String(items.length);
+      if (subtitle) subtitle.textContent = `${items.length.toLocaleString()} published prompts and shortcuts to explore.`;
+      updateResults();
+    }
 
+    async function fetchRelations(table: string, foreignKey: "prompt_id" | "shortcut_id", ids: string[], target: "category_id" | "tag_id"): Promise<RelationRow[]> {
+      if (!ids.length) return [];
+      const output: RelationRow[] = [];
+      const batchSize = 150;
+      for (let start = 0; start < ids.length; start += batchSize) {
+        const batch = ids.slice(start, start + batchSize);
+        const { data, error } = await supabase.from(table).select(`${foreignKey}, ${target}`).in(foreignKey, batch);
+        if (error) {
+          console.warn(`Optional ${table} lookup skipped:`, error.message);
+          continue;
+        }
+        output.push(...((data || []) as RelationRow[]));
+      }
+      return output;
+    }
+
+    async function loadExploreItems(): Promise<void> {
+      if (!grid) return;
+      grid.replaceChildren(el("p", "load-state", "Loading published library…"));
+      errorMessage?.classList.add("hidden");
       try {
         const [promptResult, shortcutResult] = await Promise.all([
-          supabase
-            .from("prompts")
-            .select("id, title, description, prompt_type, thumbnail_path, created_at")
-            .eq("status", "published")
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("shortcuts")
-            .select("id, name, description, created_at")
-            .eq("status", "published")
-            .order("created_at", { ascending: false }),
+          supabase.from("prompts").select("id, title, description, prompt_type, created_at").eq("status", "published").order("created_at", { ascending: false }),
+          supabase.from("shortcuts").select("id, name, description, created_at").eq("status", "published").order("created_at", { ascending: false }),
+        ]);
+        if (promptResult.error) throw new Error(`Prompts: ${promptResult.error.message}`);
+        if (shortcutResult.error) throw new Error(`Shortcuts: ${shortcutResult.error.message}`);
+
+        const prompts = (promptResult.data || []) as PromptRow[];
+        const shortcuts = (shortcutResult.data || []) as ShortcutRow[];
+        const promptIds = prompts.map((row) => row.id);
+        const shortcutIds = shortcuts.map((row) => row.id);
+
+        const [promptCategories, promptTags, shortcutCategories, shortcutTags] = await Promise.all([
+          fetchRelations("prompt_categories", "prompt_id", promptIds, "category_id"),
+          fetchRelations("prompt_tags", "prompt_id", promptIds, "tag_id"),
+          fetchRelations("shortcut_categories", "shortcut_id", shortcutIds, "category_id"),
+          fetchRelations("shortcut_tags", "shortcut_id", shortcutIds, "tag_id"),
         ]);
 
-        if (promptResult.error) throw promptResult.error;
-        if (shortcutResult.error) throw shortcutResult.error;
-
-        const promptRows = promptResult.data || [];
-        const shortcutRows = shortcutResult.data || [];
-        const promptIds = promptRows.map((row: any) => row.id);
-        const shortcutIds = shortcutRows.map((row: any) => row.id);
-
-        const relationQueries = await Promise.all([
-          promptIds.length
-            ? supabase.from("prompt_categories").select("prompt_id, category_id").in("prompt_id", promptIds)
-            : Promise.resolve({ data: [], error: null }),
-          promptIds.length
-            ? supabase.from("prompt_tags").select("prompt_id, tag_id").in("prompt_id", promptIds)
-            : Promise.resolve({ data: [], error: null }),
-          shortcutIds.length
-            ? supabase.from("shortcut_categories").select("shortcut_id, category_id").in("shortcut_id", shortcutIds)
-            : Promise.resolve({ data: [], error: null }),
-          shortcutIds.length
-            ? supabase.from("shortcut_tags").select("shortcut_id, tag_id").in("shortcut_id", shortcutIds)
-            : Promise.resolve({ data: [], error: null }),
-        ]);
-
-        const relationError = relationQueries.find((result: any) => result.error)?.error;
-        if (relationError) throw relationError;
-
-        const promptCategoryRows = relationQueries[0].data || [];
-        const promptTagRows = relationQueries[1].data || [];
-        const shortcutCategoryRows = relationQueries[2].data || [];
-        const shortcutTagRows = relationQueries[3].data || [];
-
-        const categoryIds = [...new Set([
-          ...promptCategoryRows.map((row: any) => row.category_id),
-          ...shortcutCategoryRows.map((row: any) => row.category_id),
-        ])];
-        const tagIds = [...new Set([
-          ...promptTagRows.map((row: any) => row.tag_id),
-          ...shortcutTagRows.map((row: any) => row.tag_id),
-        ])];
-
+        const categoryIds = [...new Set([...promptCategories, ...shortcutCategories].map((r) => r.category_id).filter((v): v is string => Boolean(v)))];
+        const tagIds = [...new Set([...promptTags, ...shortcutTags].map((r) => r.tag_id).filter((v): v is string => Boolean(v)))];
         const [categoryResult, tagResult] = await Promise.all([
-          categoryIds.length
-            ? supabase.from("categories").select("id, name").in("id", categoryIds)
-            : Promise.resolve({ data: [], error: null }),
-          tagIds.length
-            ? supabase.from("tags").select("id, name").in("id", tagIds)
-            : Promise.resolve({ data: [], error: null }),
+          categoryIds.length ? supabase.from("categories").select("id, name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
+          tagIds.length ? supabase.from("tags").select("id, name").in("id", tagIds) : Promise.resolve({ data: [], error: null }),
         ]);
+        if (categoryResult.error) console.warn("Category names unavailable:", categoryResult.error.message);
+        if (tagResult.error) console.warn("Tag names unavailable:", tagResult.error.message);
+        const categoryNames = new Map(((categoryResult.data || []) as { id: string; name: string }[]).map((row) => [row.id, row.name]));
+        const tagNames = new Map(((tagResult.data || []) as { id: string; name: string }[]).map((row) => [row.id, row.name]));
 
-        if (categoryResult.error) throw categoryResult.error;
-        if (tagResult.error) throw tagResult.error;
+        let thumbnailRows: { id: string; thumbnail_path: string | null }[] = [];
+        if (promptIds.length) {
+          const thumbResult = await supabase.from("prompts").select("id, thumbnail_path").in("id", promptIds);
+          if (!thumbResult.error) thumbnailRows = (thumbResult.data || []) as typeof thumbnailRows;
+          else console.info("Prompt thumbnails are unavailable:", thumbResult.error.message);
+        }
+        const thumbnails = new Map(thumbnailRows.map((row) => [row.id, row.thumbnail_path]));
 
-        const categoryNames = new Map((categoryResult.data || []).map((row: any) => [row.id, row.name]));
-        const tagNames = new Map((tagResult.data || []).map((row: any) => [row.id, row.name]));
-
-        const promptItems = promptRows.map((row: any) => {
-          const thumbnailPath = row.thumbnail_path || null;
-          const thumbnailUrl = thumbnailPath
-            ? supabase.storage.from("prompt-thumbnails").getPublicUrl(thumbnailPath).data?.publicUrl || null
-            : null;
-
+        const promptItems: ExploreItem[] = prompts.map((row) => {
+          const path = thumbnails.get(row.id);
+          const thumbnailUrl = path ? supabase.storage.from("prompt-thumbnails").getPublicUrl(path).data?.publicUrl || null : null;
+          const promptType = String(row.prompt_type || "other").toLowerCase();
+          const type: ExploreItem["type"] = promptType === "image" || promptType === "video" ? promptType : "other";
           return {
-          title: row.title,
-          description: row.description || "",
-          type: row.prompt_type,
-          thumbnailUrl,
-          categories: promptCategoryRows
-            .filter((rel: any) => rel.prompt_id === row.id)
-            .map((rel: any) => categoryNames.get(rel.category_id))
-            .filter(Boolean),
-          tags: promptTagRows
-            .filter((rel: any) => rel.prompt_id === row.id)
-            .map((rel: any) => tagNames.get(rel.tag_id))
-            .filter(Boolean),
-          href: "/prompts",
+            id: row.id, title: row.title, description: row.description || "", type, thumbnailUrl,
+            categories: promptCategories.filter((r) => r.prompt_id === row.id).map((r) => r.category_id ? categoryNames.get(r.category_id) : undefined).filter((v): v is string => Boolean(v)),
+            tags: promptTags.filter((r) => r.prompt_id === row.id).map((r) => r.tag_id ? tagNames.get(r.tag_id) : undefined).filter((v): v is string => Boolean(v)),
+            href: "/prompts",
           };
         });
-
-        const shortcutItems = shortcutRows.map((row: any) => ({
-          title: row.name,
-          description: row.description || "",
-          type: "shortcut",
-          categories: shortcutCategoryRows
-            .filter((rel: any) => rel.shortcut_id === row.id)
-            .map((rel: any) => categoryNames.get(rel.category_id))
-            .filter(Boolean),
-          tags: shortcutTagRows
-            .filter((rel: any) => rel.shortcut_id === row.id)
-            .map((rel: any) => tagNames.get(rel.tag_id))
-            .filter(Boolean),
+        const shortcutItems: ExploreItem[] = shortcuts.map((row) => ({
+          id: row.id, title: row.name, description: row.description || "", type: "shortcut",
+          categories: shortcutCategories.filter((r) => r.shortcut_id === row.id).map((r) => r.category_id ? categoryNames.get(r.category_id) : undefined).filter((v): v is string => Boolean(v)),
+          tags: shortcutTags.filter((r) => r.shortcut_id === row.id).map((r) => r.tag_id ? tagNames.get(r.tag_id) : undefined).filter((v): v is string => Boolean(v)),
           href: "/shortcuts",
         }));
 
-        items = [...shortcutItems, ...promptItems];
+        items = [...promptItems, ...shortcutItems].sort((a, b) => a.title.localeCompare(b.title));
         populateCategories();
         renderItems();
       } catch (error) {
         console.error("Explore library load failed:", error);
-        grid.replaceChildren();
-        emptyState?.classList.add("hidden");
+        grid.replaceChildren(el("p", "load-state", "The published library could not be loaded."));
         if (errorMessage) {
-          errorMessage.textContent = "The library is temporarily unavailable. Please try again later.";
+          const detail = error instanceof Error ? error.message : "Unknown data loading error";
+          errorMessage.textContent = `Library loading error: ${detail}`;
           errorMessage.classList.remove("hidden");
         }
-        if (subtitle) subtitle.textContent = "Published resources could not be loaded.";
+        if (subtitle) subtitle.textContent = "We couldn't connect to the published library.";
         if (allTotal) allTotal.textContent = "0";
         if (resultCount) resultCount.textContent = "0";
       }
@@ -327,20 +304,24 @@ import MainLayout from "../layouts/MainLayout.astro";
 
     searchInput?.addEventListener("input", updateResults);
     categorySelect?.addEventListener("change", updateResults);
-
-    filterButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        activeType = button.dataset.filter || "all";
-        updateActiveButton();
-        updateResults();
+    filterButtons.forEach((button) => button.addEventListener("click", () => {
+      activeType = button.dataset.filter || "all";
+      filterButtons.forEach((candidate) => {
+        const active = candidate === button;
+        candidate.classList.toggle("active", active);
+        candidate.setAttribute("aria-pressed", String(active));
       });
-    });
-
+      updateResults();
+    }));
     resetButton?.addEventListener("click", () => {
       if (searchInput) searchInput.value = "";
       if (categorySelect) categorySelect.value = "all";
       activeType = "all";
-      updateActiveButton();
+      filterButtons.forEach((button) => {
+        const active = button.dataset.filter === "all";
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
       updateResults();
     });
 
@@ -362,8 +343,9 @@ import MainLayout from "../layouts/MainLayout.astro";
     padding: 78px 24px 65px;
     border-bottom: 1px solid rgba(255,255,255,.07);
     background:
-      linear-gradient(180deg,rgba(10,11,15,.35),rgba(8,9,12,.94)),
-      radial-gradient(ellipse at 50% 0%,rgba(24,135,153,.15),transparent 48%);
+      linear-gradient(180deg,rgba(10,11,18,.28),rgba(8,9,14,.94)),
+      radial-gradient(ellipse at 18% 0%,rgba(124,58,237,.19),transparent 42%),
+      radial-gradient(ellipse at 82% 8%,rgba(249,115,22,.15),transparent 40%);
     text-align: center;
   }
 
@@ -440,7 +422,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .explore-hero h1 span {
-    background: linear-gradient(100deg,#83e3ee,#a9a0ff 60%,#ffc08a);
+    background: linear-gradient(100deg,#78e6d0,#8ca7ff 48%,#ffad77);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -523,7 +505,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .collection-section {
-    width: min(100% - 48px,1250px);
+    width: min(100% - 64px,1450px);
     margin: 0 auto;
     padding-top: 44px;
   }
@@ -639,7 +621,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   .content-grid {
     display: grid;
     grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 16px;
+    align-items: stretch;
+    gap: 20px;
   }
 
   .content-card {
@@ -648,11 +631,11 @@ import MainLayout from "../layouts/MainLayout.astro";
     position: relative;
     display: flex;
     min-width: 0;
-    min-height: 285px;
+    min-height: 310px;
     flex-direction: column;
     overflow: hidden;
-    padding: 21px;
-    border: 1px solid rgba(255,255,255,.09);
+    padding: 25px;
+    border: 1px solid rgba(255,255,255,.10);
     border-radius: 16px;
     background: linear-gradient(145deg,#1b1c23,#121319 82%);
     box-shadow: 0 13px 35px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.035);
@@ -669,9 +652,34 @@ import MainLayout from "../layouts/MainLayout.astro";
     --accent-rgb: 34,211,238;
   }
 
+  .accent-mint {
+    --accent: #6ee7b7;
+    --accent-rgb: 110,231,183;
+  }
+
   .accent-orange {
     --accent: #fdba74;
     --accent-rgb: 251,146,60;
+  }
+
+  .accent-rose {
+    --accent: #f9a8d4;
+    --accent-rgb: 244,114,182;
+  }
+
+  .accent-blue {
+    --accent: #93c5fd;
+    --accent-rgb: 96,165,250;
+  }
+
+  .accent-lime {
+    --accent: #bef264;
+    --accent-rgb: 163,230,53;
+  }
+
+  .accent-purple {
+    --accent: #c4b5fd;
+    --accent-rgb: 167,139,250;
   }
 
   .content-card::after {
@@ -769,7 +777,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     margin: 13px 0 0;
     color: #f2f0f5;
     font-family: "Space Grotesk",sans-serif;
-    font-size: 19px;
+    font-size: clamp(19px,1.5vw,23px);
     font-weight: 600;
     letter-spacing: -.035em;
     overflow-wrap: anywhere;
