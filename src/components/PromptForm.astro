@@ -467,44 +467,105 @@
     padding: 2px;
   }
 
-  .choice-item, .check-card {
+  /* These option rows and controls are created by client-side JavaScript.
+     They must be global because Astro's scoped selectors do not match them. */
+  :global(.choice-item), :global(.check-card) {
     display: flex;
     min-width: 0;
     align-items: center;
     gap: 9px;
-    border: 1px solid rgb(255 255 255 / 8%);
-    border-radius: 9px;
+    border: 1px solid rgb(255 255 255 / 9%);
+    border-radius: 10px;
     background: rgb(255 255 255 / 3%);
     padding: 10px;
     color: #d4d4d8;
     cursor: pointer;
     font-size: 12px;
-    transition: 150ms ease;
+    line-height: 1.4;
+    transition: border-color 150ms ease, background 150ms ease;
   }
 
-  .choice-item:hover, .check-card:hover {
+  :global(.choice-item:hover), :global(.check-card:hover) {
     border-color: rgb(34 211 238 / 38%);
     background: rgb(34 211 238 / 6%);
   }
 
-  .choice-item:has(input:checked) {
+  :global(.choice-item:has(input:checked)) {
     border-color: rgb(34 211 238 / 55%);
     background: rgb(34 211 238 / 10%);
     color: #cffafe;
   }
 
-  .check-card:has(input:checked) {
+  :global(.check-card:has(input:checked)) {
     border-color: rgb(251 146 60 / 55%);
     background: rgb(251 146 60 / 9%);
     color: #fed7aa;
   }
 
-  .choice-item input, .check-card input { flex-shrink: 0; accent-color: #22d3ee; }
-  .choice-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .choice-actions { display:flex; gap:5px; margin-left:auto; }
-  .choice-actions button { border:1px solid rgb(255 255 255 / 14%); border-radius:6px; padding:3px 6px; color:#a5f3fc; font-size:10px; }
-  .choice-actions .delete-choice { color:#fda4af; border-color:#fb718544; }
-  .choice-empty { grid-column: 1 / -1; padding: 16px 8px; color: #71717a; font-size: 12px; text-align: center; }
+  :global(.choice-item input), :global(.check-card input) {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    accent-color: #22d3ee;
+    cursor: pointer;
+  }
+
+  :global(.choice-item > span:not(.choice-actions)),
+  :global(.check-card > span:not(.choice-actions)) {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.choice-actions) {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+  }
+
+  :global(.choice-actions button) {
+    display: inline-flex;
+    min-height: 25px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(34 211 238 / 25%);
+    border-radius: 6px;
+    background: rgb(34 211 238 / 6%);
+    padding: 3px 7px;
+    color: #a5f3fc;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+
+  :global(.choice-actions button:hover) {
+    border-color: rgb(34 211 238 / 55%);
+    background: rgb(34 211 238 / 13%);
+  }
+
+  :global(.choice-actions .delete-choice) {
+    border-color: rgb(251 113 133 / 30%);
+    background: rgb(251 113 133 / 6%);
+    color: #fda4af;
+  }
+
+  :global(.choice-actions .delete-choice:hover) {
+    border-color: rgb(251 113 133 / 60%);
+    background: rgb(251 113 133 / 13%);
+  }
+
+  :global(.choice-empty) {
+    grid-column: 1 / -1;
+    padding: 16px 8px;
+    color: #71717a;
+    font-size: 12px;
+    text-align: center;
+  }
 
   .secondary-button {
     flex-shrink: 0;
