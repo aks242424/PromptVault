@@ -1,1369 +1,1337 @@
----
-export const prerender = false;
-
-import MainLayout from "../layouts/MainLayout.astro";
-import PromptForm from "../components/PromptForm.astro";
----
-
-<MainLayout title="PromptVault Admin">
-  <main class="admin-shell">
-    <div class="admin-wrap">
-      <section id="dashboard">
-        <header class="dash-header">
-          <div>
-            <span class="eyebrow">PROMPTVAULT / CONTROL</span>
-            <h1>Dashboard</h1>
-            <p id="admin-email"></p>
-          </div>
-          <div class="header-actions">
-            <button id="refresh-button" class="btn btn-quiet" type="button">Refresh</button>
-            <button id="logout-button" class="btn btn-danger" type="button">Sign out</button>
-          </div>
-        </header>
-
-        <div class="stats-grid">
-          <article class="stat-card stat-violet"><span>Total prompts</span><strong id="total-prompts">—</strong></article>
-          <article class="stat-card stat-cyan"><span>Shortcuts</span><strong id="total-shortcuts">—</strong></article>
-          <article class="stat-card stat-amber"><span>Categories</span><strong id="total-categories">—</strong></article>
-          <article class="stat-card stat-rose"><span>Drafts</span><strong id="total-drafts">—</strong></article>
-        </div>
-
-        <section class="management-panel">
-          <div class="section-top">
-            <div><span class="eyebrow">LIBRARY</span><h2>Manage prompts</h2></div>
-            <span id="prompt-total-label" class="muted"></span>
-          </div>
-          <div class="toolbar">
-            <input id="prompt-search" type="search" placeholder="Search prompts..." aria-label="Search prompts" />
-            <select id="status-filter" aria-label="Filter by status">
-              <option value="all">All statuses</option>
-              <option value="draft">Drafts</option>
-              <option value="published">Published</option>
-            </select>
-            <select id="type-filter" aria-label="Filter by type">
-              <option value="all">All types</option>
-              <option value="image">Image</option>
-              <option value="video">Video</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div id="bulk-actions" class="bulk-actions" hidden>
-            <div class="bulk-selection-info"><strong id="bulk-selected-count">0 selected</strong><span>Choose an action for the selected prompts.</span></div>
-            <div class="bulk-action-controls">
-              <button id="select-filtered-prompts" class="btn btn-quiet" type="button">Select all filtered</button>
-              <button id="clear-prompt-selection" class="btn btn-quiet" type="button">Clear selection</button>
-              <button id="bulk-publish-prompts" class="btn btn-quiet" type="button">Publish</button>
-              <button id="bulk-unpublish-prompts" class="btn btn-quiet" type="button">Unpublish</button>
-              <button id="bulk-delete-prompts" class="btn btn-danger" type="button">Delete selected</button>
-            </div>
-          </div>
-          <div class="admin-table-wrap">
-            <div class="admin-table-head"><span>Prompt</span><span>Type</span><span>Status</span><span>Created</span><span>Actions</span></div>
-            <div id="prompt-list"><p class="empty-row">Loading prompts...</p></div>
-          </div>
-          <div class="pagination">
-            <span id="page-label" class="muted">Page 1 · 10 prompts per page</span>
-            <div><button id="prev-page" class="btn btn-quiet" type="button">Previous</button><button id="next-page" class="btn btn-quiet" type="button">Next</button></div>
-          </div>
-          <p id="dashboard-message" role="status" class="status-message"></p>
-        </section>
-
-
-
-        <section class="management-panel shortcut-management-panel">
-          <div class="section-top">
-            <div><span class="eyebrow">SHORTCUT LIBRARY</span><h2>Manage shortcuts</h2></div>
-            <span id="shortcut-total-label" class="muted"></span>
-          </div>
-          <div class="toolbar shortcut-toolbar">
-            <input id="shortcut-search" type="search" placeholder="Search shortcuts..." aria-label="Search shortcuts" />
-            <select id="shortcut-status-filter" aria-label="Filter shortcuts by status">
-              <option value="all">All statuses</option><option value="draft">Drafts</option><option value="published">Published</option>
-            </select>
-          </div>
-          <div id="shortcut-bulk-actions" class="bulk-actions" hidden>
-            <div class="bulk-selection-info"><strong id="shortcut-bulk-selected-count">0 selected</strong><span>Apply an action to the selected shortcuts.</span></div>
-            <div class="bulk-action-controls">
-              <button id="select-filtered-shortcuts" class="btn btn-quiet" type="button">Select all filtered</button>
-              <button id="clear-shortcut-selection" class="btn btn-quiet" type="button">Clear selection</button>
-              <button id="bulk-publish-shortcuts" class="btn btn-quiet" type="button">Publish</button>
-              <button id="bulk-unpublish-shortcuts" class="btn btn-quiet" type="button">Unpublish</button>
-              <button id="bulk-delete-shortcuts" class="btn btn-danger" type="button">Delete selected</button>
-            </div>
-          </div>
-          <div class="admin-table-wrap">
-            <div class="admin-table-head shortcut-table-head"><span>Shortcut</span><span>Type</span><span>Status</span><span>Created</span><span>Actions</span></div>
-            <div id="shortcut-list"><p class="empty-row">Loading shortcuts...</p></div>
-          </div>
-          <div class="pagination">
-            <span id="shortcut-page-label" class="muted">Page 1</span>
-            <div><button id="shortcut-prev-page" class="btn btn-quiet" type="button">Previous</button><button id="shortcut-next-page" class="btn btn-quiet" type="button">Next</button></div>
-          </div>
-          <p id="shortcut-message" role="status" class="status-message"></p>
-        </section>
-
-        <section class="bulk-panel" aria-labelledby="bulk-heading">
-          <div class="bulk-heading">
-            <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts and shortcuts from CSV</h2></div>
-            <button id="download-csv-template" class="btn btn-quiet" type="button">Download CSV template</button>
-          </div>
-          <p class="bulk-intro">Import prompts and shortcuts together. Mark each row as <code>prompt</code> or <code>shortcut</code>. Every imported item is saved as a draft; publish it later from its management list.</p>
-          <div class="csv-format">
-            <div class="csv-format-title">CSV columns</div>
-            <code>item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status</code>
-            <div class="csv-columns">
-              <p><strong>Prompt required:</strong> <code>title</code>, <code>content</code>, <code>prompt_type</code>.</p>
-              <p><strong>Shortcut required:</strong> <code>name</code>, <code>description</code>.</p>
-            </div>
-            <ul>
-              <li><code>item_type</code> is required: <code>prompt</code> or <code>shortcut</code>.</li>
-              <li>Prompts require <code>title</code>, <code>content</code> and <code>prompt_type</code> (<code>image</code>, <code>video</code> or <code>other</code>).</li>
-              <li>Shortcuts require <code>name</code> and <code>description</code>.</li>
-              <li>All imported prompts and shortcuts are saved as <code>draft</code>, even if the CSV contains a status value.</li>
-              <li>Separate each category and tag with <code>|</code> or <code>;</code>. Each value is created and linked individually. AI tools apply to prompts only.</li>
-              <li>Use standard CSV quotes around values containing commas, quotes or line breaks.</li>
-            </ul>
-            <div class="csv-example"><span>Example rows</span><code>prompt,"Neon Portrait",,"A cinematic neon-lit portrait...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft<br />shortcut,,"Copy prompt shortcut",,"Quick description",,"Productivity|Writing","Workflow|Copy",,published</code></div>
-          </div>
-          <div class="bulk-upload-row">
-            <label class="csv-file-label" for="bulk-csv-file">Choose CSV file</label>
-            <input id="bulk-csv-file" type="file" accept=".csv,text/csv" />
-            <button id="bulk-validate-button" class="btn btn-quiet" type="button" disabled>1. Validate CSV</button>
-            <button id="bulk-import-button" class="btn btn-primary" type="button" disabled>2. Import selected</button>
-          </div>
-          <p id="bulk-file-name" class="muted">No file selected.</p>
-          <div id="bulk-validation" class="bulk-validation" role="status" aria-live="polite"></div>
-          <div id="bulk-errors" class="bulk-errors" hidden></div>
-          <section id="bulk-preview" class="bulk-preview" hidden aria-label="Validated prompt selection">
-            <div class="bulk-preview-heading">
-              <strong>Review items to import</strong>
-              <div class="bulk-preview-controls">
-                <button id="bulk-select-all" type="button">Select all ready</button>
-                <button id="bulk-clear-selection" type="button">Clear selection</button>
-                <span id="bulk-selection-count">0 selected</span>
-              </div>
-            </div>
-            <div class="bulk-preview-list" id="bulk-preview-list"></div>
-          </section>
-        </section>
-        <div id="prompt-editor" class="editor-section">
-          <PromptForm />
-        </div>
-      </section>
+<section class="overflow-hidden rounded-2xl border border-white/10 bg-[#111114] shadow-xl">
+  <div class="border-b border-white/10 px-6 py-6 sm:px-8">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 id="form-heading" class="mt-2 text-2xl font-bold text-white">Add new prompt</h2>
+      </div>
     </div>
-  </main>
-</MainLayout>
+  </div>
 
-<style is:global>
-  .admin-shell {
+  <form id="prompt-form" class="space-y-8 p-5 sm:p-8">
+        <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">01</span>
+        <div>
+          <h3>Prompt details</h3>
+        </div>
+      </div>
+
+      <div>
+        <label for="prompt-title" class="field-label">Prompt name <span>*</span></label>
+        <input
+          id="prompt-title"
+          required
+          maxlength="160"
+          class="form-control"
+          placeholder="e.g. Cinematic Cyberpunk Portrait"
+        />
+      </div>
+
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <label for="prompt-content" class="field-label">Full prompt <span>*</span></label>
+          <span class="text-xs text-gray-500">Required</span>
+        </div>
+        <textarea
+          id="prompt-content"
+          required
+          rows="9"
+          class="form-control resize-y leading-6"
+          placeholder="Paste your complete AI prompt here..."
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="prompt-description" class="field-label">Short description</label>
+        <textarea
+          id="prompt-description"
+          rows="3"
+          class="form-control resize-y"
+          placeholder="Explain what this prompt creates or what it is useful for..."
+        ></textarea>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+    <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">02</span>
+        <div>
+          <h3>Format and publishing</h3>
+        </div>
+      </div>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label for="prompt-type" class="field-label">Prompt type <span>*</span></label>
+          <select id="prompt-type" required class="form-control">
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="prompt-status" class="field-label">Publishing status <span>*</span></label>
+          <select id="prompt-status" required class="form-control">
+            <option value="draft">Save as draft</option>
+            <option value="published">Publish immediately</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="prompt-thumbnail" class="field-label">
+          Thumbnail image <span class="optional">(optional)</span>
+        </label>
+
+        <div class="upload-box">
+          <div class="flex flex-wrap items-center gap-4">
+            <div class="thumbnail-frame">
+              <img
+                id="thumbnail-preview"
+                hidden
+                alt="Thumbnail preview"
+                class="h-full w-full object-cover"
+              />
+              <svg
+                id="thumbnail-placeholder"
+                viewBox="0 0 24 24"
+                class="h-7 w-7 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+                <circle cx="85" cy="8.5" r="1.5"></circle>
+                <path d="m21 15-5-5L5 21"></path>
+              </svg>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-gray-200">Thumbnail</p>
+              <p class="mt-1 text-xs text-gray-500">
+                JPEG, PNG, WebP or AVIF · 5 MB max
+              </p>
+
+              <label
+                for="prompt-thumbnail"
+                class="mt-3 inline-flex cursor-pointer rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-300 transition hover:bg-violet-500/20"
+              >
+                Choose image
+              </label>
+
+              <span id="thumbnail-filename" class="ml-2 text-xs text-gray-500">
+                No image selected
+              </span>
+            </div>
+          </div>
+
+          <input
+            id="prompt-thumbnail"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            class="hidden"
+          />
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+
+    <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">03</span>
+        <div>
+          <h3>Categories and tags</h3>
+        </div>
+      </div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+
+        <div class="selection-panel">
+          <div class="mb-3 flex items-center justify-between">
+            <label class="field-label">Categories <span>*</span></label>
+            <span id="category-count" class="selection-count">0 selected</span>
+          </div>
+
+          <div id="category-chips" class="selected-chips"></div>
+
+          <input
+            id="category-search"
+            type="search"
+            class="form-control mb-3"
+            placeholder="Search categories..."
+          />
+
+          <div id="category-options" class="choice-list"></div>
+
+          <div class="mt-4 flex gap-2">
+            <input
+              id="new-category"
+              class="form-control min-w-0 flex-1"
+              placeholder="New category name"
+              maxlength="60"
+            />
+            <button type="button" id="add-category" class="secondary-button">
+              Add
+            </button>
+          </div>
+        </div>
+
+
+        <div class="selection-panel">
+          <div class="mb-3 flex items-center justify-between">
+            <label class="field-label">Tags <span>*</span></label>
+            <span id="tag-count" class="selection-count">0 selected</span>
+          </div>
+
+          <div id="tag-chips" class="selected-chips"></div>
+
+          <input
+            id="tag-search"
+            type="search"
+            class="form-control mb-3"
+            placeholder="Search tags..."
+          />
+
+          <div id="tag-options" class="choice-list"></div>
+
+          <div class="mt-4 flex gap-2">
+            <input
+              id="new-tag"
+              class="form-control min-w-0 flex-1"
+              placeholder="New tag name"
+              maxlength="60"
+            />
+            <button type="button" id="add-tag" class="secondary-button">
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+
+    <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">04</span>
+        <div>
+          <h3>Additional information</h3>
+
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label">AI tools</label>
+        <p class="mb-3 text-xs text-gray-500">
+
+        </p>
+
+        <div id="tool-options" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <input id="new-ai-tool" class="form-control min-w-0 flex-1" maxlength="60" placeholder="New AI tool name" />
+          <button type="button" id="add-ai-tool" class="secondary-button">Add</button>
+        </div>
+        <p class="mt-2 text-xs text-gray-500">Use Edit or Delete beside a tool to manage the shared list. Most-used tools appear first.</p>
+      </div>
+
+    </section>
+
+    <div class="section-divider"></div>
+
+
+    <section
+      id="duplicate-warning"
+      hidden
+      class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4"
+    >
+      <p class="text-sm font-semibold text-amber-300">
+        Possible duplicate detected
+      </p>
+
+      <div id="duplicate-details" class="mt-3 space-y-2 text-sm text-amber-200/80"></div>
+
+      <label class="mt-4 flex cursor-pointer items-start gap-3 text-sm text-gray-300">
+        <input
+          id="duplicate-confirm"
+          type="checkbox"
+          class="mt-1 accent-violet-500"
+        />
+        <span>
+          I have reviewed these matches and confirm that I want to save this prompt.
+        </span>
+      </label>
+    </section>
+
+
+    <div class="flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <p
+        id="prompt-form-message"
+        role="status"
+        aria-live="polite"
+        class="text-sm text-gray-400"
+      >
+        Loading categories and tags...
+      </p>
+
+      <div class="flex flex-wrap gap-2">
+        <button id="cancel-edit" type="button" class="secondary-button" hidden>Cancel edit</button>
+        <button id="save-draft" type="submit" data-submit-status="draft" class="secondary-button">Save draft</button>
+        <button id="save-prompt" type="submit" data-submit-status="published" class="primary-button">Publish prompt</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<style>
+  section.overflow-hidden.rounded-2xl {
     position: relative;
     isolation: isolate;
-    min-height: 100vh;
-    overflow: hidden;
-    padding: 48px 24px 100px;
-    color: #f4f4f5;
-    background:
-      radial-gradient(ellipse at 8% 5%, #0e749044, transparent 34%),
-      radial-gradient(ellipse at 92% 18%, #c2410c30, transparent 32%),
-      radial-gradient(ellipse at 50% 100%, #1d4ed822, transparent 42%),
-      #080b10;
-  }
-  .admin-shell::before {
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    content: "";
-    pointer-events: none;
-    opacity: .19;
-    background-image: radial-gradient(#94a3b8 0.7px, transparent 0.7px);
-    background-size: 25px 25px;
-    mask-image: linear-gradient(to bottom, black, transparent 78%);
-  }
-  .admin-wrap { position: relative; max-width: 1220px; margin: 0 auto; }
-  .login-card, .management-panel {
-    border: 1px solid #ffffff16;
+    border: 1px solid rgb(255 255 255 / 10%);
     border-radius: 22px;
-    background: linear-gradient(145deg, #151c25f2, #0e131bf5);
-    box-shadow: 0 24px 90px #0008, inset 0 1px #ffffff08;
-    backdrop-filter: blur(18px);
+    background:
+      radial-gradient(ellipse at 4% 0%, rgb(34 211 238 / 9%), transparent 32%),
+      radial-gradient(ellipse at 96% 12%, rgb(251 146 60 / 8%), transparent 30%),
+      linear-gradient(145deg, #15171c, #0d0e13 72%);
+    box-shadow: 0 28px 90px rgb(0 0 0 / 38%);
   }
-  .login-card {
-    max-width: 440px;
-    margin: 10vh auto;
-    padding: 36px;
-    position: relative;
-    overflow: hidden;
-  }
-  .login-card::before {
-    position: absolute;
-    width: 220px;
-    height: 220px;
-    top: -130px;
-    right: -90px;
-    content: "";
-    border-radius: 50%;
-    background: #06b6d4;
-    filter: blur(85px);
-    opacity: .2;
-    pointer-events: none;
-  }
-  .brand-mark {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 42px;
-    border: 1px solid #67e8f955;
-    border-radius: 13px;
-    background: linear-gradient(135deg, #0e7490, #155e75);
-    color: #cffafe;
-    font-size: 19px;
-    font-weight: 850;
-    box-shadow: 0 8px 30px #0891b233;
-  }
-  h1 { font-size: 32px; font-weight: 760; letter-spacing: -.045em; }
-  .login-card h1 { margin-top: 20px; }
-  .login-form { display: grid; gap: 17px; margin-top: 27px; }
-  .login-form label { display: grid; gap: 8px; color: #cbd5e1; font-size: 12px; font-weight: 650; }
-  input, select {
-    min-width: 0;
-    border: 1px solid #ffffff1b;
-    border-radius: 11px;
-    background: #090e15;
-    color: #f4f4f5;
-    padding: 12px 14px;
-    outline: none;
-    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
-  }
-  input::placeholder { color: #64748b; }
-  input:focus, select:focus {
-    border-color: #22d3ee99;
-    background: #0b141d;
-    box-shadow: 0 0 0 3px #06b6d41c;
-  }
-  .btn {
-    border: 1px solid #ffffff1b;
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 11px;
+
+  #form-heading {
+    margin: 0;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(1.45rem, 3vw, 1.85rem);
     font-weight: 700;
-    letter-spacing: .015em;
-    transition: transform .18s ease, filter .18s ease, border-color .18s ease;
+    letter-spacing: -.045em;
   }
-  .btn:hover { transform: translateY(-1px); filter: brightness(1.13); }
-  .btn:disabled, button:disabled { cursor: not-allowed; opacity: .45; transform: none; }
-  .btn-primary {
-    border: 0;
-    padding: 13px;
-    color: #04212a;
-    background: linear-gradient(110deg, #67e8f9, #22d3ee 55%, #0ea5e9);
-    box-shadow: 0 8px 28px #0891b233;
+
+  section.overflow-hidden > div:first-child {
+    border-color: rgb(255 255 255 / 9%);
+    background: linear-gradient(100deg, rgb(34 211 238 / 7%), rgb(255 255 255 / 1%), rgb(251 146 60 / 6%));
   }
-  .btn-quiet { background: #ffffff08; color: #dbeafe; }
-  .btn-quiet:hover { border-color: #67e8f966; }
-  .btn-danger { border-color: #fb718544; background: #fb718510; color: #fda4af; }
-  .dash-header {
+
+  #prompt-form { gap: 2rem; }
+
+  .section-heading {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    border-bottom: 1px solid #ffffff18;
-    padding: 10px 0 27px;
+    gap: 12px;
   }
-  .dash-header h1 { margin-top: 7px; }
-  #admin-email, .muted { color: #94a3b8; font-size: 12px; }
-  .eyebrow { color: #67e8f9; font-size: 10px; font-weight: 800; letter-spacing: .2em; }
-  .header-actions { display: flex; gap: 9px; }
-  .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 25px 0; }
-  .stat-card {
-    position: relative;
-    isolation: isolate;
-    overflow: hidden;
-    min-height: 112px;
-    border: 1px solid #ffffff16;
-    border-radius: 16px;
-    background: linear-gradient(145deg, #151c25, #10151d);
-    padding: 19px;
-    box-shadow: inset 0 1px #ffffff08;
-  }
-  .stat-card::after {
-    position: absolute;
-    z-index: -1;
-    right: -25px;
-    top: -40px;
-    width: 115px;
-    height: 115px;
-    border-radius: 50%;
-    content: "";
-    filter: blur(28px);
-    opacity: .36;
-  }
-  .stat-card span { display: block; color: #a1a1aa; font-size: 11px; font-weight: 650; }
-  .stat-card strong { display: block; margin-top: 12px; font-size: 31px; line-height: 1; letter-spacing: -.04em; }
-  .stat-violet { border-top: 2px solid #a78bfa; }.stat-violet strong { color: #c4b5fd; }.stat-violet::after { background: #8b5cf6; }
-  .stat-cyan { border-top: 2px solid #22d3ee; }.stat-cyan strong { color: #67e8f9; }.stat-cyan::after { background: #0891b2; }
-  .stat-amber { border-top: 2px solid #fbbf24; }.stat-amber strong { color: #fcd34d; }.stat-amber::after { background: #d97706; }
-  .stat-rose { border-top: 2px solid #fb7185; }.stat-rose strong { color: #fda4af; }.stat-rose::after { background: #e11d48; }
-  .management-panel { padding: 24px; }
-  .section-top { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
-  .section-top h2 { margin-top: 6px; font-size: 21px; font-weight: 730; letter-spacing: -.025em; }
-  .toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 170px 150px; gap: 10px; margin: 21px 0 15px; }
-  .admin-table-wrap {
-    min-width: 0;
-    max-height: 690px;
-    overflow: auto;
-    border: 1px solid #ffffff16;
-    border-radius: 14px;
-    background: #080d14a8;
-    scrollbar-width: thin;
-    scrollbar-color: #334155 #0b1119;
-  }
-  .admin-table-head { position: sticky; top: 0; z-index: 2; }
-  #prompt-list { min-width: 850px; }
-  .admin-table-head, .admin-prompt-row {
-    display: grid;
-    grid-template-columns: minmax(260px, 1fr) 90px 110px 120px 190px;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-  }
-  .admin-table-head {
-    min-width: 850px;
-    background: #ffffff07;
-    color: #8291a5;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: .15em;
-    text-transform: uppercase;
-  }
-  .shortcut-management-panel { margin-top:22px; }
-  .shortcut-toolbar { grid-template-columns:minmax(220px,1fr) 170px; }
-  .shortcut-table-head,.admin-shortcut-row { grid-template-columns:minmax(240px,1fr) 90px 110px 130px 190px; min-width:850px; }
-  .admin-shortcut-row { display:grid; align-items:center; gap:14px; padding:14px 16px; border-top:1px solid #ffffff0d; }
-  .admin-shortcut-row.is-selected { background:#22d3ee0b; }
-  .admin-shortcut-name-wrap { display:flex; align-items:center; gap:11px; min-width:0; }
-  .admin-shortcut-row:hover { background:#ffffff06; }
-  .admin-shortcut-row > * { min-width:0; }
-  .admin-shortcut-name { color:#e2e8f0; font-size:12px; font-weight:680; overflow-wrap:anywhere; }
-  .shortcut-date { color:#a5b4c5; font-size:11px; white-space:nowrap; }
-  .admin-prompt-row { min-width:850px; border-top:1px solid #ffffff0d; transition:background .16s ease; }
-  .admin-prompt-row.is-selected { background: #22d3ee0b; }
-  .admin-prompt-name-wrap { display:flex; align-items:center; gap:11px; min-width:0; }
-  .prompt-select-checkbox { width:15px; height:15px; flex:0 0 auto; accent-color:#22d3ee; cursor:pointer; }
-  .bulk-actions { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin:0 0 13px; padding:13px 14px; border:1px solid #22d3ee35; border-radius:12px; background:#0c1b23; }
-  .bulk-actions[hidden] { display:none; }
-  .bulk-selection-info { display:flex; flex-direction:column; gap:3px; color:#94a3b8; font-size:11px; }
-  .bulk-selection-info strong { color:#67e8f9; font-size:13px; }
-  .bulk-action-controls { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
-  .bulk-action-controls button { font-size:10px; }
-  .btn-danger { border:1px solid #fb718555; border-radius:9px; background:#fb718514; padding:9px 12px; color:#fda4af; font-weight:700; }
-  .btn-danger:hover { background:#fb718526; }
-  .btn:disabled, .bulk-action-controls button:disabled { opacity:.45; cursor:not-allowed; }
-  .admin-prompt-row:hover { background: #ffffff06; }
-  .admin-prompt-row > * { min-width: 0; }
-  .admin-prompt-row .admin-prompt-meta, .admin-prompt-row .admin-status-pill { white-space: nowrap; }
-  .admin-row-actions { align-items: center; justify-content: flex-start; min-width: 190px; }
-  .admin-prompt-name { min-width: 0; color: #e2e8f0; font-size: 12px; font-weight: 680; overflow-wrap: anywhere; }
-  .admin-prompt-meta { color: #a5b4c5; font-size: 11px; text-transform: capitalize; }
-  .admin-shortcut-type-select { width:100%; max-width:100px; padding:7px 9px; border:1px solid #ffffff24; border-radius:8px; background:#111820; color:#cbd5e1; font:inherit; font-size:11px; }
-  .admin-shortcut-type-select:focus { outline:1px solid #22d3ee; border-color:#22d3ee; }
-  .admin-shortcut-type-select:disabled { opacity:.5; cursor:wait; }
-  .admin-status-pill {
-    justify-self: start;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    padding: 5px 9px;
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: capitalize;
-  }
-  .admin-status-draft { border-color: #fbbf2433; background: #fbbf2414; color: #fcd34d; }
-  .admin-status-published { border-color: #34d39933; background: #34d39914; color: #6ee7b7; }
-  .admin-row-actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 6px; white-space: nowrap; }
-  .admin-row-actions button {
-    border: 1px solid #ffffff1b;
-    border-radius: 8px;
-    background: #ffffff06;
-    padding: 6px 9px;
-    color: #cbd5e1;
-    font-size: 10px;
-    font-weight: 650;
-    transition: background .16s ease, border-color .16s ease;
-  }
-  .admin-row-actions button:hover { background: #ffffff10; border-color: #ffffff38; }
-  .admin-row-actions .edit-action { border-color: #22d3ee55; color: #67e8f9; }
-  .admin-row-actions .delete-action { border-color: #fb718544; color: #fda4af; }
-  .empty-row { padding: 23px; color: #8291a5; font-size: 12px; }
-  .pagination { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; }
-  .pagination > div { display: flex; gap: 8px; }
-  .status-message { min-height: 18px; margin-top: 13px; color: #94a3b8; font-size: 11px; }
-  #login-message { min-height: 18px; margin: 0; color: #fda4af; font-size: 12px; }
-  .editor-section { margin-top: 25px; }
 
-  .bulk-panel { margin-top:25px; padding:25px; border:1px solid #22d3ee26; border-radius:20px; background:linear-gradient(145deg,#111c24f2,#10131bf5 70%,#1b1714); box-shadow:0 22px 70px #0007,inset 0 1px #ffffff09; }
-  .bulk-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
-  .bulk-heading h2 { margin-top:7px; font-size:21px; font-weight:730; letter-spacing:-.025em; }
-  .bulk-eyebrow { color:#67e8f9; }
-  .bulk-intro { margin:12px 0 18px; color:#a5b4c5; font-size:12px; }
-  .csv-format { padding:17px; border:1px solid #ffffff16; border-radius:13px; background:#080d14b8; }
-  .csv-format-title { margin-bottom:9px; color:#e2e8f0; font-size:12px; font-weight:750; }
-  .csv-format > code,.csv-example code { display:block; overflow-wrap:anywhere; color:#67e8f9; font-family:"JetBrains Mono",monospace; font-size:11px; line-height:1.8; }
-  .csv-columns { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
-  .csv-columns p,.csv-format li { color:#a5b4c5; font-size:11px; line-height:1.8; }
-  .csv-columns strong { color:#e2e8f0; }
-  .csv-format ul { margin:12px 0 0; padding-left:18px; }
-  .csv-format li code,.csv-columns code { color:#fbbf24; font-family:"JetBrains Mono",monospace; font-size:10px; }
-  .csv-example { margin-top:13px; padding:12px; border:1px solid #ffffff12; border-radius:9px; background:#ffffff05; }
-  .csv-example span { display:block; margin-bottom:5px; color:#94a3b8; font-size:10px; font-weight:700; }
-  .bulk-upload-row { display:flex; align-items:center; gap:10px; margin-top:17px; flex-wrap:wrap; }
-  .csv-file-label { padding:10px 13px; border:1px solid #22d3ee55; border-radius:9px; color:#67e8f9; font-size:11px; font-weight:700; cursor:pointer; }
-  #bulk-csv-file { max-width:260px; padding:7px; font-size:10px; }
-  .bulk-validation { min-height:18px; margin-top:12px; color:#94a3b8; font-size:11px; white-space:pre-wrap; }
-  .bulk-validation.success { color:#6ee7b7; }.bulk-validation.error { color:#fda4af; }
-  .bulk-errors { max-height:220px; overflow:auto; margin-top:8px; padding:12px; border:1px solid #fb718544; border-radius:10px; background:#fb71850b; color:#fda4af; font-size:11px; line-height:1.8; }
-  .bulk-errors ul { margin:0; padding-left:18px; }
-  .bulk-preview { margin-top:14px; border:1px solid #ffffff18; border-radius:12px; overflow:hidden; background:#080d14a8; }
-  .bulk-preview-heading { display:flex; justify-content:space-between; gap:12px; padding:13px 15px; border-bottom:1px solid #ffffff12; color:#e2e8f0; font-size:12px; }
-  .bulk-preview-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-  .bulk-preview-controls button { border:0; padding:0; background:transparent; color:#67e8f9; font-size:10px; cursor:pointer; }
-  .bulk-preview-heading span { color:#67e8f9; font-family:"JetBrains Mono",monospace; font-size:10px; }
-  .bulk-preview-list { max-height:340px; overflow:auto; }
-  .bulk-preview-row { display:grid; grid-template-columns:24px minmax(0,1fr) auto; gap:10px; align-items:center; padding:11px 14px; border-bottom:1px solid #ffffff0c; font-size:11px; }
-  .bulk-preview-row:last-child { border-bottom:0; }
-  .bulk-preview-row input { width:15px; height:15px; accent-color:#22d3ee; }
-  .bulk-preview-title { color:#e2e8f0; font-weight:700; overflow-wrap:anywhere; }
-  .bulk-preview-meta { margin-top:3px; color:#94a3b8; font-size:10px; }
-  .bulk-row-state { color:#6ee7b7; font-size:10px; font-weight:700; }
-  .bulk-row-state.duplicate { color:#fda4af; }
-  .bulk-row-state.invalid { color:#fbbf24; }
-  [hidden] { display: none !important; }
-  @media (max-width: 760px) {
-    .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .toolbar { grid-template-columns: 1fr 1fr; }
-    .toolbar input { grid-column: 1 / -1; }
-    .shortcut-toolbar { grid-template-columns: 1fr 1fr; }
-    .shortcut-toolbar input { grid-column: 1 / -1; }
-    .admin-table-head, .admin-prompt-row { grid-template-columns: minmax(260px, 1fr) 90px 110px 120px 190px; }
-    .dash-header { align-items: flex-start; }
-    .admin-shell { padding: 28px 14px 80px; }
+  .section-heading h3 {
+    color: #f4f4f5;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -.02em;
   }
-  @media (max-width: 460px) {
-    .stats-grid { gap: 9px; }
-    .stat-card { min-height: 100px; padding: 14px; }
-    .stat-card strong { font-size: 26px; }
-    .management-panel { padding: 14px; }
-    .admin-table-head, .admin-prompt-row { gap: 10px; padding: 12px 14px; }
-    .toolbar { grid-template-columns: 1fr; }
-    .toolbar input { grid-column: auto; }
-    .shortcut-toolbar { grid-template-columns: 1fr; }
-    .shortcut-toolbar input { grid-column: auto; }
-    .header-actions { flex-direction: column; }
-    .csv-columns { grid-template-columns:1fr; }
-    .bulk-heading { align-items:flex-start; flex-direction:column; }
-    .bulk-panel { padding:16px; }
-    .dash-header h1 { font-size: 27px; }
-    .login-card { padding: 26px 22px; }
+
+  .section-number {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    border: 1px solid rgb(34 211 238 / 28%);
+    border-radius: 11px;
+    background: linear-gradient(145deg, rgb(34 211 238 / 18%), rgb(34 211 238 / 5%));
+    color: #67e8f9;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  #prompt-form > section:nth-of-type(2) .section-number {
+    border-color: rgb(251 146 60 / 32%);
+    background: rgb(251 146 60 / 10%);
+    color: #fdba74;
+  }
+
+  #prompt-form > section:nth-of-type(3) .section-number {
+    border-color: rgb(167 139 250 / 32%);
+    background: rgb(167 139 250 / 10%);
+    color: #c4b5fd;
+  }
+
+  #prompt-form > section:nth-of-type(4) .section-number {
+    border-color: rgb(52 211 153 / 32%);
+    background: rgb(52 211 153 / 10%);
+    color: #6ee7b7;
+  }
+
+  .section-heading:after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    margin-left: 8px;
+    background: linear-gradient(90deg, rgb(34 211 238 / 25%), transparent);
+  }
+
+  .section-divider { height: 1px; background: rgb(255 255 255 / 8%); }
+
+  .field-label {
+    display: block;
+    margin-bottom: 9px;
+    color: #e4e4e7;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .field-label > span:not(.optional) { color: #fb923c; }
+  .optional { color: #71717a; font-weight: 400; }
+
+  .form-control {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid rgb(255 255 255 / 11%);
+    border-radius: 11px;
+    background: #090b10;
+    padding: 12px 14px;
+    color: #f4f4f5;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  }
+
+  .form-control:focus {
+    border-color: rgb(34 211 238 / 65%);
+    background: #0b1015;
+    box-shadow: 0 0 0 3px rgb(34 211 238 / 10%);
+  }
+
+  .form-control::placeholder { color: #666b78; }
+  textarea.form-control { min-height: 90px; }
+  #prompt-content { min-height: 220px; line-height: 1.7; }
+
+  .upload-box {
+    border: 1px dashed rgb(34 211 238 / 25%);
+    border-radius: 14px;
+    background: linear-gradient(120deg, rgb(34 211 238 / 5%), rgb(255 255 255 / 2%), rgb(251 146 60 / 4%));
+    padding: 18px;
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+
+  .upload-box:hover { border-color: rgb(34 211 238 / 60%); }
+  .thumbnail-frame {
+    display: flex;
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 11px;
+    background: #11151b;
+  }
+
+  .selection-panel {
+    min-width: 0;
+    border: 1px solid rgb(255 255 255 / 9%);
+    border-radius: 15px;
+    background: linear-gradient(145deg, rgb(255 255 255 / 3%), rgb(0 0 0 / 17%));
+    padding: 16px;
+  }
+
+  .selection-panel:nth-child(1) { box-shadow: inset 0 1px 0 rgb(167 139 250 / 14%); }
+  .selection-panel:nth-child(2) { box-shadow: inset 0 1px 0 rgb(34 211 238 / 14%); }
+  .selection-count {
+    color: #9298a5;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+  }
+
+  .selected-chips { display: flex; min-height: 0; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+  .selected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid rgb(34 211 238 / 27%);
+    border-radius: 999px;
+    background: rgb(34 211 238 / 9%);
+    padding: 5px 9px;
+    color: #a5f3fc;
+    font-size: 11px;
+  }
+
+  .selected-chip button { color: #67e8f9; font-size: 15px; line-height: 1; }
+  .choice-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    max-height: 210px;
+    overflow-y: auto;
+    padding: 2px;
+  }
+
+  /* These option rows and controls are created by client-side JavaScript.
+     They must be global because Astro's scoped selectors do not match them. */
+  :global(.choice-item), :global(.check-card) {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid rgb(255 255 255 / 9%);
+    border-radius: 10px;
+    background: rgb(255 255 255 / 3%);
+    padding: 10px;
+    color: #d4d4d8;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.4;
+    transition: border-color 150ms ease, background 150ms ease;
+  }
+
+  :global(.choice-item:hover), :global(.check-card:hover) {
+    border-color: rgb(34 211 238 / 38%);
+    background: rgb(34 211 238 / 6%);
+  }
+
+  :global(.choice-item:has(input:checked)) {
+    border-color: rgb(34 211 238 / 55%);
+    background: rgb(34 211 238 / 10%);
+    color: #cffafe;
+  }
+
+  :global(.check-card:has(input:checked)) {
+    border-color: rgb(251 146 60 / 55%);
+    background: rgb(251 146 60 / 9%);
+    color: #fed7aa;
+  }
+
+  :global(.choice-item input), :global(.check-card input) {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+    accent-color: #22d3ee;
+    cursor: pointer;
+  }
+
+  :global(.choice-item > span:not(.choice-actions)),
+  :global(.check-card > span:not(.choice-actions)) {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
+  }
+
+  :global(.choice-actions) {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+  }
+
+  :global(.choice-actions button) {
+    display: inline-flex;
+    min-height: 25px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(34 211 238 / 25%);
+    border-radius: 6px;
+    background: rgb(34 211 238 / 6%);
+    padding: 3px 7px;
+    color: #a5f3fc;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+
+  :global(.choice-actions button:hover) {
+    border-color: rgb(34 211 238 / 55%);
+    background: rgb(34 211 238 / 13%);
+  }
+
+  :global(.choice-actions .delete-choice) {
+    border-color: rgb(251 113 133 / 30%);
+    background: rgb(251 113 133 / 6%);
+    color: #fda4af;
+  }
+
+  :global(.choice-actions .delete-choice:hover) {
+    border-color: rgb(251 113 133 / 60%);
+    background: rgb(251 113 133 / 13%);
+  }
+
+  :global(.choice-empty) {
+    grid-column: 1 / -1;
+    padding: 16px 8px;
+    color: #71717a;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .secondary-button {
+    flex-shrink: 0;
+    border: 1px solid rgb(34 211 238 / 32%);
+    border-radius: 9px;
+    padding: 0 16px;
+    color: #a5f3fc;
+    font-size: 12px;
+    transition: 150ms ease;
+  }
+
+  .secondary-button:hover {
+    border-color: rgb(34 211 238 / 60%);
+    background: rgb(34 211 238 / 9%);
+  }
+
+  .primary-button {
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(251 146 60 / 30%);
+    border-radius: 11px;
+    background: linear-gradient(110deg, #f97316, #ea580c 58%, #c2410c);
+    padding: 0 28px;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 8px 26px rgb(234 88 12 / 20%);
+    transition: 150ms ease;
+  }
+
+  .primary-button:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgb(234 88 12 / 30%); }
+  .primary-button:disabled { cursor: not-allowed; opacity: .55; }
+  #duplicate-warning { border-color: rgb(251 191 36 / 30%); background: rgb(251 191 36 / 5%); }
+  #duplicate-confirm { accent-color: #f59e0b; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 640px) {
+    #prompt-form { padding: 18px; }
+    .choice-list { grid-template-columns: 1fr; }
+    .primary-button { width: 100%; }
   }
 </style>
 
 <script>
   import { supabase } from "../lib/supabase.js";
 
-  const $ = <T extends HTMLElement = HTMLElement>(selector: string): T => {
-    const element = document.querySelector<HTMLElement>(selector);
-    if (!element) throw new Error(`Required admin element not found: ${selector}`);
-    return element as T;
-  };
+  const form = document.querySelector("#prompt-form");
+  const message = document.querySelector("#prompt-form-message");
+  const saveButton = document.querySelector("#save-prompt");
 
-  const dashboard = $<HTMLElement>("#dashboard");
-  const promptList = $<HTMLElement>("#prompt-list");
-  const dashboardMessage = $<HTMLElement>("#dashboard-message");
+  const categoryList = document.querySelector("#category-options");
+  const tagList = document.querySelector("#tag-options");
 
-  let allPrompts = [];
-  let allShortcuts: any[] = [];
-  let shortcutPage = 1;
-  const shortcutPageSize = 10;
-  let currentPage = 1;
-  const pageSize = 10;
-  const selectedPromptIds = new Set<string>();
-  const selectedShortcutIds = new Set<string>();
-  let filteredPromptIds: string[] = [];
-  let filteredShortcutIds: string[] = [];
+  const categoryChips = document.querySelector("#category-chips");
+  const tagChips = document.querySelector("#tag-chips");
 
-  // Keep PostgREST URLs and request payloads small when acting on hundreds of rows.
-  const BULK_BATCH_SIZE = 50;
-  function chunkIds(ids: string[], size = BULK_BATCH_SIZE) {
-    const batches: string[][] = [];
-    for (let index = 0; index < ids.length; index += size) {
-      batches.push(ids.slice(index, index + size));
+  const categoryCount = document.querySelector("#category-count");
+  const tagCount = document.querySelector("#tag-count");
+
+  const categorySearch = document.querySelector("#category-search");
+  const tagSearch = document.querySelector("#tag-search");
+
+  const thumbnailInput = document.querySelector("#prompt-thumbnail");
+  const thumbnailPreview = document.querySelector("#thumbnail-preview");
+  const thumbnailPlaceholder = document.querySelector("#thumbnail-placeholder");
+  const thumbnailFilename = document.querySelector("#thumbnail-filename");
+
+  const duplicateWarning = document.querySelector("#duplicate-warning");
+  const duplicateDetails = document.querySelector("#duplicate-details");
+  const duplicateConfirm = document.querySelector("#duplicate-confirm");
+
+  const selectedCategories = new Map();
+  const selectedTags = new Map();
+
+  let categories = [];
+  let tags = [];
+  let aiTools = [];
+  const toolOptions = document.querySelector("#tool-options");
+  let optionsLoaded = false;
+  let saving = false;
+  let previewUrl = null;
+  let approvedFingerprint = "";
+  let editingPromptId = null;
+  let currentThumbnailPath = null;
+
+  const allowedImageTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/avif",
+  ];
+
+  const slugify = (value) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const normalize = (value) =>
+    value.toLowerCase().trim().replace(/\s+/g, " ");
+
+  function setMessage(text, type = "normal") {
+    message.textContent = text;
+    message.className = "text-sm";
+
+    if (type === "error") {
+      message.classList.add("text-red-400");
+    } else if (type === "success") {
+      message.classList.add("text-green-400");
+    } else {
+      message.classList.add("text-gray-400");
     }
-    return batches;
   }
 
-  function updateBulkActionBar() {
-    const bar = $<HTMLElement>("#bulk-actions");
-    const count = selectedPromptIds.size;
-    bar.hidden = filteredPromptIds.length === 0 && count === 0;
-    $("#bulk-selected-count").textContent = `${count} selected`;
-    const selectedPrompts = allPrompts.filter((prompt) => selectedPromptIds.has(prompt.id));
-    const hasDrafts = selectedPrompts.some((prompt) => prompt.status !== "published");
-    const hasPublished = selectedPrompts.some((prompt) => prompt.status === "published");
-    $<HTMLButtonElement>("#bulk-publish-prompts").disabled = !hasDrafts;
-    $<HTMLButtonElement>("#bulk-unpublish-prompts").disabled = !hasPublished;
-    $<HTMLButtonElement>("#bulk-delete-prompts").disabled = count === 0;
-  }
+  function renderChips(map, container, countElement) {
+    container.replaceChildren();
 
-  function renderPrompts() {
-    const query = $<HTMLInputElement>("#prompt-search").value.trim().toLowerCase();
-    const status = $<HTMLSelectElement>("#status-filter").value;
-    const type = $<HTMLSelectElement>("#type-filter").value;
-    const filtered = allPrompts.filter((prompt) =>
-      (prompt.title || "").toLowerCase().includes(query) &&
-      (status === "all" || prompt.status === status) &&
-      (type === "all" || prompt.prompt_type === type)
-    );
-    const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
-    currentPage = Math.min(currentPage, pages);
-    filteredPromptIds = filtered.map((prompt) => prompt.id);
-    for (const id of Array.from(selectedPromptIds)) {
-      if (!allPrompts.some((prompt) => prompt.id === id)) selectedPromptIds.delete(id);
-    }
-    const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-    promptList.replaceChildren();
+    for (const [id, name] of map) {
+      const chip = document.createElement("span");
+      chip.className = "selected-chip";
 
-    if (!visible.length) {
-      const empty = document.createElement("p");
-      empty.className = "empty-row";
-      empty.textContent = "No matching prompts.";
-      promptList.append(empty);
-    }
-
-    visible.forEach((prompt) => {
-      const row = document.createElement("div");
-      row.className = "admin-prompt-row";
-
-      row.classList.toggle("is-selected", selectedPromptIds.has(prompt.id));
-
-      const titleWrap = document.createElement("div");
-      titleWrap.className = "admin-prompt-name-wrap";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.className = "prompt-select-checkbox";
-      checkbox.checked = selectedPromptIds.has(prompt.id);
-      checkbox.setAttribute("aria-label", `Select ${prompt.title}`);
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) selectedPromptIds.add(prompt.id);
-        else selectedPromptIds.delete(prompt.id);
-        row.classList.toggle("is-selected", checkbox.checked);
-        updateBulkActionBar();
-      });
-
-      const title = document.createElement("span");
-      title.className = "admin-prompt-name";
-      title.textContent = prompt.title;
-      titleWrap.append(checkbox, title);
-
-      const type = document.createElement("span");
-      type.className = "admin-prompt-meta";
-      type.textContent = prompt.prompt_type;
-
-      const statusBadge = document.createElement("span");
-      statusBadge.className = `admin-status-pill admin-status-${prompt.status}`;
-      statusBadge.textContent = prompt.status;
-
-      const created = document.createElement("span");
-      created.className = "shortcut-date";
-      created.textContent = prompt.created_at ? new Date(prompt.created_at).toLocaleDateString() : "—";
-
-      const actions = document.createElement("div");
-      actions.className = "admin-row-actions";
-
-      const edit = document.createElement("button");
-      edit.type = "button";
-      edit.className = "edit-action";
-      edit.textContent = "Edit";
-      edit.addEventListener("click", () => {
-        window.dispatchEvent(new CustomEvent("promptvault:edit-prompt", { detail: { id: prompt.id } }));
-        $("#prompt-editor").scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.textContent = prompt.status === "published" ? "Unpublish" : "Publish";
-      toggle.addEventListener("click", async () => {
-        toggle.disabled = true;
-        const nextStatus = prompt.status === "published" ? "draft" : "published";
-        try {
-          const { error } = await supabase.from("prompts").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", prompt.id);
-          if (error) throw error;
-          dashboardMessage.textContent = `Prompt ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
-          await loadDashboard();
-        } catch (error) {
-          dashboardMessage.textContent = error instanceof Error ? error.message : "Could not update prompt status.";
-          toggle.disabled = false;
-        }
-      });
+      const label = document.createElement("span");
+      label.textContent = name;
 
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.className = "delete-action";
-      remove.textContent = "Delete";
-      remove.addEventListener("click", async () => {
-        if (!window.confirm(`Permanently delete "${prompt.title}"?`)) return;
-        remove.disabled = true;
-        try {
-          const { data: record, error: readError } = await supabase.from("prompts").select("thumbnail_path").eq("id", prompt.id).single();
-          if (readError) throw readError;
-          const { error } = await supabase.from("prompts").delete().eq("id", prompt.id);
-          if (error) throw error;
-          let message = "Prompt deleted.";
-          if (record?.thumbnail_path) {
-            const { error: storageError } = await supabase.storage.from("prompt-thumbnails").remove([record.thumbnail_path]);
-            if (storageError) message = `Prompt deleted. Thumbnail cleanup failed: ${storageError.message}`;
-          }
-          dashboardMessage.textContent = message;
-          await loadDashboard();
-        } catch (error) {
-          dashboardMessage.textContent = error instanceof Error ? error.message : "Could not delete prompt.";
-          remove.disabled = false;
-        }
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove ${name}`);
+
+      remove.addEventListener("click", () => {
+        map.delete(id);
+        renderAll();
       });
 
-      actions.append(edit, toggle, remove);
-      row.append(titleWrap, type, statusBadge, created, actions);
-      promptList.append(row);
-    });
+      chip.append(label, remove);
+      container.append(chip);
+    }
 
-    $("#prompt-total-label").textContent = `${filtered.length} ${filtered.length === 1 ? "prompt" : "prompts"}`;
-    $("#page-label").textContent = `Page ${currentPage} of ${pages}`;
-    $<HTMLButtonElement>("#prev-page").disabled = currentPage <= 1;
-    $<HTMLButtonElement>("#next-page").disabled = currentPage >= pages;
-    updateBulkActionBar();
+    countElement.textContent = `${map.size} selected`;
   }
 
-  async function loadDashboard() {
-    dashboardMessage.textContent = "Refreshing...";
-    $("#shortcut-message").textContent = "Refreshing shortcuts...";
-    const [promptsResult, shortcutsResult, categoriesResult, promptDraftsResult, shortcutDraftsResult, promptsDataResult, shortcutsDataResult] = await Promise.all([
-      supabase.from("prompts").select("id", { count: "exact", head: true }),
-      supabase.from("shortcuts").select("id", { count: "exact", head: true }),
-      supabase.from("categories").select("id", { count: "exact", head: true }),
-      supabase.from("prompts").select("id", { count: "exact", head: true }).eq("status", "draft"),
-      supabase.from("shortcuts").select("id", { count: "exact", head: true }).eq("status", "draft"),
-      supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false }),
-      supabase.from("shortcuts").select("id, name, description, shortcut_type, status, created_at").order("created_at", { ascending: false })
+  function renderChoiceList(items, container, map, search, kind) {
+    container.replaceChildren();
+    const query = search.value.trim().toLowerCase();
+    const filtered = items.filter((item) => item.name.toLowerCase().includes(query));
+    if (!filtered.length) {
+      const empty = document.createElement("p"); empty.className = "choice-empty";
+      empty.textContent = items.length ? "No matching results." : "No entries available yet.";
+      container.append(empty); return;
+    }
+    filtered.forEach((item) => {
+      const label = document.createElement("label"); label.className = "choice-item";
+      const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.checked = map.has(item.id);
+      const name = document.createElement("span"); name.textContent = item.name;
+      checkbox.addEventListener("change", () => { if (checkbox.checked) map.set(item.id,item.name); else map.delete(item.id); renderAll(); });
+      const actions = document.createElement("span"); actions.className = "choice-actions";
+      const edit = document.createElement("button"); edit.type = "button"; edit.textContent = "Edit";
+      edit.addEventListener("click", async (event) => { event.preventDefault(); event.stopPropagation(); const next = window.prompt(`Rename ${kind}:`, item.name); if (!next || !next.trim() || next.trim() === item.name) return; await renameOption(kind,item,next.trim()); });
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "delete-choice"; remove.textContent = "Delete";
+      remove.addEventListener("click", async (event) => { event.preventDefault(); event.stopPropagation(); await deleteOption(kind,item); });
+      actions.append(edit,remove); label.append(checkbox,name,actions); container.append(label);
+    });
+  }
+
+  function renderToolOptions() {
+    toolOptions.replaceChildren();
+    aiTools.forEach((tool) => {
+      const label=document.createElement("label"); label.className="check-card";
+      const checkbox=document.createElement("input"); checkbox.type="checkbox"; checkbox.name="ai-tool"; checkbox.value=tool.name;
+      const selected = new Set(Array.from(document.querySelectorAll('input[name="ai-tool"]:checked')).map(x=>x.value));
+      checkbox.checked=selected.has(tool.name);
+      const name=document.createElement("span"); name.textContent=tool.name;
+      const actions=document.createElement("span"); actions.className="choice-actions";
+      const edit=document.createElement("button"); edit.type="button"; edit.textContent="Edit";
+      edit.addEventListener("click",(e)=>{e.preventDefault();e.stopPropagation(); const next=window.prompt("Rename AI tool:",tool.name); if(next && next.trim() && next.trim()!==tool.name) renameOption("tool",tool,next.trim());});
+      const del=document.createElement("button"); del.type="button"; del.className="delete-choice"; del.textContent="Delete";
+      del.addEventListener("click",(e)=>{e.preventDefault();e.stopPropagation();deleteOption("tool",tool);});
+      actions.append(edit,del); label.append(checkbox,name,actions); toolOptions.append(label);
+    });
+  }
+
+  function renderAll() {
+    renderChoiceList(categories, categoryList, selectedCategories, categorySearch, "category");
+    renderChoiceList(tags, tagList, selectedTags, tagSearch, "tag");
+    renderChips(selectedCategories, categoryChips, categoryCount);
+    renderChips(selectedTags, tagChips, tagCount);
+    renderToolOptions();
+  }
+
+  async function renameOption(kind,item,name) {
+    const table=kind==="category"?"categories":kind==="tag"?"tags":"ai_tools";
+    const values=kind==="category"?{name,slug:slugify(name)}:{name};
+    const {data,error}=await supabase.from(table).update(values).eq("id",item.id).select("id,name").single();
+    if(error){setMessage(`Could not rename ${kind}: ${error.message}`,"error");return;}
+    const list=kind==="category"?categories:kind==="tag"?tags:aiTools;
+    const map=kind==="category"?selectedCategories:kind==="tag"?selectedTags:null;
+    const old=item.name; item.name=data.name;
+    if(map?.has(item.id)) map.set(item.id,data.name);
+    if(kind==="tool") document.querySelectorAll('input[name="ai-tool"]').forEach(x=>{if(x.value===old)x.checked=false;});
+    list.sort((a,b)=>(b.usage_count||0)-(a.usage_count||0)||a.name.localeCompare(b.name));
+    renderAll(); setMessage(`${kind} renamed to "${name}".`,"success");
+  }
+
+  async function deleteOption(kind,item) {
+    if(!window.confirm(`Delete ${kind} "${item.name}"? Existing linked records may prevent deletion.`)) return;
+    const table=kind==="category"?"categories":kind==="tag"?"tags":"ai_tools";
+    const {error}=await supabase.from(table).delete().eq("id",item.id);
+    if(error){setMessage(`Could not delete ${kind}: ${error.message}`,"error");return;}
+    if(kind==="category"){categories=categories.filter(x=>x.id!==item.id);selectedCategories.delete(item.id);}
+    else if(kind==="tag"){tags=tags.filter(x=>x.id!==item.id);selectedTags.delete(item.id);}
+    else {aiTools=aiTools.filter(x=>x.id!==item.id);}
+    renderAll(); setMessage(`${kind} deleted.`,"success");
+  }
+
+  async function loadOptions() {
+    setMessage("Loading categories, tags and AI tools...");
+    const [catRes,tagRes,toolRes,promptRes,pcRes,ptRes]=await Promise.all([
+      supabase.from("categories").select("id,name,slug"),
+      supabase.from("tags").select("id,name"),
+      supabase.from("ai_tools").select("id,name"),
+      supabase.from("prompts").select("ai_tools"),
+      supabase.from("prompt_categories").select("category_id"),
+      supabase.from("prompt_tags").select("tag_id")
     ]);
-    const errors = [promptsResult.error, shortcutsResult.error, categoriesResult.error, promptDraftsResult.error, shortcutDraftsResult.error, promptsDataResult.error, shortcutsDataResult.error].filter(Boolean);
-    if (errors.length) {
-      const message = errors[0]?.message || "Could not load dashboard data.";
-      dashboardMessage.textContent = message;
-      $("#shortcut-message").textContent = message;
+    const error=catRes.error||tagRes.error||toolRes.error||promptRes.error||pcRes.error||ptRes.error;
+    if(error){optionsLoaded=false;setMessage(`Could not load options: ${error.message}. Ensure the ai_tools table migration has been run.`,"error");return;}
+    const countBy=(rows,key)=>{const m=new Map();(rows||[]).forEach(r=>m.set(r[key],(m.get(r[key])||0)+1));return m;};
+    const catCounts=countBy(pcRes.data,"category_id"),tagCounts=countBy(ptRes.data,"tag_id"),toolCounts=new Map();
+    (promptRes.data||[]).forEach(p=>(p.ai_tools||[]).forEach(n=>toolCounts.set(n,(toolCounts.get(n)||0)+1)));
+    categories=(catRes.data||[]).map(x=>({...x,usage_count:catCounts.get(x.id)||0})).sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    tags=(tagRes.data||[]).map(x=>({...x,usage_count:tagCounts.get(x.id)||0})).sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    aiTools=(toolRes.data||[]).map(x=>({...x,usage_count:toolCounts.get(x.name)||0})).sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    optionsLoaded=true;renderAll();setMessage(`Loaded ${categories.length} categories, ${tags.length} tags and ${aiTools.length} AI tools.`);
+  }
+
+  async function createCategory() {
+    const input = document.querySelector("#new-category");
+    const name = input.value.trim();
+
+    if (!name) {
+      setMessage("Enter a category name first.", "error");
+      input.focus();
       return;
     }
-    $("#total-prompts").textContent = String(promptsResult.count ?? 0);
-    $("#total-shortcuts").textContent = String(shortcutsResult.count ?? 0);
-    $("#total-categories").textContent = String(categoriesResult.count ?? 0);
-    $("#total-drafts").textContent = String((promptDraftsResult.count ?? 0) + (shortcutDraftsResult.count ?? 0));
-    allPrompts = promptsDataResult.data || [];
-    allShortcuts = shortcutsDataResult.data || [];
-    renderPrompts();
-    renderShortcuts();
-    dashboardMessage.textContent = "";
-    $("#shortcut-message").textContent = "";
-  }
 
-  function updateShortcutBulkActionBar() {
-    const bar = $("#shortcut-bulk-actions");
-    const selected = allShortcuts.filter((item) => selectedShortcutIds.has(item.id));
-    bar.hidden = filteredShortcutIds.length === 0 && selected.length === 0;
-    $("#shortcut-bulk-selected-count").textContent = `${selected.length} selected`;
-    $("#bulk-publish-shortcuts").disabled = !selected.some((item) => item.status !== "published");
-    $("#bulk-unpublish-shortcuts").disabled = !selected.some((item) => item.status === "published");
-    $("#bulk-delete-shortcuts").disabled = selected.length === 0;
-  }
-
-  function renderShortcuts() {
-    const list = $("#shortcut-list");
-    const query = $("#shortcut-search").value.trim().toLowerCase();
-    const status = $("#shortcut-status-filter").value;
-    const filtered = allShortcuts.filter((item) => (item.name || "").toLowerCase().includes(query) && (status === "all" || item.status === status));
-    const pages = Math.max(1, Math.ceil(filtered.length / shortcutPageSize));
-    shortcutPage = Math.min(Math.max(1, shortcutPage), pages);
-    filteredShortcutIds = filtered.map((item) => item.id);
-    for (const id of Array.from(selectedShortcutIds)) {
-      if (!allShortcuts.some((item) => item.id === id)) selectedShortcutIds.delete(id);
-    }
-    const visible = filtered.slice((shortcutPage - 1) * shortcutPageSize, shortcutPage * shortcutPageSize);
-    list.replaceChildren();
-    if (!visible.length) {
-      const empty = document.createElement("p");
-      empty.className = "empty-row";
-      empty.textContent = "No matching shortcuts.";
-      list.append(empty);
-    }
-    visible.forEach((shortcut) => {
-      const row = document.createElement("div");
-      row.className = "admin-shortcut-row";
-      row.classList.toggle("is-selected", selectedShortcutIds.has(shortcut.id));
-      const nameWrap = document.createElement("div");
-      nameWrap.className = "admin-shortcut-name-wrap";
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.className = "prompt-select-checkbox";
-      checkbox.checked = selectedShortcutIds.has(shortcut.id);
-      checkbox.setAttribute("aria-label", `Select ${shortcut.name || "shortcut"}`);
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) selectedShortcutIds.add(shortcut.id);
-        else selectedShortcutIds.delete(shortcut.id);
-        row.classList.toggle("is-selected", checkbox.checked);
-        updateShortcutBulkActionBar();
-      });
-      const name = document.createElement("span");
-      name.className = "admin-shortcut-name";
-      name.textContent = shortcut.name || "(unnamed shortcut)";
-      nameWrap.append(checkbox, name);
-      const type = document.createElement("select");
-      type.className = "admin-shortcut-type-select";
-      type.setAttribute("aria-label", `Type for ${shortcut.name || "shortcut"}`);
-      ["Image", "Video", "Other"].forEach((value) => {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = value;
-        type.append(option);
-      });
-      type.value = ["Image", "Video", "Other"].includes(shortcut.shortcut_type) ? shortcut.shortcut_type : "Other";
-      type.addEventListener("change", async () => {
-        const previousType = shortcut.shortcut_type || "Other";
-        type.disabled = true;
-        try {
-          const { error } = await supabase.from("shortcuts")
-            .update({ shortcut_type: type.value }).eq("id", shortcut.id);
-          if (error) throw error;
-          shortcut.shortcut_type = type.value;
-          $("#shortcut-message").textContent = `Shortcut type updated to ${type.value}.`;
-        } catch (error) {
-          type.value = previousType;
-          $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not update shortcut type.";
-        } finally {
-          type.disabled = false;
-        }
-      });
-      const statusBadge = document.createElement("span");
-      statusBadge.className = `admin-status-pill admin-status-${shortcut.status}`;
-      statusBadge.textContent = shortcut.status;
-      const created = document.createElement("span");
-      created.className = "shortcut-date";
-      created.textContent = shortcut.created_at ? new Date(shortcut.created_at).toLocaleDateString() : "—";
-      const actions = document.createElement("div");
-      actions.className = "admin-row-actions";
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.textContent = shortcut.status === "published" ? "Unpublish" : "Publish";
-      toggle.addEventListener("click", async () => {
-        toggle.disabled = true;
-        const nextStatus = shortcut.status === "published" ? "draft" : "published";
-        try {
-          const { error } = await supabase.from("shortcuts").update({ status: nextStatus }).eq("id", shortcut.id);
-          if (error) throw error;
-          $("#shortcut-message").textContent = `Shortcut ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
-          await loadDashboard();
-        } catch (error) {
-          $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not update shortcut.";
-          toggle.disabled = false;
-        }
-      });
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "delete-action";
-      remove.textContent = "Delete";
-      remove.addEventListener("click", async () => {
-        if (!window.confirm(`Permanently delete shortcut "${shortcut.name}"? This cannot be undone.`)) return;
-        remove.disabled = true;
-        try {
-          const { error } = await supabase.from("shortcuts").delete().eq("id", shortcut.id);
-          if (error) throw error;
-          $("#shortcut-message").textContent = "Shortcut deleted.";
-          await loadDashboard();
-        } catch (error) {
-          $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not delete shortcut.";
-          remove.disabled = false;
-        }
-      });
-      actions.append(toggle, remove);
-      row.append(nameWrap, type, statusBadge, created, actions);
-      list.append(row);
-    });
-    $("#shortcut-total-label").textContent = `${filtered.length} ${filtered.length === 1 ? "shortcut" : "shortcuts"}`;
-    $("#shortcut-page-label").textContent = `Page ${shortcutPage} of ${pages}`;
-    $("#shortcut-prev-page").disabled = shortcutPage <= 1;
-    $("#shortcut-next-page").disabled = shortcutPage >= pages;
-    updateShortcutBulkActionBar();
-  }
-
-  $("#select-filtered-prompts").addEventListener("click", () => {
-    filteredPromptIds.forEach((id) => selectedPromptIds.add(id));
-    renderPrompts();
-  });
-
-  $("#clear-prompt-selection").addEventListener("click", () => {
-    selectedPromptIds.clear();
-    renderPrompts();
-  });
-
-  function verifyBulkAction(actionWord: "PUBLISH" | "UNPUBLISH" | "DELETE", count: number) {
-    const entered = window.prompt(
-      `You are about to ${actionWord.toLowerCase()} ${count} selected prompt(s).\n\nType ${actionWord} exactly to confirm.`
+    const existing = categories.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase()
     );
-    return entered === actionWord;
-  }
 
-  async function runBulkStatusUpdate(nextStatus: "published" | "draft") {
-    const ids = Array.from(selectedPromptIds);
-    if (!ids.length) return;
-    const action = nextStatus === "published" ? "publish" : "move to drafts";
-    const verificationWord = nextStatus === "published" ? "PUBLISH" : "UNPUBLISH";
-    if (!verifyBulkAction(verificationWord, ids.length)) {
-      dashboardMessage.textContent = `${verificationWord} cancelled. No prompts were changed.`;
+    if (existing) {
+      selectedCategories.set(existing.id, existing.name);
+      input.value = "";
+      renderAll();
+      setMessage(`"${existing.name}" already exists and has been selected.`);
       return;
     }
 
-    const buttons = ["#bulk-publish-prompts", "#bulk-unpublish-prompts", "#bulk-delete-prompts"]
-      .map((selector) => $<HTMLButtonElement>(selector));
-    buttons.forEach((button) => { button.disabled = true; });
-    dashboardMessage.textContent = `Updating ${ids.length} prompts...`;
-
-    try {
-      for (const batch of chunkIds(ids)) {
-        const { error } = await supabase.from("prompts")
-          .update({ status: nextStatus, updated_at: new Date().toISOString() })
-          .in("id", batch);
-        if (error) throw error;
-      }
-    } catch (error) {
-      dashboardMessage.textContent = `Bulk ${action} failed: ${error instanceof Error ? error.message : "Unknown error"}. Completed batches may already have been updated; refresh and retry the remaining records.`;
-      buttons.forEach((button) => { button.disabled = false; });
-      await loadDashboard();
-      return;
-    }
-
-    selectedPromptIds.clear();
-    dashboardMessage.textContent = `${ids.length} prompt(s) ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
-    await loadDashboard();
-  }
-
-  $("#bulk-publish-prompts").addEventListener("click", () => runBulkStatusUpdate("published"));
-  $("#bulk-unpublish-prompts").addEventListener("click", () => runBulkStatusUpdate("draft"));
-
-  $("#bulk-delete-prompts").addEventListener("click", async () => {
-    const ids = Array.from(selectedPromptIds);
-    if (!ids.length) return;
-    if (!verifyBulkAction("DELETE", ids.length)) {
-      dashboardMessage.textContent = "DELETE cancelled. No prompts were removed.";
-      return;
-    }
-
-    const buttons = ["#bulk-publish-prompts", "#bulk-unpublish-prompts", "#bulk-delete-prompts"]
-      .map((selector) => $<HTMLButtonElement>(selector));
-    buttons.forEach((button) => { button.disabled = true; });
-    dashboardMessage.textContent = `Deleting ${ids.length} prompts...`;
-
-    const records: any[] = [];
-    try {
-      for (const batch of chunkIds(ids)) {
-        const { data, error } = await supabase.from("prompts")
-          .select("id, thumbnail_path").in("id", batch);
-        if (error) throw error;
-        records.push(...(data || []));
-      }
-      for (const batch of chunkIds(ids)) {
-        const { error } = await supabase.from("prompts").delete().in("id", batch);
-        if (error) throw error;
-      }
-    } catch (error) {
-      dashboardMessage.textContent = `Bulk delete failed: ${error instanceof Error ? error.message : "Unknown error"}. Some batches may already have been deleted; refresh to verify.`;
-      buttons.forEach((button) => { button.disabled = false; });
-      await loadDashboard();
-      return;
-    }
-
-    const paths = records.map((record) => record.thumbnail_path).filter(Boolean);
-    let cleanupMessage = "";
-    if (paths.length) {
-      const { error: storageError } = await supabase.storage.from("prompt-thumbnails").remove(paths);
-      if (storageError) cleanupMessage = ` Thumbnail cleanup failed: ${storageError.message}`;
-    }
-
-    selectedPromptIds.clear();
-    dashboardMessage.textContent = `${ids.length} prompt(s) deleted.${cleanupMessage}`;
-    await loadDashboard();
-  });
-
-  function verifyShortcutBulkAction(actionWord: "PUBLISH" | "UNPUBLISH" | "DELETE", count: number) {
-    return window.prompt(`You are about to ${actionWord.toLowerCase()} ${count} selected shortcut(s).\n\nType ${actionWord} exactly to confirm.`) === actionWord;
-  }
-
-  async function runShortcutBulkStatusUpdate(nextStatus: "published" | "draft") {
-    const ids = Array.from(selectedShortcutIds);
-    if (!ids.length) return;
-    const word = nextStatus === "published" ? "PUBLISH" : "UNPUBLISH";
-    if (!verifyShortcutBulkAction(word, ids.length)) {
-      $("#shortcut-message").textContent = `${word} cancelled. No shortcuts were changed.`;
-      return;
-    }
-    const buttons = ["#bulk-publish-shortcuts", "#bulk-unpublish-shortcuts", "#bulk-delete-shortcuts"].map((id) => $<HTMLButtonElement>(id));
-    buttons.forEach((button) => { button.disabled = true; });
-    $("#shortcut-message").textContent = `Updating ${ids.length} shortcuts...`;
-    try {
-      for (const batch of chunkIds(ids)) {
-        const { error } = await supabase.from("shortcuts").update({ status: nextStatus }).in("id", batch);
-        if (error) throw error;
-      }
-      selectedShortcutIds.clear();
-      $("#shortcut-message").textContent = `${ids.length} shortcut(s) ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
-      await loadDashboard();
-    } catch (error) {
-      $("#shortcut-message").textContent = error instanceof Error ? error.message : "Bulk status update failed.";
-      buttons.forEach((button) => { button.disabled = false; });
-    }
-  }
-
-  $("#select-filtered-shortcuts").addEventListener("click", () => {
-    filteredShortcutIds.forEach((id) => selectedShortcutIds.add(id));
-    renderShortcuts();
-  });
-  $("#clear-shortcut-selection").addEventListener("click", () => {
-    selectedShortcutIds.clear();
-    renderShortcuts();
-  });
-  $("#bulk-publish-shortcuts").addEventListener("click", () => runShortcutBulkStatusUpdate("published"));
-  $("#bulk-unpublish-shortcuts").addEventListener("click", () => runShortcutBulkStatusUpdate("draft"));
-  $("#bulk-delete-shortcuts").addEventListener("click", async () => {
-    const ids = Array.from(selectedShortcutIds);
-    if (!ids.length) return;
-    if (!verifyShortcutBulkAction("DELETE", ids.length)) {
-      $("#shortcut-message").textContent = "DELETE cancelled. No shortcuts were removed.";
-      return;
-    }
-    const buttons = ["#bulk-publish-shortcuts", "#bulk-unpublish-shortcuts", "#bulk-delete-shortcuts"].map((id) => $<HTMLButtonElement>(id));
-    buttons.forEach((button) => { button.disabled = true; });
-    $("#shortcut-message").textContent = `Deleting ${ids.length} shortcuts...`;
-    try {
-      for (const batch of chunkIds(ids)) {
-        const { error } = await supabase.from("shortcuts").delete().in("id", batch);
-        if (error) throw error;
-      }
-      selectedShortcutIds.clear();
-      $("#shortcut-message").textContent = `${ids.length} shortcut(s) deleted.`;
-      await loadDashboard();
-    } catch (error) {
-      $("#shortcut-message").textContent = error instanceof Error ? error.message : "Bulk delete failed.";
-      buttons.forEach((button) => { button.disabled = false; });
-    }
-  });
-
-  const csvInput = $<HTMLInputElement>("#bulk-csv-file");
-  const csvValidateButton = $<HTMLButtonElement>("#bulk-validate-button");
-  const csvImportButton = $<HTMLButtonElement>("#bulk-import-button");
-  const csvFileName = $<HTMLElement>("#bulk-file-name");
-  const csvValidation = $<HTMLElement>("#bulk-validation");
-  const csvErrors = $<HTMLElement>("#bulk-errors");
-  const csvPreview = $<HTMLElement>("#bulk-preview");
-  const csvPreviewList = $<HTMLElement>("#bulk-preview-list");
-  const csvSelectionCount = $<HTMLElement>("#bulk-selection-count");
-  let selectedCsvFile: File | null = null;
-  let validatedRows: any[] = [];
-  let validationReady = false;
-
-  function parseCsv(text: string) {
-    const rows: string[][] = [];
-    let row: string[] = [], field = "", quoted = false;
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if (quoted) {
-        if (char === '"' && text[i + 1] === '"') { field += '"'; i++; }
-        else if (char === '"') quoted = false;
-        else field += char;
-      } else if (char === '"' && field.length === 0) quoted = true;
-      else if (char === ",") { row.push(field); field = ""; }
-      else if (char === "\n" || char === "\r") {
-        if (char === "\r" && text[i + 1] === "\n") i++;
-        row.push(field); field = "";
-        if (row.some((cell) => cell.trim())) rows.push(row);
-        row = [];
-      } else field += char;
-    }
-    if (quoted) throw new Error("CSV contains an unclosed quoted field.");
-    if (field.length || row.length) { row.push(field); if (row.some((cell) => cell.trim())) rows.push(row); }
-    return rows;
-  }
-
-  function splitList(value: string) {
-    // CSV category/tag cells may use either pipe or semicolon separators.
-    // Treat every token as a separate database category/tag, and deduplicate
-    // case-insensitively within the same CSV cell.
-    const seen = new Set<string>();
-    return value
-      .split(/[|;\n\r]+/)
-      .map((part) => part.trim().replace(/^(["'])|(["'])$/g, "").trim())
-      .filter((part) => {
-        const key = part.toLocaleLowerCase();
-        if (!part || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-  }
-  function normalizeContent(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
-  function normalizeTitle(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
-  function slugify(value: string) { return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
-
-  function showCsvErrors(messages: string[]) {
-    csvErrors.replaceChildren();
-    if (!messages.length) { csvErrors.hidden = true; return; }
-    const list = document.createElement("ul");
-    messages.forEach((message) => { const item = document.createElement("li"); item.textContent = message; list.append(item); });
-    csvErrors.append(list); csvErrors.hidden = false;
-  }
-
-  function updateSelectionCount() {
-    const selected = validatedRows.filter((item) => item.selected && item.state === "ready").length;
-    csvSelectionCount.textContent = `${selected} selected of ${validatedRows.filter((item) => item.state === "ready").length} available`;
-    csvImportButton.disabled = !validationReady || selected === 0;
-  }
-
-  function renderCsvPreview() {
-    csvPreviewList.replaceChildren();
-    validatedRows.forEach((item) => {
-      const row = document.createElement("label");
-      row.className = "bulk-preview-row";
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = item.selected === true;
-      checkbox.disabled = item.state !== "ready";
-      checkbox.addEventListener("change", () => { item.selected = checkbox.checked; updateSelectionCount(); });
-      const details = document.createElement("div");
-      const title = document.createElement("div");
-      title.className = "bulk-preview-title";
-      title.textContent = `Row ${item.line}: ${item.label || "(unnamed item)"}`;
-      const meta = document.createElement("div");
-      meta.className = "bulk-preview-meta";
-      meta.textContent = `${item.item_type} · ${item.status}${item.item_type === "prompt" ? ` · ${item.prompt_type}` : ""}${item.reason ? ` · ${item.reason}` : ""}`;
-      details.append(title, meta);
-      const state = document.createElement("span");
-      state.className = `bulk-row-state${item.state === "duplicate" ? " duplicate" : item.state === "invalid" ? " invalid" : ""}`;
-      state.textContent = item.state === "ready" ? "READY" : item.state === "duplicate" ? "DUPLICATE" : item.state === "imported" ? "IMPORTED" : "INVALID";
-      row.append(checkbox, details, state);
-      csvPreviewList.append(row);
-    });
-    csvPreview.hidden = validatedRows.length === 0;
-    updateSelectionCount();
-  }
-
-  $("#download-csv-template").addEventListener("click", () => {
-    const sample = 'item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status\r\n' +
-      'prompt,"Neon Portrait",,"A cinematic neon-lit portrait of a subject...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft\r\n' +
-      'shortcut,,"Copy prompt shortcut",,"Quick description of the shortcut",,"Productivity|Writing","Workflow|Copy",,published\r\n';
-    const url = URL.createObjectURL(new Blob([sample], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "promptvault-import-template.csv"; anchor.click(); URL.revokeObjectURL(url);
-  });
-
-  $("#bulk-select-all").addEventListener("click", () => {
-    validatedRows.forEach((item) => { if (item.state === "ready") item.selected = true; });
-    renderCsvPreview();
-  });
-  $("#bulk-clear-selection").addEventListener("click", () => {
-    validatedRows.forEach((item) => { if (item.state === "ready") item.selected = false; });
-    renderCsvPreview();
-  });
-
-  csvInput.addEventListener("change", () => {
-    selectedCsvFile = csvInput.files?.[0] || null;
-    validatedRows = []; validationReady = false;
-    csvFileName.textContent = selectedCsvFile ? selectedCsvFile.name : "No file selected.";
-    csvValidateButton.disabled = !selectedCsvFile;
-    csvImportButton.disabled = true;
-    csvValidation.textContent = "";
-    csvValidation.className = "bulk-validation";
-    csvPreview.hidden = true;
-    csvPreviewList.replaceChildren();
-    showCsvErrors([]);
-  });
-
-  csvValidateButton.addEventListener("click", async () => {
-    if (!selectedCsvFile) return;
-    csvValidateButton.disabled = true;
-    csvValidateButton.textContent = "Validating...";
-    csvImportButton.disabled = true;
-    validationReady = false;
-    validatedRows = [];
-    csvPreview.hidden = true;
-    csvValidation.className = "bulk-validation";
-    csvValidation.textContent = "Checking CSV structure, item fields, and duplicates...";
-    showCsvErrors([]);
-
-    try {
-      const rawRows = parseCsv(await selectedCsvFile.text());
-      if (rawRows.length < 2) throw new Error("The CSV must contain a header and at least one data row.");
-      const headers = rawRows[0].map((header) => header.trim().toLowerCase().replace(/^\uFEFF/, ""));
-      if (new Set(headers).size !== headers.length) throw new Error("CSV contains duplicate column names.");
-      const allowedHeaders = ["item_type", "title", "name", "content", "prompt_type", "description", "categories", "tags", "ai_tools", "status"];
-      const unknownHeaders = headers.filter((header) => !allowedHeaders.includes(header));
-      if (unknownHeaders.length) throw new Error(`Unknown CSV columns: ${unknownHeaders.join(", ")}`);
-      const index = Object.fromEntries(headers.map((header, i) => [header, i]));
-      if (!headers.includes("item_type")) {
-        throw new Error("Missing required column: item_type. Every row must explicitly be marked prompt or shortcut. Download the updated CSV template.");
-      }
-      const [promptResult, shortcutResult] = await Promise.all([
-        supabase.from("prompts").select("id, title, content, normalized_content"),
-        supabase.from("shortcuts").select("id, name, description")
-      ]);
-      if (promptResult.error) throw promptResult.error;
-      if (shortcutResult.error) throw shortcutResult.error;
-
-      const existingPromptTitles = new Set((promptResult.data || []).map((item: any) => normalizeTitle(item.title || "")));
-      const existingPromptContents = new Set((promptResult.data || []).map((item: any) => normalizeContent(item.normalized_content || item.content || "")));
-      const existingShortcutNames = new Set((shortcutResult.data || []).map((item: any) => normalizeTitle(item.name || "")));
-      const seenPromptTitles = new Set<string>(), seenPromptContents = new Set<string>(), seenShortcutNames = new Set<string>();
-
-      rawRows.slice(1).forEach((cells, rowIndex) => {
-        const line = rowIndex + 2;
-        const get = (key: string) => index[key] === undefined ? "" : (cells[index[key]] || "").trim();
-        const itemType = get("item_type").toLowerCase();
-        const title = get("title"), name = get("name"), content = get("content");
-        const label = itemType === "shortcut" ? name : title;
-        const promptType = get("prompt_type").toLowerCase();
-        // Import is intentionally draft-only. CSV status values are ignored.
-        const status = "draft";
-        const categoryNames = splitList(get("categories")), tagNames = splitList(get("tags"));
-        const aiTools = splitList(get("ai_tools"));
-        const issues: string[] = [];
-        if (cells.length !== headers.length) issues.push(`expected ${headers.length} columns, found ${cells.length}`);
-        if (!["prompt", "shortcut"].includes(itemType)) issues.push("item_type must be prompt or shortcut");
-        if (itemType === "prompt") {
-          if (!title) issues.push("title is required for prompts");
-          if (!content) issues.push("content is required for prompts");
-          if (!content.trim()) issues.push("prompt content cannot be empty");
-          if (!["image", "video", "other"].includes(promptType)) issues.push("prompt_type must be image, video, or other for prompts");
-        } else if (itemType === "shortcut") {
-          if (!name) issues.push("name is required for shortcuts");
-          if (!get("description")) issues.push("description is required for shortcuts");
-        }
-        const normalizedLabel = normalizeTitle(label || "");
-        const normalized = normalizeContent(content || "");
-        const duplicateReasons: string[] = [];
-        if (itemType === "prompt") {
-          if (normalizedLabel && existingPromptTitles.has(normalizedLabel)) duplicateReasons.push("prompt title already exists");
-          if (normalized && existingPromptContents.has(normalized)) duplicateReasons.push("prompt content already exists");
-          if (normalizedLabel && seenPromptTitles.has(normalizedLabel)) duplicateReasons.push("prompt title duplicates an earlier CSV row");
-          if (normalized && seenPromptContents.has(normalized)) duplicateReasons.push("prompt content duplicates an earlier CSV row");
-          if (normalizedLabel) seenPromptTitles.add(normalizedLabel);
-          if (normalized) seenPromptContents.add(normalized);
-        } else if (itemType === "shortcut") {
-          if (normalizedLabel && existingShortcutNames.has(normalizedLabel)) duplicateReasons.push("shortcut name already exists");
-          if (normalizedLabel && seenShortcutNames.has(normalizedLabel)) duplicateReasons.push("shortcut name duplicates an earlier CSV row");
-          if (normalizedLabel) seenShortcutNames.add(normalizedLabel);
-        }
-        validatedRows.push({
-          line, item_type: itemType, title, name, label, content, prompt_type: promptType,
-          description: get("description") || "", categories: categoryNames, tags: tagNames,
-          ai_tools: aiTools, status,
-          state: issues.length ? "invalid" : duplicateReasons.length ? "duplicate" : "ready",
-          reason: [...issues, ...duplicateReasons].join("; "),
-          selected: issues.length === 0 && duplicateReasons.length === 0
-        });
-      });
-
-      validationReady = true;
-      const readyCount = validatedRows.filter((item) => item.state === "ready").length;
-      const duplicateCount = validatedRows.filter((item) => item.state === "duplicate").length;
-      const invalidCount = validatedRows.filter((item) => item.state === "invalid").length;
-      renderCsvPreview();
-      csvValidation.className = readyCount ? "bulk-validation success" : "bulk-validation error";
-      csvValidation.textContent = `Validation complete: ${readyCount} ready, ${duplicateCount} duplicate(s) skipped, ${invalidCount} invalid row(s) excluded. Select the rows you want, then import.`;
-      showCsvErrors(validatedRows.filter((item) => item.state !== "ready").map((item) => `Row ${item.line}: ${item.reason}.`));
-    } catch (error) {
-      validationReady = false;
-      csvValidation.className = "bulk-validation error";
-      csvValidation.textContent = error instanceof Error ? error.message : "CSV validation failed.";
-      showCsvErrors([]);
-    } finally {
-      csvValidateButton.disabled = !selectedCsvFile;
-      csvValidateButton.textContent = "1. Validate CSV";
-      updateSelectionCount();
-    }
-  });
-
-  async function getOrCreateCategory(name: string, itemType: "prompt" | "shortcut") {
     const slug = slugify(name);
-    const { data: found, error: findError } = await supabase.from("categories").select("id, name, slug, applies_to").eq("slug", slug).maybeSingle();
-    if (findError) throw findError;
-    if (found) {
-      const appliesTo = found.applies_to || "both";
-      if (appliesTo !== "both" && appliesTo !== itemType) {
-        const { error: updateError } = await supabase.from("categories").update({ applies_to: "both" }).eq("id", found.id);
-        if (updateError) throw updateError;
-      }
-      return found.id;
-    }
-    const { data, error } = await supabase.from("categories").insert({ name, slug, applies_to: itemType }).select("id").single();
-    if (error) {
-      // Handle a concurrent import creating the same category slug.
-      const { data: raced, error: racedError } = await supabase.from("categories").select("id, applies_to").eq("slug", slug).maybeSingle();
-      if (racedError || !raced) throw error;
-      if (raced.applies_to !== "both" && raced.applies_to !== itemType) {
-        const { error: updateError } = await supabase.from("categories").update({ applies_to: "both" }).eq("id", raced.id);
-        if (updateError) throw updateError;
-      }
-      return raced.id;
-    }
-    if (!data?.id) throw new Error(`Category was created but no ID was returned: ${name}`);
-    return data.id;
-  }
 
-  async function getOrCreateTag(name: string) {
-    const { data: found, error: findError } = await supabase.from("tags").select("id, name").ilike("name", name).maybeSingle();
-    if (findError) throw findError;
-    if (found) return found.id;
-    const { data, error } = await supabase.from("tags").insert({ name }).select("id").single();
-    if (error) {
-      const { data: raced, error: racedError } = await supabase.from("tags").select("id").ilike("name", name).maybeSingle();
-      if (racedError || !raced) throw error;
-      return raced.id;
-    }
-    if (!data?.id) throw new Error(`Tag was created but no ID was returned: ${name}`);
-    return data.id;
-  }
-
-  csvImportButton.addEventListener("click", async () => {
-    if (!validationReady) return;
-    const selected = validatedRows.filter((item) => item.state === "ready" && item.selected);
-    if (!selected.length) return;
-    csvImportButton.disabled = true;
-    csvValidateButton.disabled = true;
-    csvImportButton.textContent = "Importing...";
-    csvValidation.className = "bulk-validation";
-    csvValidation.textContent = `Importing ${selected.length} selected item(s)...`;
-    showCsvErrors([]);
-
-    let imported = 0;
-    const failed: string[] = [];
-    const importedItems = new Set<any>();
-    const failedItems = new Set<any>();
-    const getSupabaseError = (error: any) => {
-      if (!error) return "Unknown database error";
-      return [error.message, error.details ? `Details: ${error.details}` : "", error.hint ? `Hint: ${error.hint}` : "", error.code ? `Code: ${error.code}` : ""].filter(Boolean).join(" · ") || String(error);
-    };
-
-    for (const item of selected) {
-      let insertedId: string | null = null;
-      const table = item.item_type === "prompt" ? "prompts" : "shortcuts";
-      try {
-        const slugBase = slugify(item.item_type === "prompt" ? item.title : item.name);
-        const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
-        let inserted: any;
-        if (item.item_type === "prompt") {
-          const { data, error } = await supabase.from("prompts").insert({
-            slug, title: item.title, content: item.content,
-            description: item.description || null, prompt_type: item.prompt_type,
-            status: "draft", ai_tools: item.ai_tools
-          }).select("id").single();
-          if (error) throw new Error(getSupabaseError(error));
-          inserted = data;
-        } else {
-          const { data, error } = await supabase.from("shortcuts").insert({
-            slug, name: item.name, description: item.description, status: "draft"
-          }).select("id").single();
-          if (error) throw new Error(getSupabaseError(error));
-          inserted = data;
-        }
-        if (!inserted?.id) throw new Error(`${item.item_type} was inserted, but Supabase did not return its ID.`);
-        insertedId = inserted.id;
-
-        const categoryIds: string[] = [];
-        for (const name of item.categories) categoryIds.push(await getOrCreateCategory(name, item.item_type));
-        const tagIds: string[] = [];
-        for (const name of item.tags) tagIds.push(await getOrCreateTag(name));
-        if (categoryIds.length) {
-          const relationTable = item.item_type === "prompt" ? "prompt_categories" : "shortcut_categories";
-          const foreignKey = item.item_type === "prompt" ? "prompt_id" : "shortcut_id";
-          const { error } = await supabase.from(relationTable).insert(categoryIds.map((category_id) => ({ [foreignKey]: insertedId, category_id })));
-          if (error) throw new Error(`Category linking failed: ${getSupabaseError(error)}`);
-        }
-        if (tagIds.length) {
-          const relationTable = item.item_type === "prompt" ? "prompt_tags" : "shortcut_tags";
-          const foreignKey = item.item_type === "prompt" ? "prompt_id" : "shortcut_id";
-          const { error } = await supabase.from(relationTable).insert(tagIds.map((tag_id) => ({ [foreignKey]: insertedId, tag_id })));
-          if (error) throw new Error(`Tag linking failed: ${getSupabaseError(error)}`);
-        }
-        imported++;
-        importedItems.add(item);
-      } catch (error: any) {
-        let message = error?.message || getSupabaseError(error);
-        if (insertedId) {
-          const foreignKey = item.item_type === "prompt" ? "prompt_id" : "shortcut_id";
-          const categoryTable = item.item_type === "prompt" ? "prompt_categories" : "shortcut_categories";
-          const tagTable = item.item_type === "prompt" ? "prompt_tags" : "shortcut_tags";
-          const { error: categoryCleanupError } = await supabase.from(categoryTable).delete().eq(foreignKey, insertedId);
-          const { error: tagCleanupError } = await supabase.from(tagTable).delete().eq(foreignKey, insertedId);
-          const { error: cleanupError } = await supabase.from(table).delete().eq("id", insertedId);
-          const cleanupErrors = [categoryCleanupError, tagCleanupError, cleanupError].filter(Boolean);
-          if (cleanupErrors.length) message += ` · Cleanup failed: ${cleanupErrors.map(getSupabaseError).join("; ")}. Check this ${item.item_type} before retrying.`;
-          else message += ` · The incomplete ${item.item_type} record and its links were removed; you can retry this row.`;
-        }
-        failedItems.add(item);
-        failed.push(`Row ${item.line} (${item.label}): ${message}`);
-      }
-    }
-
-    if (failed.length) showCsvErrors(failed);
-    const promptCount = importedItems.size ? Array.from(importedItems).filter((item: any) => item.item_type === "prompt").length : 0;
-    const shortcutCount = importedItems.size - promptCount;
-    csvValidation.className = imported ? "bulk-validation success" : "bulk-validation error";
-    csvValidation.textContent = `${imported} item(s) imported: ${promptCount} prompt(s), ${shortcutCount} shortcut(s). ${failed.length} failed.`;
-    if (promptCount) window.dispatchEvent(new CustomEvent("promptvault:prompt-saved"));
-    if (shortcutCount) window.dispatchEvent(new CustomEvent("promptvault:shortcut-saved"));
-
-    validatedRows.forEach((item) => {
-      if (importedItems.has(item)) {
-        item.state = "imported"; item.selected = false; item.reason = "Successfully imported as draft";
-      } else if (failedItems.has(item)) {
-        item.state = "invalid"; item.selected = false; item.reason = "Import failed. See the detailed error above.";
-      }
-    });
-    renderCsvPreview();
-    csvValidateButton.disabled = !selectedCsvFile;
-    csvValidateButton.textContent = "1. Validate CSV";
-    csvImportButton.textContent = "2. Import selected";
-  });
-
-  $("#shortcut-search").addEventListener("input", () => { shortcutPage = 1; renderShortcuts(); });
-  $("#shortcut-status-filter").addEventListener("change", () => { shortcutPage = 1; renderShortcuts(); });
-  $("#shortcut-prev-page").addEventListener("click", () => { shortcutPage--; renderShortcuts(); });
-  $("#shortcut-next-page").addEventListener("click", () => { shortcutPage++; renderShortcuts(); });
-
-  $("#refresh-button").addEventListener("click", loadDashboard);
-  $("#logout-button").addEventListener("click", async () => {
-    await supabase.auth.signOut();
-    window.location.reload();
-  });
-  ["#prompt-search", "#status-filter", "#type-filter"].forEach((selector) => {
-    $(selector).addEventListener("input", () => { currentPage = 1; renderPrompts(); });
-  });
-  $("#prev-page").addEventListener("click", () => { currentPage--; renderPrompts(); });
-  $("#next-page").addEventListener("click", () => { currentPage++; renderPrompts(); });
-  window.addEventListener("promptvault:prompt-saved", () => { void loadDashboard(); });
-  window.addEventListener("promptvault:shortcut-saved", () => { void loadDashboard(); });
-
-  async function initializeDashboard() {
-    const { data: { user }, error } = await supabase.auth.getUser();
-
-    if (error || !user) {
-      window.location.replace("/admin-login");
+    if (!slug) {
+      setMessage("Enter a valid category name.", "error");
       return;
     }
 
-    $("#admin-email").textContent = user.email || "";
-    await loadDashboard();
+    const { data, error } = await supabase
+      .from("categories")
+      .insert({ name, slug, applies_to: "prompt" })
+      .select("id, name")
+      .single();
+
+    if (error) {
+      setMessage(`Category creation failed: ${error.message}`, "error");
+      return;
+    }
+
+    categories.push({...data,usage_count:0});
+    categories.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    selectedCategories.set(data.id, data.name);
+
+    input.value = "";
+    renderAll();
+    setMessage(`Category "${data.name}" created and selected.`, "success");
   }
 
-  initializeDashboard();
+  async function createTag() {
+    const input = document.querySelector("#new-tag");
+    const name = input.value.trim();
+
+    if (!name) {
+      setMessage("Enter a tag name first.", "error");
+      input.focus();
+      return;
+    }
+
+    const existing = tags.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existing) {
+      selectedTags.set(existing.id, existing.name);
+      input.value = "";
+      renderAll();
+      setMessage(`"${existing.name}" already exists and has been selected.`);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("tags")
+      .insert({ name })
+      .select("id, name")
+      .single();
+
+    if (error) {
+      setMessage(`Tag creation failed: ${error.message}`, "error");
+      return;
+    }
+
+    tags.push({...data,usage_count:0});
+    tags.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    selectedTags.set(data.id, data.name);
+
+    input.value = "";
+    renderAll();
+    setMessage(`Tag "${data.name}" created and selected.`, "success");
+  }
+
+
+  async function createAiTool() {
+    const input=document.querySelector("#new-ai-tool"); const name=input.value.trim();
+    if(!name){setMessage("Enter an AI tool name first.","error");input.focus();return;}
+    if(aiTools.some(x=>x.name.toLowerCase()===name.toLowerCase())){setMessage("That AI tool already exists.","error");return;}
+    const {data,error}=await supabase.from("ai_tools").insert({name}).select("id,name").single();
+    if(error){setMessage(`AI tool creation failed: ${error.message}`,"error");return;}
+    aiTools.push({...data,usage_count:0}); aiTools.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
+    input.value="";renderAll();setMessage(`AI tool "${name}" added.`,"success");
+  }
+  document.querySelector("#add-ai-tool").addEventListener("click",createAiTool);
+  document.querySelector("#new-ai-tool").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();createAiTool();}});
+
+  document.querySelector("#add-category").addEventListener("click", createCategory);
+  document.querySelector("#add-tag").addEventListener("click", createTag);
+
+  categorySearch.addEventListener("input", renderAll);
+  tagSearch.addEventListener("input", renderAll);
+
+  document.querySelector("#new-category").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      createCategory();
+    }
+  });
+
+  document.querySelector("#new-tag").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      createTag();
+    }
+  });
+
+  thumbnailInput.addEventListener("change", () => {
+    const file = thumbnailInput.files[0];
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+    }
+
+    if (!file) {
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+      return;
+    }
+
+    if (!allowedImageTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      thumbnailInput.value = "";
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+      setMessage("Choose a JPEG, PNG, WebP or AVIF image under 5 MB.", "error");
+      return;
+    }
+
+    previewUrl = URL.createObjectURL(file);
+    thumbnailPreview.src = previewUrl;
+    thumbnailPreview.hidden = false;
+    thumbnailPlaceholder.hidden = true;
+    thumbnailFilename.textContent = file.name;
+
+    setMessage("Thumbnail selected.");
+  });
+
+  function similarityScore(first, second) {
+    const words = (value) =>
+      new Set(value.toLowerCase().match(/[a-z0-9]+/g) || []);
+
+    const a = words(first);
+    const b = words(second);
+
+    if (!a.size || !b.size) return 0;
+
+    const intersection = [...a].filter((word) => b.has(word)).length;
+    const union = new Set([...a, ...b]).size;
+
+    return intersection / union;
+  }
+
+  async function checkDuplicates(title, content) {
+    const { data, error } = await supabase
+      .from("prompts")
+      .select("id, title, content")
+      .limit(500);
+
+    if (error) throw error;
+
+    // When editing, exclude the current record so it is not treated as a duplicate of itself.
+    const existingPrompts = (data || []).filter(
+      (item) => item.id !== editingPromptId
+    );
+    const normalizedTitle = normalize(title);
+    const normalizedContent = normalize(content);
+
+    const exactTitle = existingPrompts.find(
+      (item) => normalize(item.title || "") === normalizedTitle
+    );
+
+    const exactContent = existingPrompts.find(
+      (item) => normalize(item.content || "") === normalizedContent
+    );
+
+    if (exactTitle || exactContent) {
+      return {
+        exact: exactTitle || exactContent,
+        similar: [],
+      };
+    }
+
+    const similar = existingPrompts.filter((item) => {
+      const titleScore = similarityScore(title, item.title || "");
+      const contentScore = similarityScore(content, item.content || "");
+
+      return titleScore >= 0.65 || contentScore >= 0.75;
+    });
+
+    return { exact: null, similar };
+  }
+
+  function showSimilarMatches(matches) {
+    duplicateDetails.replaceChildren();
+
+    matches.forEach((item) => {
+      const row = document.createElement("p");
+      row.textContent = `• ${item.title}`;
+      duplicateDetails.append(row);
+    });
+
+    duplicateWarning.hidden = false;
+    duplicateConfirm.checked = false;
+  }
+
+  function clearDuplicateWarning() {
+    duplicateWarning.hidden = true;
+    duplicateDetails.replaceChildren();
+    duplicateConfirm.checked = false;
+  }
+
+  async function uploadThumbnail(file) {
+    if (!file) return null;
+
+    const extension = file.name.split(".").pop().toLowerCase();
+    const path = `${crypto.randomUUID()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from("prompt-thumbnails")
+      .upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    return path;
+  }
+
+  async function performSave({
+    title, content, description, promptType, status, file,
+    categoryIds, tagIds, selectedTools,
+  }) {
+    let uploadedPath = null;
+    let promptId = editingPromptId;
+    const previousThumbnail = currentThumbnailPath;
+
+    try {
+      if (file) {
+        setMessage("Uploading thumbnail...");
+        uploadedPath = await uploadThumbnail(file);
+      }
+
+      const thumbnailPath = uploadedPath || currentThumbnailPath || null;
+
+      if (editingPromptId) {
+        const { error } = await supabase.from("prompts").update({
+          title, content, description: description || null,
+          prompt_type: promptType, status, ai_tools: selectedTools,
+          thumbnail_path: thumbnailPath,
+          updated_at: new Date().toISOString(),
+        }).eq("id", editingPromptId);
+        if (error) throw error;
+      } else {
+        const slug = `${slugify(title) || "prompt"}-${crypto.randomUUID().slice(0, 8)}`;
+        const { data: prompt, error } = await supabase.from("prompts").insert({
+          slug, title, content, description: description || null,
+          prompt_type: promptType, thumbnail_path: thumbnailPath,
+          ai_tools: selectedTools, status,
+        }).select("id").single();
+        if (error) throw error;
+        promptId = prompt.id;
+      }
+
+      const relationSets = [
+        ["prompt_categories", "category_id", categoryIds],
+        ["prompt_tags", "tag_id", tagIds],
+      ];
+
+      for (const [table, field, ids] of relationSets) {
+        if (editingPromptId) {
+          const { error } = await supabase.from(table).delete().eq("prompt_id", promptId);
+          if (error) throw error;
+        }
+        if (ids.length) {
+          const { error } = await supabase.from(table).insert(
+            ids.map((id) => ({ prompt_id: promptId, [field]: id }))
+          );
+          if (error) throw error;
+        }
+      }
+
+      if (uploadedPath && previousThumbnail) {
+        await supabase.storage.from("prompt-thumbnails").remove([previousThumbnail]);
+      }
+
+      const wasEditing = Boolean(editingPromptId);
+      editingPromptId = null;
+      currentThumbnailPath = null;
+      setMessage(wasEditing ? "Prompt updated." : status === "published" ? "Prompt published." : "Draft saved.", "success");
+
+      form.reset();
+      selectedCategories.clear();
+      selectedTags.clear();
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+      thumbnailPreview.removeAttribute("src");
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+      approvedFingerprint = "";
+      clearDuplicateWarning();
+      renderAll();
+      document.querySelector("#form-heading").textContent = "Add new prompt";
+      saveButton.textContent = editingPromptId ? "Update prompt" : "Publish prompt";
+      document.querySelector("#save-draft").hidden = false;
+      document.querySelector("#cancel-edit").hidden = true;
+      window.dispatchEvent(new CustomEvent("promptvault:prompt-saved"));
+    } catch (error) {
+      if (uploadedPath) await supabase.storage.from("prompt-thumbnails").remove([uploadedPath]);
+      throw error;
+    }
+  }
+
+    async function savePrompt(event) {
+    event.preventDefault();
+
+    if (saving) return;
+
+    const title = document.querySelector("#prompt-title").value.trim();
+    const content = document.querySelector("#prompt-content").value.trim();
+    const description = document.querySelector("#prompt-description").value.trim();
+    const promptType = document.querySelector("#prompt-type").value;
+    const status = event.submitter?.dataset.submitStatus || document.querySelector("#prompt-status").value;
+    const file = thumbnailInput.files[0];
+
+    const categoryIds = [...selectedCategories.keys()];
+    const tagIds = [...selectedTags.keys()];
+
+    const selectedTools = Array.from(
+      document.querySelectorAll('input[name="ai-tool"]:checked')
+    ).map((input) => input.value);
+
+    if (!optionsLoaded) {
+      setMessage("Categories and tags have not loaded. Refresh the page and sign in again.", "error");
+      return;
+    }
+
+    if (!title || !content || !categoryIds.length || !tagIds.length) {
+      setMessage(
+        "Enter a prompt name and full prompt, then select at least one category and one tag.",
+        "error"
+      );
+      return;
+    }
+
+    if (file && (!allowedImageTypes.includes(file.type) || file.size > 5 * 1024 * 1024)) {
+      setMessage("Choose a supported thumbnail image under 5 MB.", "error");
+      return;
+    }
+
+    const fingerprint = `${normalize(title)}::${normalize(content)}`;
+
+    saving = true;
+    saveButton.disabled = true;
+    saveButton.textContent = "Checking...";
+
+    try {
+      if (approvedFingerprint !== fingerprint) {
+        clearDuplicateWarning();
+        setMessage("Checking for duplicate prompts...");
+
+        const duplicateResult = await checkDuplicates(title, content);
+
+        if (duplicateResult.exact) {
+          setMessage(
+            `A prompt with the same name or content already exists: "${duplicateResult.exact.title}". It was not saved.`,
+            "error"
+          );
+          return;
+        }
+
+        if (duplicateResult.similar.length) {
+          showSimilarMatches(duplicateResult.similar);
+          setMessage("Review the possible matches, tick the confirmation box and submit again.");
+          approvedFingerprint = fingerprint;
+          return;
+        }
+      } else if (!duplicateConfirm.checked && !duplicateWarning.hidden) {
+        setMessage("Tick the confirmation box after reviewing the possible matches.", "error");
+        return;
+      }
+
+      await performSave({
+        title,
+        content,
+        description,
+        promptType,
+        status,
+        file,
+        categoryIds,
+        tagIds,
+        selectedTools,
+      });
+    } catch (error) {
+      setMessage(error.message || "Could not save the prompt.", "error");
+    } finally {
+      saving = false;
+      saveButton.disabled = false;
+      saveButton.textContent = editingPromptId ? "Update prompt" : "Publish prompt";
+    }
+  }
+
+
+  window.addEventListener("promptvault:edit-prompt", async (event) => {
+    const id = event.detail?.id;
+    if (!id) return;
+    setMessage("Loading prompt...");
+    const { data: prompt, error } = await supabase.from("prompts").select("*").eq("id", id).single();
+    if (error) { setMessage(error.message, "error"); return; }
+
+    const [cat, tag] = await Promise.all([
+      supabase.from("prompt_categories").select("category_id").eq("prompt_id", id),
+      supabase.from("prompt_tags").select("tag_id").eq("prompt_id", id),
+    ]);
+    const relationError = cat.error || tag.error;
+    if (relationError) { setMessage(relationError.message, "error"); return; }
+
+    editingPromptId = id;
+    currentThumbnailPath = prompt.thumbnail_path || null;
+    document.querySelector("#prompt-title").value = prompt.title || "";
+    document.querySelector("#prompt-content").value = prompt.content || "";
+    document.querySelector("#prompt-description").value = prompt.description || "";
+    document.querySelector("#prompt-type").value = prompt.prompt_type || "image";
+    document.querySelector("#prompt-status").value = prompt.status || "draft";
+
+    selectedCategories.clear();
+    selectedTags.clear();
+    for (const row of cat.data || []) {
+      const item = categories.find((x) => x.id === row.category_id);
+      if (item) selectedCategories.set(item.id, item.name);
+    }
+    for (const row of tag.data || []) {
+      const item = tags.find((x) => x.id === row.tag_id);
+      if (item) selectedTags.set(item.id, item.name);
+    }
+    document.querySelectorAll('input[name="ai-tool"]').forEach((input) => {
+      input.checked = (prompt.ai_tools || []).includes(input.value);
+    });
+
+    if (currentThumbnailPath) {
+      const { data } = supabase.storage.from("prompt-thumbnails").getPublicUrl(currentThumbnailPath);
+      thumbnailPreview.src = data.publicUrl;
+      thumbnailPreview.hidden = false;
+      thumbnailPlaceholder.hidden = true;
+      thumbnailFilename.textContent = "Existing thumbnail";
+    } else {
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+    }
+
+    renderAll();
+    document.querySelector("#form-heading").textContent = "Edit prompt";
+    saveButton.textContent = "Update prompt";
+    document.querySelector("#save-draft").hidden = true;
+    document.querySelector("#cancel-edit").hidden = false;
+    setMessage("Editing prompt.", "success");
+  });
+
+  document.querySelector("#cancel-edit")?.addEventListener("click", () => {
+    editingPromptId = null;
+    currentThumbnailPath = null;
+    form.reset();
+    selectedCategories.clear();
+    selectedTags.clear();
+    renderAll();
+    document.querySelector("#form-heading").textContent = "Add new prompt";
+    saveButton.textContent = "Publish prompt";
+    document.querySelector("#save-draft").hidden = false;
+    document.querySelector("#cancel-edit").hidden = true;
+    setMessage("Edit cancelled.");
+  });
+
+  form.addEventListener("submit", savePrompt);
+
+  async function initialize() {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      setMessage(error.message, "error");
+      return;
+    }
+
+    if (data.session) {
+      await loadOptions();
+    } else {
+      setMessage("Sign in as an administrator to load categories and tags.");
+    }
+  }
+
+  initialize();
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_IN" && session) {
+      loadOptions();
+    }
+
+    if (event === "SIGNED_OUT") {
+      optionsLoaded = false;
+      categories = [];
+      tags = [];
+
+      selectedCategories.clear();
+      selectedTags.clear();
+  
+      renderAll();
+      setMessage("Sign in as an administrator to load categories and tags.");
+    }
+  });
 </script>
