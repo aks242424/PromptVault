@@ -163,6 +163,8 @@ import MainLayout from "../layouts/MainLayout.astro";
     function renderCards() {
       if (!grid) return;
       grid.replaceChildren();
+      const fragment = document.createDocumentFragment();
+      const storedFavourites = readStoredItems(FAVOURITES_KEY);
       shortcuts.forEach((item, index) => {
         const card = makeElement("article", "shortcut-card");
         card.id = `shortcut-${item.id}`;
@@ -176,7 +178,7 @@ import MainLayout from "../layouts/MainLayout.astro";
         topActions.append(makeElement("span", "card-number", String(index + 1).padStart(2, "0")));
         const favourite = makeElement("button", "favourite-shortcut") as HTMLButtonElement;
         favourite.type = "button";
-        const isFavourite = readStoredItems(FAVOURITES_KEY).some(
+        const isFavourite = storedFavourites.some(
           (entry) => entry.type === "shortcut" && entry.id === item.id
         );
         updateFavouriteButton(favourite, isFavourite);
@@ -222,8 +224,9 @@ import MainLayout from "../layouts/MainLayout.astro";
         });
         footer.append(indicator, copy);
         card.append(footer);
-        grid.append(card);
+        fragment.append(card);
       });
+      grid.append(fragment);
     }
 
     function filterShortcuts() {
@@ -289,10 +292,20 @@ import MainLayout from "../layouts/MainLayout.astro";
         if (tagsResult.error) taxonomyWarning = [taxonomyWarning, `Tag names unavailable: ${tagsResult.error.message}`].filter(Boolean).join(" · ");
         const categoryNames = new Map((categoriesResult.data || []).map((row: any) => [row.id, row.name]));
         const tagNames = new Map((tagsResult.data || []).map((row: any) => [row.id, row.name]));
+        const categoriesByShortcut = new Map<string, string[]>();
+        const tagsByShortcut = new Map<string, string[]>();
+        categoryRows.forEach((rel: any) => {
+          const name = categoryNames.get(rel.category_id);
+          if (name) categoriesByShortcut.set(rel.shortcut_id, [...(categoriesByShortcut.get(rel.shortcut_id) || []), name]);
+        });
+        tagRows.forEach((rel: any) => {
+          const name = tagNames.get(rel.tag_id);
+          if (name) tagsByShortcut.set(rel.shortcut_id, [...(tagsByShortcut.get(rel.shortcut_id) || []), name]);
+        });
         shortcuts = rows.map((row: any) => ({
           ...row,
-          categories: categoryRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => categoryNames.get(rel.category_id)).filter(Boolean),
-          tags: tagRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => tagNames.get(rel.tag_id)).filter(Boolean),
+          categories: categoriesByShortcut.get(row.id) || [],
+          tags: tagsByShortcut.get(row.id) || [],
         }));
 
         if (heroSubtitle) heroSubtitle.textContent = `${shortcuts.length} shortcuts in one collection.`;
@@ -605,6 +618,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .shortcut-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 340px;
     --accent: #fdba74;
     --accent-rgb: 251,146,60;
     position: relative;
