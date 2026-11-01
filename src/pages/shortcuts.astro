@@ -322,7 +322,9 @@ import MainLayout from "../layouts/MainLayout.astro";
   </script>
 </MainLayout>
 
-<style>
+<style is:global>
+  /* Cards, filters and controls are built at runtime in the page script.
+     Global selectors ensure Astro-scoped CSS also styles those generated nodes. */
   .shortcuts-page {
     min-height: 100vh;
     padding-bottom: 100px;
@@ -513,6 +515,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .category-button {
+    cursor: pointer;
     min-height: 39px;
     padding: 0 15px;
     border: 1px solid rgba(255,255,255,.10);
@@ -782,6 +785,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .copy-shortcut {
+    cursor: pointer;
     min-width: 75px;
     min-height: 34px;
     display: inline-flex;
