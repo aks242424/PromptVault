@@ -99,8 +99,11 @@ import MainLayout from "../layouts/MainLayout.astro";
       return node;
     }
 
+    const cardAccents = ["orange", "cyan", "violet", "mint", "rose", "blue", "lime", "purple"];
+
     function renderCard(item: any, index: number) {
-      const accent = item.type === "shortcut" ? "orange" : item.type === "image" ? "cyan" : item.type === "video" ? "violet" : "mint";
+      // Rotate through a varied accent palette so the whole feed does not look monochrome.
+      const accent = cardAccents[index % cardAccents.length];
       const card = makeElement("article", `content-card accent-${accent}`);
       const searchable = [
         item.title,
@@ -155,7 +158,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       grid.replaceChildren();
       items.forEach((item, index) => grid.append(renderCard(item, index)));
       if (allTotal) allTotal.textContent = String(items.length);
-      if (subtitle) subtitle.textContent = `${items.length} published resources, ready to discover.`;
+      if (subtitle) subtitle.textContent = `A rotating selection of up to 30 published prompts and shortcuts.`;
       updateResults();
     }
 
@@ -313,13 +316,31 @@ import MainLayout from "../layouts/MainLayout.astro";
           href: "/shortcuts",
         }));
 
-        // Mix both published collections and reshuffle on every page load/refresh.
-        const mixedItems = [...promptItems, ...shortcutItems];
-        for (let i = mixedItems.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [mixedItems[i], mixedItems[j]] = [mixedItems[j], mixedItems[i]];
+        // Mix both published collections, shuffle, and show a compact discovery feed.
+        // When both types exist, reserve at least one place for each before filling
+        // the remaining slots randomly. The final selection is shuffled again.
+        const shuffle = (list: any[]) => {
+          const copy = [...list];
+          for (let i = copy.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [copy[i], copy[j]] = [copy[j], copy[i]];
+          }
+          return copy;
+        };
+
+        const promptsShuffled = shuffle(promptItems);
+        const shortcutsShuffled = shuffle(shortcutItems);
+        const selected: any[] = [];
+        const maxFeedItems = 30;
+
+        if (promptsShuffled.length && shortcutsShuffled.length) {
+          selected.push(promptsShuffled.shift());
+          selected.push(shortcutsShuffled.shift());
         }
-        items = mixedItems;
+
+        const remaining = shuffle([...promptsShuffled, ...shortcutsShuffled]);
+        selected.push(...remaining.slice(0, Math.max(0, maxFeedItems - selected.length)));
+        items = shuffle(selected);
         populateCategories();
         renderItems();
       } catch (error) {
@@ -689,6 +710,26 @@ import MainLayout from "../layouts/MainLayout.astro";
   .accent-orange {
     --accent: #fdba74;
     --accent-rgb: 251,146,60;
+  }
+
+  .accent-rose {
+    --accent: #f9a8d4;
+    --accent-rgb: 244,114,182;
+  }
+
+  .accent-blue {
+    --accent: #93c5fd;
+    --accent-rgb: 96,165,250;
+  }
+
+  .accent-lime {
+    --accent: #bef264;
+    --accent-rgb: 163,230,53;
+  }
+
+  .accent-purple {
+    --accent: #c4b5fd;
+    --accent-rgb: 167,139,250;
   }
 
   .content-card::after {
