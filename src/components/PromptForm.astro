@@ -1,0 +1,1306 @@
+<section class="overflow-hidden rounded-2xl border border-white/10 bg-[#111114] shadow-xl">
+  <div class="border-b border-white/10 px-6 py-6 sm:px-8">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 id="form-heading" class="mt-2 text-2xl font-bold text-white">Add new prompt</h2>
+      </div>
+    </div>
+  </div>
+
+  <form id="prompt-form" class="space-y-8 p-5 sm:p-8">
+        <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">01</span>
+        <div>
+          <h3>Prompt details</h3>
+        </div>
+      </div>
+
+      <div>
+        <label for="prompt-title" class="field-label">Prompt name <span>*</span></label>
+        <input
+          id="prompt-title"
+          required
+          maxlength="160"
+          class="form-control"
+          placeholder="e.g. Cinematic Cyberpunk Portrait"
+        />
+      </div>
+
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <label for="prompt-content" class="field-label">Full prompt <span>*</span></label>
+          <span class="text-xs text-gray-500">Required</span>
+        </div>
+        <textarea
+          id="prompt-content"
+          required
+          rows="9"
+          class="form-control resize-y leading-6"
+          placeholder="Paste your complete AI prompt here..."
+        ></textarea>
+      </div>
+
+      <div>
+        <label for="prompt-description" class="field-label">Short description</label>
+        <textarea
+          id="prompt-description"
+          rows="3"
+          class="form-control resize-y"
+          placeholder="Explain what this prompt creates or what it is useful for..."
+        ></textarea>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+    <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">02</span>
+        <div>
+          <h3>Format and publishing</h3>
+        </div>
+      </div>
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label for="prompt-type" class="field-label">Prompt type <span>*</span></label>
+          <select id="prompt-type" required class="form-control">
+            <option value="image">Image</option>
+            <option value="video">Video</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="prompt-status" class="field-label">Publishing status <span>*</span></label>
+          <select id="prompt-status" required class="form-control">
+            <option value="draft">Save as draft</option>
+            <option value="published">Publish immediately</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label for="prompt-thumbnail" class="field-label">
+          Thumbnail image <span class="optional">(optional)</span>
+        </label>
+
+        <div class="upload-box">
+          <div class="flex flex-wrap items-center gap-4">
+            <div class="thumbnail-frame">
+              <img
+                id="thumbnail-preview"
+                hidden
+                alt="Thumbnail preview"
+                class="h-full w-full object-cover"
+              />
+              <svg
+                id="thumbnail-placeholder"
+                viewBox="0 0 24 24"
+                class="h-7 w-7 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+                <circle cx="85" cy="8.5" r="1.5"></circle>
+                <path d="m21 15-5-5L5 21"></path>
+              </svg>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-gray-200">Thumbnail</p>
+              <p class="mt-1 text-xs text-gray-500">
+                JPEG, PNG, WebP or AVIF · 5 MB max
+              </p>
+
+              <label
+                for="prompt-thumbnail"
+                class="mt-3 inline-flex cursor-pointer rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-300 transition hover:bg-violet-500/20"
+              >
+                Choose image
+              </label>
+
+              <span id="thumbnail-filename" class="ml-2 text-xs text-gray-500">
+                No image selected
+              </span>
+            </div>
+          </div>
+
+          <input
+            id="prompt-thumbnail"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            class="hidden"
+          />
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+
+    <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">03</span>
+        <div>
+          <h3>Categories and tags</h3>
+        </div>
+      </div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+
+        <div class="selection-panel">
+          <div class="mb-3 flex items-center justify-between">
+            <label class="field-label">Categories <span>*</span></label>
+            <span id="category-count" class="selection-count">0 selected</span>
+          </div>
+
+          <div id="category-chips" class="selected-chips"></div>
+
+          <input
+            id="category-search"
+            type="search"
+            class="form-control mb-3"
+            placeholder="Search categories..."
+          />
+
+          <div id="category-options" class="choice-list"></div>
+
+          <div class="mt-4 flex gap-2">
+            <input
+              id="new-category"
+              class="form-control min-w-0 flex-1"
+              placeholder="New category name"
+              maxlength="60"
+            />
+            <button type="button" id="add-category" class="secondary-button">
+              Add
+            </button>
+          </div>
+        </div>
+
+
+        <div class="selection-panel">
+          <div class="mb-3 flex items-center justify-between">
+            <label class="field-label">Tags <span>*</span></label>
+            <span id="tag-count" class="selection-count">0 selected</span>
+          </div>
+
+          <div id="tag-chips" class="selected-chips"></div>
+
+          <input
+            id="tag-search"
+            type="search"
+            class="form-control mb-3"
+            placeholder="Search tags..."
+          />
+
+          <div id="tag-options" class="choice-list"></div>
+
+          <div class="mt-4 flex gap-2">
+            <input
+              id="new-tag"
+              class="form-control min-w-0 flex-1"
+              placeholder="New tag name"
+              maxlength="60"
+            />
+            <button type="button" id="add-tag" class="secondary-button">
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+
+    <section class="space-y-5">
+      <div class="section-heading">
+        <span class="section-number">04</span>
+        <div>
+          <h3>Additional information</h3>
+
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label">AI tools</label>
+        <p class="mb-3 text-xs text-gray-500">
+
+        </p>
+
+        <div id="tool-options" class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {[
+            "Midjourney",
+            "DALL·E",
+            "ChatGPT",
+            "Stable Diffusion",
+            "Flux",
+            "Leonardo AI",
+            "Ideogram",
+            "Runway",
+            "Kling AI",
+            "Veo",
+            "Sora",
+            "Other",
+          ].map((tool) => (
+            <label class="check-card">
+              <input type="checkbox" name="ai-tool" value={tool} />
+              <span>{tool}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div class="mb-2 flex items-center justify-between">
+          <label class="field-label">Related shortcuts</label>
+          <span id="shortcut-count" class="selection-count">0 selected</span>
+        </div>
+
+        <div id="shortcut-chips" class="selected-chips"></div>
+
+        <input
+          id="shortcut-search"
+          type="search"
+          class="form-control mb-3"
+          placeholder="Search shortcuts..."
+        />
+
+        <div id="shortcut-options" class="choice-list"></div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+
+    <section
+      id="duplicate-warning"
+      hidden
+      class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4"
+    >
+      <p class="text-sm font-semibold text-amber-300">
+        Possible duplicate detected
+      </p>
+
+      <div id="duplicate-details" class="mt-3 space-y-2 text-sm text-amber-200/80"></div>
+
+      <label class="mt-4 flex cursor-pointer items-start gap-3 text-sm text-gray-300">
+        <input
+          id="duplicate-confirm"
+          type="checkbox"
+          class="mt-1 accent-violet-500"
+        />
+        <span>
+          I have reviewed these matches and confirm that I want to save this prompt.
+        </span>
+      </label>
+    </section>
+
+
+    <div class="flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+      <p
+        id="prompt-form-message"
+        role="status"
+        aria-live="polite"
+        class="text-sm text-gray-400"
+      >
+        Loading categories and tags...
+      </p>
+
+      <div class="flex flex-wrap gap-2">
+        <button id="cancel-edit" type="button" class="secondary-button" hidden>Cancel edit</button>
+        <button id="save-draft" type="submit" data-submit-status="draft" class="secondary-button">Save draft</button>
+        <button id="save-prompt" type="submit" data-submit-status="published" class="primary-button">Publish prompt</button>
+      </div>
+    </div>
+  </form>
+</section>
+
+<style>
+  section.overflow-hidden.rounded-2xl {
+    position: relative;
+    isolation: isolate;
+    border: 1px solid rgb(255 255 255 / 10%);
+    border-radius: 22px;
+    background:
+      radial-gradient(ellipse at 4% 0%, rgb(34 211 238 / 9%), transparent 32%),
+      radial-gradient(ellipse at 96% 12%, rgb(251 146 60 / 8%), transparent 30%),
+      linear-gradient(145deg, #15171c, #0d0e13 72%);
+    box-shadow: 0 28px 90px rgb(0 0 0 / 38%);
+  }
+
+  #form-heading {
+    margin: 0;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(1.45rem, 3vw, 1.85rem);
+    font-weight: 700;
+    letter-spacing: -.045em;
+  }
+
+  section.overflow-hidden > div:first-child {
+    border-color: rgb(255 255 255 / 9%);
+    background: linear-gradient(100deg, rgb(34 211 238 / 7%), rgb(255 255 255 / 1%), rgb(251 146 60 / 6%));
+  }
+
+  #prompt-form { gap: 2rem; }
+
+  .section-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-heading h3 {
+    color: #f4f4f5;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -.02em;
+  }
+
+  .section-number {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    border: 1px solid rgb(34 211 238 / 28%);
+    border-radius: 11px;
+    background: linear-gradient(145deg, rgb(34 211 238 / 18%), rgb(34 211 238 / 5%));
+    color: #67e8f9;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  #prompt-form > section:nth-of-type(2) .section-number {
+    border-color: rgb(251 146 60 / 32%);
+    background: rgb(251 146 60 / 10%);
+    color: #fdba74;
+  }
+
+  #prompt-form > section:nth-of-type(3) .section-number {
+    border-color: rgb(167 139 250 / 32%);
+    background: rgb(167 139 250 / 10%);
+    color: #c4b5fd;
+  }
+
+  #prompt-form > section:nth-of-type(4) .section-number {
+    border-color: rgb(52 211 153 / 32%);
+    background: rgb(52 211 153 / 10%);
+    color: #6ee7b7;
+  }
+
+  .section-heading:after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    margin-left: 8px;
+    background: linear-gradient(90deg, rgb(34 211 238 / 25%), transparent);
+  }
+
+  .section-divider { height: 1px; background: rgb(255 255 255 / 8%); }
+
+  .field-label {
+    display: block;
+    margin-bottom: 9px;
+    color: #e4e4e7;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .field-label > span:not(.optional) { color: #fb923c; }
+  .optional { color: #71717a; font-weight: 400; }
+
+  .form-control {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid rgb(255 255 255 / 11%);
+    border-radius: 11px;
+    background: #090b10;
+    padding: 12px 14px;
+    color: #f4f4f5;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  }
+
+  .form-control:focus {
+    border-color: rgb(34 211 238 / 65%);
+    background: #0b1015;
+    box-shadow: 0 0 0 3px rgb(34 211 238 / 10%);
+  }
+
+  .form-control::placeholder { color: #666b78; }
+  textarea.form-control { min-height: 90px; }
+  #prompt-content { min-height: 220px; line-height: 1.7; }
+
+  .upload-box {
+    border: 1px dashed rgb(34 211 238 / 25%);
+    border-radius: 14px;
+    background: linear-gradient(120deg, rgb(34 211 238 / 5%), rgb(255 255 255 / 2%), rgb(251 146 60 / 4%));
+    padding: 18px;
+    transition: border-color 160ms ease, background 160ms ease;
+  }
+
+  .upload-box:hover { border-color: rgb(34 211 238 / 60%); }
+  .thumbnail-frame {
+    display: flex;
+    width: 76px;
+    height: 76px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgb(255 255 255 / 12%);
+    border-radius: 11px;
+    background: #11151b;
+  }
+
+  .selection-panel {
+    min-width: 0;
+    border: 1px solid rgb(255 255 255 / 9%);
+    border-radius: 15px;
+    background: linear-gradient(145deg, rgb(255 255 255 / 3%), rgb(0 0 0 / 17%));
+    padding: 16px;
+  }
+
+  .selection-panel:nth-child(1) { box-shadow: inset 0 1px 0 rgb(167 139 250 / 14%); }
+  .selection-panel:nth-child(2) { box-shadow: inset 0 1px 0 rgb(34 211 238 / 14%); }
+  .selection-count {
+    color: #9298a5;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+  }
+
+  .selected-chips { display: flex; min-height: 0; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+  .selected-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid rgb(34 211 238 / 27%);
+    border-radius: 999px;
+    background: rgb(34 211 238 / 9%);
+    padding: 5px 9px;
+    color: #a5f3fc;
+    font-size: 11px;
+  }
+
+  .selected-chip button { color: #67e8f9; font-size: 15px; line-height: 1; }
+  .choice-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    max-height: 210px;
+    overflow-y: auto;
+    padding: 2px;
+  }
+
+  .choice-item, .check-card {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid rgb(255 255 255 / 8%);
+    border-radius: 9px;
+    background: rgb(255 255 255 / 3%);
+    padding: 10px;
+    color: #d4d4d8;
+    cursor: pointer;
+    font-size: 12px;
+    transition: 150ms ease;
+  }
+
+  .choice-item:hover, .check-card:hover {
+    border-color: rgb(34 211 238 / 38%);
+    background: rgb(34 211 238 / 6%);
+  }
+
+  .choice-item:has(input:checked) {
+    border-color: rgb(34 211 238 / 55%);
+    background: rgb(34 211 238 / 10%);
+    color: #cffafe;
+  }
+
+  .check-card:has(input:checked) {
+    border-color: rgb(251 146 60 / 55%);
+    background: rgb(251 146 60 / 9%);
+    color: #fed7aa;
+  }
+
+  .choice-item input, .check-card input { flex-shrink: 0; accent-color: #22d3ee; }
+  .choice-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .choice-empty { grid-column: 1 / -1; padding: 16px 8px; color: #71717a; font-size: 12px; text-align: center; }
+
+  .secondary-button {
+    flex-shrink: 0;
+    border: 1px solid rgb(34 211 238 / 32%);
+    border-radius: 9px;
+    padding: 0 16px;
+    color: #a5f3fc;
+    font-size: 12px;
+    transition: 150ms ease;
+  }
+
+  .secondary-button:hover {
+    border-color: rgb(34 211 238 / 60%);
+    background: rgb(34 211 238 / 9%);
+  }
+
+  .primary-button {
+    display: inline-flex;
+    min-height: 46px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(251 146 60 / 30%);
+    border-radius: 11px;
+    background: linear-gradient(110deg, #f97316, #ea580c 58%, #c2410c);
+    padding: 0 28px;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 8px 26px rgb(234 88 12 / 20%);
+    transition: 150ms ease;
+  }
+
+  .primary-button:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgb(234 88 12 / 30%); }
+  .primary-button:disabled { cursor: not-allowed; opacity: .55; }
+  #duplicate-warning { border-color: rgb(251 191 36 / 30%); background: rgb(251 191 36 / 5%); }
+  #duplicate-confirm { accent-color: #f59e0b; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 640px) {
+    #prompt-form { padding: 18px; }
+    .choice-list { grid-template-columns: 1fr; }
+    .primary-button { width: 100%; }
+  }
+</style>
+
+<script>
+  import { supabase } from "../lib/supabase.js";
+
+  const form = document.querySelector("#prompt-form");
+  const message = document.querySelector("#prompt-form-message");
+  const saveButton = document.querySelector("#save-prompt");
+
+  const categoryList = document.querySelector("#category-options");
+  const tagList = document.querySelector("#tag-options");
+  const shortcutList = document.querySelector("#shortcut-options");
+
+  const categoryChips = document.querySelector("#category-chips");
+  const tagChips = document.querySelector("#tag-chips");
+  const shortcutChips = document.querySelector("#shortcut-chips");
+
+  const categoryCount = document.querySelector("#category-count");
+  const tagCount = document.querySelector("#tag-count");
+  const shortcutCount = document.querySelector("#shortcut-count");
+
+  const categorySearch = document.querySelector("#category-search");
+  const tagSearch = document.querySelector("#tag-search");
+  const shortcutSearch = document.querySelector("#shortcut-search");
+
+  const thumbnailInput = document.querySelector("#prompt-thumbnail");
+  const thumbnailPreview = document.querySelector("#thumbnail-preview");
+  const thumbnailPlaceholder = document.querySelector("#thumbnail-placeholder");
+  const thumbnailFilename = document.querySelector("#thumbnail-filename");
+
+  const duplicateWarning = document.querySelector("#duplicate-warning");
+  const duplicateDetails = document.querySelector("#duplicate-details");
+  const duplicateConfirm = document.querySelector("#duplicate-confirm");
+
+  const selectedCategories = new Map();
+  const selectedTags = new Map();
+  const selectedShortcuts = new Map();
+
+  let categories = [];
+  let tags = [];
+  let shortcuts = [];
+  let optionsLoaded = false;
+  let saving = false;
+  let previewUrl = null;
+  let approvedFingerprint = "";
+  let editingPromptId = null;
+  let currentThumbnailPath = null;
+
+  const allowedImageTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/avif",
+  ];
+
+  const slugify = (value) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+  const normalize = (value) =>
+    value.toLowerCase().trim().replace(/\s+/g, " ");
+
+  function setMessage(text, type = "normal") {
+    message.textContent = text;
+    message.className = "text-sm";
+
+    if (type === "error") {
+      message.classList.add("text-red-400");
+    } else if (type === "success") {
+      message.classList.add("text-green-400");
+    } else {
+      message.classList.add("text-gray-400");
+    }
+  }
+
+  function renderChips(map, container, countElement) {
+    container.replaceChildren();
+
+    for (const [id, name] of map) {
+      const chip = document.createElement("span");
+      chip.className = "selected-chip";
+
+      const label = document.createElement("span");
+      label.textContent = name;
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove ${name}`);
+
+      remove.addEventListener("click", () => {
+        map.delete(id);
+        renderAll();
+      });
+
+      chip.append(label, remove);
+      container.append(chip);
+    }
+
+    countElement.textContent = `${map.size} selected`;
+  }
+
+  function renderChoiceList(items, container, map, search) {
+    container.replaceChildren();
+
+    const query = search.value.trim().toLowerCase();
+    const filtered = items.filter((item) =>
+      item.name.toLowerCase().includes(query)
+    );
+
+    if (!filtered.length) {
+      const empty = document.createElement("p");
+      empty.className = "choice-empty";
+      empty.textContent = items.length
+        ? "No matching results."
+        : "No entries available yet.";
+      container.append(empty);
+      return;
+    }
+
+    filtered.forEach((item) => {
+      const label = document.createElement("label");
+      label.className = "choice-item";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = map.has(item.id);
+
+      const name = document.createElement("span");
+      name.textContent = item.name;
+
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          map.set(item.id, item.name);
+        } else {
+          map.delete(item.id);
+        }
+
+        renderAll();
+      });
+
+      label.append(checkbox, name);
+      container.append(label);
+    });
+  }
+
+  function renderAll() {
+    renderChoiceList(categories, categoryList, selectedCategories, categorySearch);
+    renderChoiceList(tags, tagList, selectedTags, tagSearch);
+    renderChoiceList(shortcuts, shortcutList, selectedShortcuts, shortcutSearch);
+
+    renderChips(selectedCategories, categoryChips, categoryCount);
+    renderChips(selectedTags, tagChips, tagCount);
+    renderChips(selectedShortcuts, shortcutChips, shortcutCount);
+  }
+
+  async function loadOptions() {
+    setMessage("Loading categories, tags and shortcuts...");
+
+    const [
+      categoryResult,
+      tagResult,
+      shortcutResult,
+    ] = await Promise.all([
+      supabase.from("categories").select("id, name").order("name"),
+      supabase.from("tags").select("id, name").order("name"),
+      supabase.from("shortcuts").select("id, name").order("name"),
+    ]);
+
+    const error =
+      categoryResult.error ||
+      tagResult.error ||
+      shortcutResult.error;
+
+    if (error) {
+      optionsLoaded = false;
+      setMessage(`Could not load options: ${error.message}`, "error");
+      return;
+    }
+
+    categories = categoryResult.data || [];
+    tags = tagResult.data || [];
+    shortcuts = shortcutResult.data || [];
+
+    optionsLoaded = true;
+    renderAll();
+
+    setMessage(
+      `Loaded ${categories.length} categories, ${tags.length} tags and ${shortcuts.length} shortcuts.`
+    );
+  }
+
+  async function createCategory() {
+    const input = document.querySelector("#new-category");
+    const name = input.value.trim();
+
+    if (!name) {
+      setMessage("Enter a category name first.", "error");
+      input.focus();
+      return;
+    }
+
+    const existing = categories.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existing) {
+      selectedCategories.set(existing.id, existing.name);
+      input.value = "";
+      renderAll();
+      setMessage(`"${existing.name}" already exists and has been selected.`);
+      return;
+    }
+
+    const slug = slugify(name);
+
+    if (!slug) {
+      setMessage("Enter a valid category name.", "error");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("categories")
+      .insert({ name, slug, applies_to: "prompt" })
+      .select("id, name")
+      .single();
+
+    if (error) {
+      setMessage(`Category creation failed: ${error.message}`, "error");
+      return;
+    }
+
+    categories.push(data);
+    categories.sort((a, b) => a.name.localeCompare(b.name));
+    selectedCategories.set(data.id, data.name);
+
+    input.value = "";
+    renderAll();
+    setMessage(`Category "${data.name}" created and selected.`, "success");
+  }
+
+  async function createTag() {
+    const input = document.querySelector("#new-tag");
+    const name = input.value.trim();
+
+    if (!name) {
+      setMessage("Enter a tag name first.", "error");
+      input.focus();
+      return;
+    }
+
+    const existing = tags.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existing) {
+      selectedTags.set(existing.id, existing.name);
+      input.value = "";
+      renderAll();
+      setMessage(`"${existing.name}" already exists and has been selected.`);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("tags")
+      .insert({ name })
+      .select("id, name")
+      .single();
+
+    if (error) {
+      setMessage(`Tag creation failed: ${error.message}`, "error");
+      return;
+    }
+
+    tags.push(data);
+    tags.sort((a, b) => a.name.localeCompare(b.name));
+    selectedTags.set(data.id, data.name);
+
+    input.value = "";
+    renderAll();
+    setMessage(`Tag "${data.name}" created and selected.`, "success");
+  }
+
+  document.querySelector("#add-category").addEventListener("click", createCategory);
+  document.querySelector("#add-tag").addEventListener("click", createTag);
+
+  categorySearch.addEventListener("input", renderAll);
+  tagSearch.addEventListener("input", renderAll);
+  shortcutSearch.addEventListener("input", renderAll);
+
+  document.querySelector("#new-category").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      createCategory();
+    }
+  });
+
+  document.querySelector("#new-tag").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      createTag();
+    }
+  });
+
+  thumbnailInput.addEventListener("change", () => {
+    const file = thumbnailInput.files[0];
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+    }
+
+    if (!file) {
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+      return;
+    }
+
+    if (!allowedImageTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      thumbnailInput.value = "";
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+      setMessage("Choose a JPEG, PNG, WebP or AVIF image under 5 MB.", "error");
+      return;
+    }
+
+    previewUrl = URL.createObjectURL(file);
+    thumbnailPreview.src = previewUrl;
+    thumbnailPreview.hidden = false;
+    thumbnailPlaceholder.hidden = true;
+    thumbnailFilename.textContent = file.name;
+
+    setMessage("Thumbnail selected.");
+  });
+
+  function similarityScore(first, second) {
+    const words = (value) =>
+      new Set(value.toLowerCase().match(/[a-z0-9]+/g) || []);
+
+    const a = words(first);
+    const b = words(second);
+
+    if (!a.size || !b.size) return 0;
+
+    const intersection = [...a].filter((word) => b.has(word)).length;
+    const union = new Set([...a, ...b]).size;
+
+    return intersection / union;
+  }
+
+  async function checkDuplicates(title, content) {
+    const { data, error } = await supabase
+      .from("prompts")
+      .select("id, title, content")
+      .limit(500);
+
+    if (error) throw error;
+
+    // When editing, exclude the current record so it is not treated as a duplicate of itself.
+    const existingPrompts = (data || []).filter(
+      (item) => item.id !== editingPromptId
+    );
+    const normalizedTitle = normalize(title);
+    const normalizedContent = normalize(content);
+
+    const exactTitle = existingPrompts.find(
+      (item) => normalize(item.title || "") === normalizedTitle
+    );
+
+    const exactContent = existingPrompts.find(
+      (item) => normalize(item.content || "") === normalizedContent
+    );
+
+    if (exactTitle || exactContent) {
+      return {
+        exact: exactTitle || exactContent,
+        similar: [],
+      };
+    }
+
+    const similar = existingPrompts.filter((item) => {
+      const titleScore = similarityScore(title, item.title || "");
+      const contentScore = similarityScore(content, item.content || "");
+
+      return titleScore >= 0.65 || contentScore >= 0.75;
+    });
+
+    return { exact: null, similar };
+  }
+
+  function showSimilarMatches(matches) {
+    duplicateDetails.replaceChildren();
+
+    matches.forEach((item) => {
+      const row = document.createElement("p");
+      row.textContent = `• ${item.title}`;
+      duplicateDetails.append(row);
+    });
+
+    duplicateWarning.hidden = false;
+    duplicateConfirm.checked = false;
+  }
+
+  function clearDuplicateWarning() {
+    duplicateWarning.hidden = true;
+    duplicateDetails.replaceChildren();
+    duplicateConfirm.checked = false;
+  }
+
+  async function uploadThumbnail(file) {
+    if (!file) return null;
+
+    const extension = file.name.split(".").pop().toLowerCase();
+    const path = `${crypto.randomUUID()}.${extension}`;
+
+    const { error } = await supabase.storage
+      .from("prompt-thumbnails")
+      .upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) throw error;
+
+    return path;
+  }
+
+  async function performSave({
+    title, content, description, promptType, status, file,
+    categoryIds, tagIds, shortcutIds, selectedTools,
+  }) {
+    let uploadedPath = null;
+    let promptId = editingPromptId;
+    const previousThumbnail = currentThumbnailPath;
+
+    try {
+      if (file) {
+        setMessage("Uploading thumbnail...");
+        uploadedPath = await uploadThumbnail(file);
+      }
+
+      const thumbnailPath = uploadedPath || currentThumbnailPath || null;
+
+      if (editingPromptId) {
+        const { error } = await supabase.from("prompts").update({
+          title, content, description: description || null,
+          prompt_type: promptType, status, ai_tools: selectedTools,
+          thumbnail_path: thumbnailPath,
+          updated_at: new Date().toISOString(),
+        }).eq("id", editingPromptId);
+        if (error) throw error;
+      } else {
+        const slug = `${slugify(title) || "prompt"}-${crypto.randomUUID().slice(0, 8)}`;
+        const { data: prompt, error } = await supabase.from("prompts").insert({
+          slug, title, content, description: description || null,
+          prompt_type: promptType, thumbnail_path: thumbnailPath,
+          ai_tools: selectedTools, status,
+        }).select("id").single();
+        if (error) throw error;
+        promptId = prompt.id;
+      }
+
+      const relationSets = [
+        ["prompt_categories", "category_id", categoryIds],
+        ["prompt_tags", "tag_id", tagIds],
+        ["prompt_shortcuts", "shortcut_id", shortcutIds],
+      ];
+
+      for (const [table, field, ids] of relationSets) {
+        if (editingPromptId) {
+          const { error } = await supabase.from(table).delete().eq("prompt_id", promptId);
+          if (error) throw error;
+        }
+        if (ids.length) {
+          const { error } = await supabase.from(table).insert(
+            ids.map((id) => ({ prompt_id: promptId, [field]: id }))
+          );
+          if (error) throw error;
+        }
+      }
+
+      if (uploadedPath && previousThumbnail) {
+        await supabase.storage.from("prompt-thumbnails").remove([previousThumbnail]);
+      }
+
+      const wasEditing = Boolean(editingPromptId);
+      editingPromptId = null;
+      currentThumbnailPath = null;
+      setMessage(wasEditing ? "Prompt updated." : status === "published" ? "Prompt published." : "Draft saved.", "success");
+
+      form.reset();
+      selectedCategories.clear();
+      selectedTags.clear();
+      selectedShortcuts.clear();
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+      thumbnailPreview.removeAttribute("src");
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+      approvedFingerprint = "";
+      clearDuplicateWarning();
+      renderAll();
+      document.querySelector("#form-heading").textContent = "Add new prompt";
+      saveButton.textContent = editingPromptId ? "Update prompt" : "Publish prompt";
+      document.querySelector("#save-draft").hidden = false;
+      document.querySelector("#cancel-edit").hidden = true;
+      window.dispatchEvent(new CustomEvent("promptvault:prompt-saved"));
+    } catch (error) {
+      if (uploadedPath) await supabase.storage.from("prompt-thumbnails").remove([uploadedPath]);
+      throw error;
+    }
+  }
+
+    async function savePrompt(event) {
+    event.preventDefault();
+
+    if (saving) return;
+
+    const title = document.querySelector("#prompt-title").value.trim();
+    const content = document.querySelector("#prompt-content").value.trim();
+    const description = document.querySelector("#prompt-description").value.trim();
+    const promptType = document.querySelector("#prompt-type").value;
+    const status = event.submitter?.dataset.submitStatus || document.querySelector("#prompt-status").value;
+    const file = thumbnailInput.files[0];
+
+    const categoryIds = [...selectedCategories.keys()];
+    const tagIds = [...selectedTags.keys()];
+    const shortcutIds = [...selectedShortcuts.keys()];
+
+    const selectedTools = Array.from(
+      document.querySelectorAll('input[name="ai-tool"]:checked')
+    ).map((input) => input.value);
+
+    if (!optionsLoaded) {
+      setMessage("Categories and tags have not loaded. Refresh the page and sign in again.", "error");
+      return;
+    }
+
+    if (!title || !content || !categoryIds.length || !tagIds.length) {
+      setMessage(
+        "Enter a prompt name and full prompt, then select at least one category and one tag.",
+        "error"
+      );
+      return;
+    }
+
+    if (file && (!allowedImageTypes.includes(file.type) || file.size > 5 * 1024 * 1024)) {
+      setMessage("Choose a supported thumbnail image under 5 MB.", "error");
+      return;
+    }
+
+    const fingerprint = `${normalize(title)}::${normalize(content)}`;
+
+    saving = true;
+    saveButton.disabled = true;
+    saveButton.textContent = "Checking...";
+
+    try {
+      if (approvedFingerprint !== fingerprint) {
+        clearDuplicateWarning();
+        setMessage("Checking for duplicate prompts...");
+
+        const duplicateResult = await checkDuplicates(title, content);
+
+        if (duplicateResult.exact) {
+          setMessage(
+            `A prompt with the same name or content already exists: "${duplicateResult.exact.title}". It was not saved.`,
+            "error"
+          );
+          return;
+        }
+
+        if (duplicateResult.similar.length) {
+          showSimilarMatches(duplicateResult.similar);
+          setMessage("Review the possible matches, tick the confirmation box and submit again.");
+          approvedFingerprint = fingerprint;
+          return;
+        }
+      } else if (!duplicateConfirm.checked && !duplicateWarning.hidden) {
+        setMessage("Tick the confirmation box after reviewing the possible matches.", "error");
+        return;
+      }
+
+      await performSave({
+        title,
+        content,
+        description,
+        promptType,
+        status,
+        file,
+        categoryIds,
+        tagIds,
+        shortcutIds,
+        selectedTools,
+      });
+    } catch (error) {
+      setMessage(error.message || "Could not save the prompt.", "error");
+    } finally {
+      saving = false;
+      saveButton.disabled = false;
+      saveButton.textContent = editingPromptId ? "Update prompt" : "Publish prompt";
+    }
+  }
+
+
+  window.addEventListener("promptvault:edit-prompt", async (event) => {
+    const id = event.detail?.id;
+    if (!id) return;
+    setMessage("Loading prompt...");
+    const { data: prompt, error } = await supabase.from("prompts").select("*").eq("id", id).single();
+    if (error) { setMessage(error.message, "error"); return; }
+
+    const [cat, tag, shortcut] = await Promise.all([
+      supabase.from("prompt_categories").select("category_id").eq("prompt_id", id),
+      supabase.from("prompt_tags").select("tag_id").eq("prompt_id", id),
+      supabase.from("prompt_shortcuts").select("shortcut_id").eq("prompt_id", id),
+    ]);
+    const relationError = cat.error || tag.error || shortcut.error;
+    if (relationError) { setMessage(relationError.message, "error"); return; }
+
+    editingPromptId = id;
+    currentThumbnailPath = prompt.thumbnail_path || null;
+    document.querySelector("#prompt-title").value = prompt.title || "";
+    document.querySelector("#prompt-content").value = prompt.content || "";
+    document.querySelector("#prompt-description").value = prompt.description || "";
+    document.querySelector("#prompt-type").value = prompt.prompt_type || "image";
+    document.querySelector("#prompt-status").value = prompt.status || "draft";
+
+    selectedCategories.clear();
+    selectedTags.clear();
+    selectedShortcuts.clear();
+    for (const row of cat.data || []) {
+      const item = categories.find((x) => x.id === row.category_id);
+      if (item) selectedCategories.set(item.id, item.name);
+    }
+    for (const row of tag.data || []) {
+      const item = tags.find((x) => x.id === row.tag_id);
+      if (item) selectedTags.set(item.id, item.name);
+    }
+    for (const row of shortcut.data || []) {
+      const item = shortcuts.find((x) => x.id === row.shortcut_id);
+      if (item) selectedShortcuts.set(item.id, item.name);
+    }
+    document.querySelectorAll('input[name="ai-tool"]').forEach((input) => {
+      input.checked = (prompt.ai_tools || []).includes(input.value);
+    });
+
+    if (currentThumbnailPath) {
+      const { data } = supabase.storage.from("prompt-thumbnails").getPublicUrl(currentThumbnailPath);
+      thumbnailPreview.src = data.publicUrl;
+      thumbnailPreview.hidden = false;
+      thumbnailPlaceholder.hidden = true;
+      thumbnailFilename.textContent = "Existing thumbnail";
+    } else {
+      thumbnailPreview.hidden = true;
+      thumbnailPlaceholder.hidden = false;
+      thumbnailFilename.textContent = "No image selected";
+    }
+
+    renderAll();
+    document.querySelector("#form-heading").textContent = "Edit prompt";
+    saveButton.textContent = "Update prompt";
+    document.querySelector("#save-draft").hidden = true;
+    document.querySelector("#cancel-edit").hidden = false;
+    setMessage("Editing prompt.", "success");
+  });
+
+  document.querySelector("#cancel-edit")?.addEventListener("click", () => {
+    editingPromptId = null;
+    currentThumbnailPath = null;
+    form.reset();
+    selectedCategories.clear();
+    selectedTags.clear();
+    selectedShortcuts.clear();
+    renderAll();
+    document.querySelector("#form-heading").textContent = "Add new prompt";
+    saveButton.textContent = "Publish prompt";
+    document.querySelector("#save-draft").hidden = false;
+    document.querySelector("#cancel-edit").hidden = true;
+    setMessage("Edit cancelled.");
+  });
+
+  form.addEventListener("submit", savePrompt);
+
+  async function initialize() {
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      setMessage(error.message, "error");
+      return;
+    }
+
+    if (data.session) {
+      await loadOptions();
+    } else {
+      setMessage("Sign in as an administrator to load categories and tags.");
+    }
+  }
+
+  initialize();
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_IN" && session) {
+      loadOptions();
+    }
+
+    if (event === "SIGNED_OUT") {
+      optionsLoaded = false;
+      categories = [];
+      tags = [];
+      shortcuts = [];
+
+      selectedCategories.clear();
+      selectedTags.clear();
+      selectedShortcuts.clear();
+
+      renderAll();
+      setMessage("Sign in as an administrator to load categories and tags.");
+    }
+  });
+</script>

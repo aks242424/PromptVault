@@ -1,0 +1,132 @@
+---
+import "../styles/global.css";
+import Header from "../components/Header.astro";
+import UtilitySidebar from "../components/UtilitySidebar.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "PromptVault — AI Prompt Library",
+  description = "Discover and explore curated AI image and video prompts."
+} = Astro.props;
+
+const siteUrl = new URL("https://promptvault.vercel.app");
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).toString();
+const isPrivatePage =
+  Astro.url.pathname === "/admin" ||
+  Astro.url.pathname.startsWith("/admin/") ||
+  Astro.url.pathname === "/admin-login";
+
+const robotsContent = isPrivatePage
+  ? "noindex, nofollow, noarchive"
+  : "index, follow, max-image-preview:large";
+
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="robots" content={robotsContent} />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="application-name" content="PromptVault" />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PromptVault" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#08090b" />
+    <meta name="color-scheme" content="dark" />
+    <title>{title}</title>
+  </head>
+
+  <body class="min-h-screen antialiased">
+    <div class="site-atmosphere" aria-hidden="true"></div>
+    <Header />
+
+    <main class="site-main">
+      <slot />
+    </main>
+
+    <UtilitySidebar />
+  </body>
+</html>
+
+<style>
+  :global(html) {
+    min-height: 100%;
+    background: #08090b;
+    scroll-behavior: smooth;
+    scrollbar-color: #393943 #0b0b0f;
+  }
+
+  :global(body) {
+    position: relative;
+    min-height: 100vh;
+    overflow-x: clip;
+    background: #08090b;
+    color: #f4f4f5;
+    isolation: isolate;
+  }
+
+  .site-atmosphere {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 8% 8%, rgb(249 115 22 / 8%), transparent 32%),
+      radial-gradient(ellipse at 91% 18%, rgb(34 211 238 / 6%), transparent 30%),
+      radial-gradient(ellipse at 50% 100%, rgb(139 92 246 / 5%), transparent 42%),
+      #08090b;
+  }
+
+  .site-atmosphere::before {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgb(255 255 255 / 10%) .65px, transparent .65px);
+    background-size: 28px 28px;
+    opacity: .12;
+    content: "";
+    mask-image: linear-gradient(to bottom, black, transparent 76%);
+  }
+
+  .site-atmosphere::after {
+    position: absolute;
+    top: -28rem;
+    left: 50%;
+    width: min(100vw, 1100px);
+    height: 48rem;
+    border: 1px solid rgb(255 255 255 / 3%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgb(255 255 255 / 2%), transparent 68%);
+    content: "";
+    transform: translateX(-50%);
+  }
+
+  .site-main {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 70px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html) {
+      scroll-behavior: auto;
+    }
+  }
+</style>

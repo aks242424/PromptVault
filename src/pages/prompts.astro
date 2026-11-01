@@ -1,0 +1,1009 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout
+  title="Prompts Library — PromptVault"
+  description="Explore published AI image and video generation prompts."
+>
+  <main class="prompts-page">
+    <section class="prompts-hero">
+      <div class="hero-light hero-light-blue"></div>
+      <div class="hero-light hero-light-rose"></div>
+      <div class="hero-inner">
+        <span class="eyebrow"><i></i> VISUAL PROMPT COLLECTION</span>
+        <h1>Prompts <span>that create.</span></h1>
+        <p id="hero-subtitle" class="hero-subtitle">Loading published prompts...</p>
+        <label class="search-field">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m16 16 4 4"></path>
+          </svg>
+          <input id="prompt-search" type="search" placeholder="Search prompts, styles, categories..." aria-label="Search prompts" />
+          <kbd>SEARCH</kbd>
+        </label>
+      </div>
+      <div class="hero-rule"></div>
+    </section>
+
+    <section class="prompt-collection">
+      <div class="toolbar">
+        <div id="prompt-types" class="filter-list" aria-label="Filter prompt type">
+          <button data-type="all" class="type-button active" aria-pressed="true">All prompts <span id="all-prompt-total">0</span></button>
+          <button data-type="image" class="type-button" aria-pressed="false">Image prompts</button>
+          <button data-type="video" class="type-button" aria-pressed="false">Video prompts</button>
+        </div>
+        <label class="category-select-wrap">
+          <span>CATEGORY</span>
+          <select id="prompt-category" aria-label="Filter by category">
+            <option value="all">All categories</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="results-heading">
+        <div>
+          <span class="results-kicker">THE COLLECTION</span>
+          <h2>Creative prompts<span>.</span></h2>
+        </div>
+        <p><strong id="prompt-count">0</strong> results</p>
+      </div>
+
+      <div id="prompt-grid" class="prompt-grid" aria-live="polite">
+        <p class="load-state">Loading published prompts...</p>
+      </div>
+
+      <div id="prompt-empty" class="empty-state hidden">
+        <div class="empty-symbol">⌕</div>
+        <h3 id="empty-title">No matching prompts</h3>
+        <button id="reset-filters" type="button">Clear filters <span>↗</span></button>
+      </div>
+      <p id="prompt-error" class="load-error hidden" role="alert"></p>
+    </section>
+  </main>
+
+  <script>
+    import { supabase } from "../lib/supabase.js";
+
+    const search = document.querySelector<HTMLInputElement>("#prompt-search");
+    const categorySelect = document.querySelector<HTMLSelectElement>("#prompt-category");
+    const grid = document.querySelector<HTMLElement>("#prompt-grid");
+    const count = document.querySelector<HTMLElement>("#prompt-count");
+    const allTotal = document.querySelector<HTMLElement>("#all-prompt-total");
+    const heroSubtitle = document.querySelector<HTMLElement>("#hero-subtitle");
+    const empty = document.querySelector<HTMLElement>("#prompt-empty");
+    const emptyTitle = document.querySelector<HTMLElement>("#empty-title");
+    const errorMessage = document.querySelector<HTMLElement>("#prompt-error");
+    const resetButton = document.querySelector<HTMLButtonElement>("#reset-filters");
+    const typeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".type-button"));
+
+    let prompts: any[] = [];
+    let activeType = "all";
+
+    function element<K extends keyof HTMLElementTagNameMap>(
+      tag: K,
+      className?: string,
+      text?: string
+    ): HTMLElementTagNameMap[K] {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function renderCard(prompt: any, index: number) {
+      const isVideo = prompt.prompt_type === "video";
+      const card = element("article", `prompt-card ${isVideo ? "prompt-video" : "prompt-image"}`);
+      const searchable = [
+        prompt.title,
+        prompt.description,
+        prompt.categories.join(" "),
+        prompt.tags.join(" "),
+        (prompt.ai_tools || []).join(" "),
+      ].filter(Boolean).join(" ").toLowerCase();
+
+      card.id = `prompt-${prompt.id}`;
+      card.dataset.id = String(prompt.id);
+      card.dataset.type = prompt.prompt_type || "other";
+      card.dataset.categories = JSON.stringify(prompt.categories || []);
+      card.dataset.search = searchable;
+
+      const top = element("div", "card-topline");
+      top.append(element("span", "type-mark", isVideo ? "▶" : "✳"));
+      const topActions = element("div", "card-actions");
+      topActions.append(element("span", "card-number", String(index + 1).padStart(2, "0")));
+      const favourite = element("button", "utility-favourite", "☆") as HTMLButtonElement;
+      favourite.type = "button";
+      favourite.dataset.utilityFavourite = "true";
+      favourite.dataset.itemType = "prompt";
+      favourite.dataset.itemId = String(prompt.id);
+      favourite.dataset.itemTitle = prompt.title || "Untitled prompt";
+      favourite.setAttribute("aria-label", `Add ${prompt.title || "prompt"} to favourites`);
+      favourite.setAttribute("aria-pressed", "false");
+      favourite.addEventListener("click", () => {
+        const key = "promptvault:favourites";
+        let saved: any[] = [];
+        try {
+          const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+          saved = Array.isArray(parsed) ? parsed : [];
+        } catch {}
+        const exists = saved.some((item) => item.type === "prompt" && String(item.id) === String(prompt.id));
+        saved = exists
+          ? saved.filter((item) => !(item.type === "prompt" && String(item.id) === String(prompt.id)))
+          : [...saved, { type: "prompt", id: String(prompt.id), title: prompt.title || "Untitled prompt", url: "/prompts" }];
+        localStorage.setItem(key, JSON.stringify(saved));
+        const active = !exists;
+        favourite.textContent = active ? "★" : "☆";
+        favourite.setAttribute("aria-pressed", String(active));
+        favourite.setAttribute("aria-label", `${active ? "Remove" : "Add"} ${prompt.title || "prompt"} ${active ? "from" : "to"} favourites`);
+        window.dispatchEvent(new CustomEvent("promptvault:favourites-updated"));
+      });
+      topActions.append(favourite);
+      top.append(topActions);
+      card.append(top);
+
+      try {
+        const saved = JSON.parse(localStorage.getItem("promptvault:favourites") || "[]");
+        const active = Array.isArray(saved) && saved.some((item) => item.type === "prompt" && String(item.id) === String(prompt.id));
+        favourite.textContent = active ? "★" : "☆";
+        favourite.setAttribute("aria-pressed", String(active));
+      } catch {}
+
+      if (prompt.thumbnail_path) {
+        const { data } = supabase.storage.from("prompt-thumbnails").getPublicUrl(prompt.thumbnail_path);
+        if (data?.publicUrl) {
+          const image = element("img", "prompt-thumbnail") as HTMLImageElement;
+          image.src = data.publicUrl;
+          image.alt = prompt.title || "Prompt thumbnail";
+          image.loading = "lazy";
+          image.addEventListener("error", () => image.remove(), { once: true });
+          card.append(image);
+        }
+      }
+
+      const meta = element("div", "card-meta");
+      meta.append(element("span", "category-name", prompt.categories.join(" · ") || "Uncategorized"));
+      meta.append(element("span", "type-name", isVideo ? "VIDEO" : "IMAGE"));
+      card.append(meta);
+
+      card.append(element("h3", "", prompt.title || "Untitled prompt"));
+      card.append(element("p", "card-description", prompt.description || ""));
+
+      const tags = element("div", "tag-list");
+      (prompt.tags || []).forEach((tag: string) => tags.append(element("span", "", `#${tag}`)));
+      card.append(tags);
+
+      const preview = element("div", "prompt-preview");
+      const details = element("details", "preview-details");
+      const summary = element("summary");
+      summary.append(element("span", "", "Preview prompt"), element("span", "preview-arrow", "⌄"));
+      const content = element("div", "preview-content");
+      const promptText = element("p", "", prompt.content || "");
+      const copy = element("button", "copy-prompt") as HTMLButtonElement;
+      copy.type = "button";
+      copy.dataset.copy = prompt.content || "";
+      copy.append(element("span", "copy-icon", "▢"), document.createTextNode(" Copy prompt"));
+      copy.addEventListener("click", async () => {
+        if (!copy.dataset.copy) return;
+        try {
+          await navigator.clipboard.writeText(copy.dataset.copy);
+          copy.replaceChildren(element("span", "copy-icon", "✓"), document.createTextNode(" Copied"));
+          window.setTimeout(() => {
+            copy.replaceChildren(element("span", "copy-icon", "▢"), document.createTextNode(" Copy prompt"));
+          }, 1500);
+        } catch {
+          copy.textContent = "Copy failed";
+        }
+      });
+      content.append(promptText, copy);
+      details.append(summary, content);
+      details.addEventListener("toggle", () => {
+        if (!details.open) return;
+        const key = "promptvault:recent";
+        let recent: any[] = [];
+        try {
+          const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+          recent = Array.isArray(parsed) ? parsed : [];
+        } catch {}
+        recent = recent.filter((item) => !(item.type === "prompt" && String(item.id) === String(prompt.id)));
+        recent.unshift({ type: "prompt", id: String(prompt.id), title: prompt.title || "Untitled prompt", url: "/prompts" });
+        localStorage.setItem(key, JSON.stringify(recent.slice(0, 20)));
+        window.dispatchEvent(new CustomEvent("promptvault:recent-updated"));
+      });
+      preview.append(details);
+      card.append(preview);
+      return card;
+    }
+
+    function filterPrompts() {
+      const query = search?.value.trim().toLowerCase() || "";
+      const category = categorySelect?.value || "all";
+      let visible = 0;
+
+      Array.from(grid?.querySelectorAll<HTMLElement>(".prompt-card") || []).forEach((card) => {
+        const show =
+          (card.dataset.search || "").includes(query) &&
+          (activeType === "all" || card.dataset.type === activeType) &&
+          (category === "all" || JSON.parse(card.dataset.categories || "[]").includes(category));
+        card.classList.toggle("hidden", !show);
+        if (show) visible++;
+      });
+
+      if (count) count.textContent = String(visible);
+      empty?.classList.toggle("hidden", visible !== 0);
+      if (emptyTitle) emptyTitle.textContent = prompts.length ? "No matching prompts" : "No published prompts yet";
+    }
+
+    function updateButtons() {
+      typeButtons.forEach((button) => {
+        const active = button.dataset.type === activeType;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+    }
+
+    async function loadPrompts() {
+      if (!grid) return;
+      grid.replaceChildren(element("p", "load-state", "Loading published prompts..."));
+      errorMessage?.classList.add("hidden");
+
+      try {
+        const { data: promptRows, error: promptError } = await supabase
+          .from("prompts")
+          .select("id, title, description, content, prompt_type, thumbnail_path, ai_tools, created_at")
+          .eq("status", "published")
+          .order("created_at", { ascending: false });
+
+        if (promptError) throw promptError;
+
+        const ids = (promptRows || []).map((prompt: any) => prompt.id);
+        let categoryRows: any[] = [];
+        let tagRows: any[] = [];
+
+        if (ids.length) {
+          const [categoryResult, tagResult] = await Promise.all([
+            supabase.from("prompt_categories").select("prompt_id, category_id").in("prompt_id", ids),
+            supabase.from("prompt_tags").select("prompt_id, tag_id").in("prompt_id", ids),
+          ]);
+          if (categoryResult.error) throw categoryResult.error;
+          if (tagResult.error) throw tagResult.error;
+
+          const categoryIds = [...new Set((categoryResult.data || []).map((row: any) => row.category_id))];
+          const tagIds = [...new Set((tagResult.data || []).map((row: any) => row.tag_id))];
+
+          const [categoriesResult, tagsResult] = await Promise.all([
+            categoryIds.length
+              ? supabase.from("categories").select("id, name").in("id", categoryIds)
+              : Promise.resolve({ data: [], error: null }),
+            tagIds.length
+              ? supabase.from("tags").select("id, name").in("id", tagIds)
+              : Promise.resolve({ data: [], error: null }),
+          ]);
+
+          if (categoriesResult.error) throw categoriesResult.error;
+          if (tagsResult.error) throw tagsResult.error;
+
+          const categoryNames = new Map((categoriesResult.data || []).map((row: any) => [row.id, row.name]));
+          const tagNames = new Map((tagsResult.data || []).map((row: any) => [row.id, row.name]));
+
+          categoryRows = categoryResult.data || [];
+          tagRows = tagResult.data || [];
+
+          prompts = (promptRows || []).map((prompt: any) => ({
+            ...prompt,
+            categories: categoryRows
+              .filter((row) => row.prompt_id === prompt.id)
+              .map((row) => categoryNames.get(row.category_id))
+              .filter(Boolean),
+            tags: tagRows
+              .filter((row) => row.prompt_id === prompt.id)
+              .map((row) => tagNames.get(row.tag_id))
+              .filter(Boolean),
+          }));
+        } else {
+          prompts = [];
+        }
+
+        const categories = [...new Set(prompts.flatMap((prompt) => prompt.categories))].sort((a, b) => a.localeCompare(b));
+        categorySelect?.replaceChildren(new Option("All categories", "all"));
+        categories.forEach((category) => categorySelect?.add(new Option(category, category)));
+
+        if (allTotal) allTotal.textContent = String(prompts.length);
+        if (heroSubtitle) heroSubtitle.textContent = `${prompts.length} published ${prompts.length === 1 ? "prompt" : "prompts"} in one collection.`;
+
+        grid.replaceChildren();
+        if (!prompts.length) {
+          empty?.classList.remove("hidden");
+          if (emptyTitle) emptyTitle.textContent = "No published prompts yet";
+          if (resetButton) resetButton.classList.add("hidden");
+          if (count) count.textContent = "0";
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        prompts.forEach((prompt, index) => fragment.append(renderCard(prompt, index)));
+        grid.append(fragment);
+        filterPrompts();
+      } catch (error) {
+        console.error("Prompt library load failed:", error);
+        grid.replaceChildren();
+        if (errorMessage) {
+          errorMessage.textContent = "Unable to load published prompts right now. Please refresh the page and try again.";
+          errorMessage.classList.remove("hidden");
+        }
+        if (heroSubtitle) heroSubtitle.textContent = "Published prompts are temporarily unavailable.";
+        if (empty) empty.classList.add("hidden");
+      }
+    }
+
+    search?.addEventListener("input", filterPrompts);
+    categorySelect?.addEventListener("change", filterPrompts);
+
+    typeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activeType = button.dataset.type || "all";
+        updateButtons();
+        filterPrompts();
+      });
+    });
+
+    resetButton?.addEventListener("click", () => {
+      if (search) search.value = "";
+      if (categorySelect) categorySelect.value = "all";
+      activeType = "all";
+      updateButtons();
+      filterPrompts();
+    });
+
+    loadPrompts();
+  </script>
+</MainLayout>
+
+<style is:global>
+  .prompts-page {
+    min-height: 100vh;
+    padding-bottom: 100px;
+    color: #f3f2f7;
+  }
+
+  .prompts-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 78px 24px 65px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    background:
+      linear-gradient(180deg,rgba(10,11,15,.3),rgba(8,9,12,.94)),
+      radial-gradient(ellipse at 48% 0%,rgba(50,111,178,.17),transparent 48%);
+    text-align: center;
+  }
+
+  .prompts-hero::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    background:
+      linear-gradient(90deg,transparent 0 12%,rgba(255,255,255,.025) 12.2%,transparent 12.8% 28%,rgba(78,150,230,.09) 28.2%,transparent 29% 71%,rgba(255,255,255,.025) 71.2%,transparent 72% 87%,rgba(251,113,133,.10) 87.2%,transparent 88%),
+      radial-gradient(rgba(255,255,255,.16) .65px,transparent .8px);
+    background-size: auto,19px 19px;
+    opacity: .65;
+  }
+
+  .hero-light {
+    position: absolute;
+    z-index: -1;
+    width: 310px;
+    height: 310px;
+    border-radius: 50%;
+    filter: blur(105px);
+    pointer-events: none;
+  }
+
+  .hero-light-blue {
+    top: -160px;
+    left: 22%;
+    background: rgba(59,130,246,.17);
+  }
+
+  .hero-light-rose {
+    top: -120px;
+    right: 13%;
+    background: rgba(244,63,94,.12);
+  }
+
+  .hero-inner {
+    position: relative;
+    width: min(100%,780px);
+    margin: 0 auto;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 13px;
+    border: 1px solid rgba(96,165,250,.23);
+    border-radius: 999px;
+    background: rgba(59,130,246,.07);
+    color: #a5ccff;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .12em;
+  }
+
+  .eyebrow i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #60a5fa;
+    box-shadow: 0 0 10px #60a5fa;
+  }
+
+  .prompts-hero h1 {
+    margin: 24px 0 0;
+    color: #f4f2f7;
+    font-family: "Space Grotesk",sans-serif;
+    font-size: clamp(42px,6vw,66px);
+    font-weight: 600;
+    letter-spacing: -.065em;
+    line-height: 1.08;
+  }
+
+  .prompts-hero h1 span {
+    background: linear-gradient(100deg,#8fc5ff,#a9a0ff 58%,#ff9eaa);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .hero-subtitle {
+    margin: 17px 0 0;
+    color: #999aa7;
+    font-size: 14px;
+  }
+
+  .search-field {
+    display: flex;
+    width: min(100%,660px);
+    min-height: 61px;
+    align-items: center;
+    gap: 13px;
+    margin: 34px auto 0;
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 15px;
+    background: rgba(24,25,32,.82);
+    box-shadow: 0 16px 48px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.045);
+    backdrop-filter: blur(20px);
+    transition: border-color .2s ease,box-shadow .2s ease;
+  }
+
+  .search-field:focus-within {
+    border-color: rgba(96,165,250,.5);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.08),0 16px 48px rgba(0,0,0,.3);
+  }
+
+  .search-field svg {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: #80b8f5;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+  }
+
+  .search-field input {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #f4f3f7;
+    font-size: 13px;
+    box-shadow: none;
+  }
+
+  .search-field input:focus {
+    border: 0;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .search-field input::placeholder {
+    color: #777985;
+  }
+
+  .search-field kbd {
+    flex-shrink: 0;
+    color: #727481;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .08em;
+  }
+
+  .hero-rule {
+    position: absolute;
+    right: 5%;
+    bottom: 0;
+    left: 5%;
+    height: 1px;
+    background: linear-gradient(90deg,transparent,rgba(96,165,250,.28),rgba(251,113,133,.2),transparent);
+  }
+
+  .prompt-collection {
+    width: min(100% - 48px,1250px);
+    margin: 0 auto;
+    padding-top: 44px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 45px;
+  }
+
+  .filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .type-button {
+    min-height: 39px;
+    padding: 0 15px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 10px;
+    background: rgba(255,255,255,.025);
+    color: #a3a3af;
+    font-size: 11px;
+    transition: .2s ease;
+  }
+
+  .type-button:hover {
+    border-color: rgba(96,165,250,.38);
+    color: #e8f3ff;
+  }
+
+  .type-button.active {
+    border-color: rgba(96,165,250,.42);
+    background: linear-gradient(110deg,rgba(37,99,235,.23),rgba(96,165,250,.10));
+    color: #bfdbfe;
+    box-shadow: 0 5px 20px rgba(59,130,246,.08);
+  }
+
+  .type-button span {
+    margin-left: 6px;
+    color: #93c5fd;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .category-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .category-select-wrap > span {
+    color: #777985;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .1em;
+  }
+
+  .category-select-wrap select {
+    min-width: 160px;
+    min-height: 40px;
+    padding: 0 33px 0 12px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    background-color: #17181e;
+    color: #d1d0da;
+    font-size: 11px;
+  }
+
+  .results-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .results-kicker {
+    color: #fb9aaa;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .14em;
+  }
+
+  .results-heading h2 {
+    margin: 7px 0 0;
+    color: #f0eef4;
+    font-family: "Space Grotesk",sans-serif;
+    font-size: 25px;
+    font-weight: 600;
+    letter-spacing: -.045em;
+  }
+
+  .results-heading h2 span {
+    color: #fb7185;
+  }
+
+  .results-heading > p {
+    margin: 0 0 3px;
+    color: #858692;
+    font-size: 11px;
+  }
+
+  .results-heading > p strong {
+    color: #a9cfff;
+    font-family: "JetBrains Mono",monospace;
+    font-weight: 500;
+  }
+
+  .prompt-grid {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 16px;
+  }
+
+  .prompt-card {
+    --accent: #93c5fd;
+    --accent-rgb: 96,165,250;
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 330px;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 21px;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 16px;
+    background: linear-gradient(145deg,#1b1c23,#121319 82%);
+    box-shadow: 0 13px 35px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.035);
+    transition: transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+  }
+
+  .prompt-video {
+    --accent: #fda4af;
+    --accent-rgb: 251,113,133;
+  }
+
+  .prompt-card::after {
+    position: absolute;
+    right: -75px;
+    bottom: -110px;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    background: rgba(var(--accent-rgb),.12);
+    content: "";
+    filter: blur(65px);
+    opacity: .45;
+    pointer-events: none;
+    transition: opacity .22s ease;
+  }
+
+  .prompt-thumbnail {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: 190px;
+    margin-top: 16px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 11px;
+    object-fit: cover;
+    background: #090a0f;
+  }
+
+  .load-state,.load-error {
+    grid-column: 1 / -1;
+    padding: 34px 20px;
+    color: #9ca3af;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  .load-error {
+    margin-top: 18px;
+    border: 1px solid rgba(251,113,133,.25);
+    border-radius: 12px;
+    background: rgba(251,113,133,.06);
+    color: #fda4af;
+  }
+
+  .prompt-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(var(--accent-rgb),.4);
+    box-shadow: 0 20px 45px rgba(0,0,0,.32),0 0 24px rgba(var(--accent-rgb),.06);
+  }
+
+  .prompt-card:hover::after {
+    opacity: .9;
+  }
+
+  .card-topline,.card-meta {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .type-mark {
+    width: 39px;
+    height: 39px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(var(--accent-rgb),.2);
+    border-radius: 11px;
+    background: rgba(var(--accent-rgb),.11);
+    color: var(--accent);
+    font-family: "Space Grotesk",sans-serif;
+    font-size: 20px;
+  }
+
+  .card-number {
+    color: #696b77;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .card-meta {
+    justify-content: flex-start;
+    gap: 9px;
+    margin-top: 18px;
+  }
+
+  .category-name {
+    max-width: 65%;
+    overflow: hidden;
+    color: var(--accent);
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .type-name {
+    padding-left: 9px;
+    border-left: 1px solid rgba(255,255,255,.15);
+    color: #858692;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .prompt-card h3 {
+    position: relative;
+    z-index: 1;
+    margin: 13px 0 0;
+    color: #f2f0f5;
+    font-family: "Space Grotesk",sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -.035em;
+    overflow-wrap: anywhere;
+  }
+
+  .card-description {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    margin: 9px 0 0;
+    color: #a0a0ac;
+    font-size: 12px;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+  }
+
+  .tag-list {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 17px;
+  }
+
+  .tag-list span {
+    padding: 4px 7px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px;
+    background: rgba(255,255,255,.025);
+    color: #858692;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .prompt-preview {
+    position: relative;
+    z-index: 1;
+    margin-top: 18px;
+    padding-top: 13px;
+    border-top: 1px solid rgba(255,255,255,.09);
+  }
+
+  .preview-details summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    list-style: none;
+  }
+
+  .preview-details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .preview-arrow {
+    font-size: 17px;
+    transition: transform .2s ease;
+  }
+
+  .preview-details[open] .preview-arrow {
+    transform: rotate(180deg);
+  }
+
+  .preview-content {
+    margin-top: 13px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 11px;
+    background: rgba(7,8,12,.62);
+  }
+
+  .preview-content p {
+    max-height: 230px;
+    overflow: auto;
+    color: #b5b4bf;
+    font-size: 11px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .copy-prompt {
+    display: flex;
+    width: 100%;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 13px;
+    border: 1px solid rgba(var(--accent-rgb),.24);
+    border-radius: 9px;
+    background: rgba(var(--accent-rgb),.12);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    transition: background .2s ease,border-color .2s ease;
+  }
+
+  .copy-prompt:hover {
+    border-color: rgba(var(--accent-rgb),.5);
+    background: rgba(var(--accent-rgb),.2);
+  }
+
+  .copy-icon {
+    font-size: 15px;
+  }
+
+  .empty-state {
+    padding: 75px 20px;
+    border: 1px dashed rgba(255,255,255,.15);
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .empty-symbol {
+    color: #93c5fd;
+    font-size: 35px;
+  }
+
+  .empty-state h3 {
+    margin: 12px 0 18px;
+    color: #eeeef3;
+    font-family: "Space Grotesk",sans-serif;
+    font-size: 20px;
+  }
+
+  .empty-state button {
+    padding: 9px 14px;
+    border: 1px solid rgba(96,165,250,.28);
+    border-radius: 9px;
+    background: rgba(59,130,246,.09);
+    color: #bfdbfe;
+    font-size: 11px;
+  }
+
+  .empty-state button span {
+    margin-left: 5px;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 900px) {
+    .prompt-grid {
+      grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+
+    .toolbar {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .prompts-hero {
+      padding: 65px 19px 48px;
+    }
+
+    .prompts-hero h1 {
+      font-size: clamp(39px,10vw,54px);
+    }
+
+    .search-field {
+      gap: 9px;
+      padding: 7px 11px;
+    }
+
+    .search-field kbd {
+      display: none;
+    }
+
+    .prompt-collection {
+      width: calc(100% - 34px);
+      padding-top: 32px;
+    }
+
+    .filter-list {
+      gap: 7px;
+    }
+
+    .type-button {
+      min-height: 36px;
+      padding: 0 11px;
+      font-size: 10px;
+    }
+
+    .category-select-wrap {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .category-select-wrap select {
+      flex: 1;
+      max-width: 230px;
+    }
+
+    .prompt-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .prompt-card {
+      min-height: 310px;
+    }
+
+    .results-heading h2 {
+      font-size: 22px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .prompt-card,.preview-arrow,.copy-prompt,.type-button,.search-field {
+      transition: none;
+    }
+  }
+</style>

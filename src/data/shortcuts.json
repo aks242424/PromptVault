@@ -1,0 +1,86 @@
+[
+  {
+    "id": "4k",
+    "name": "/4K",
+    "category": "Quality",
+    "description": "High-resolution output with fine details and sharp image quality.",
+    "tags": ["resolution", "detail", "quality"]
+  },
+  {
+    "id": "8k",
+    "name": "/8K",
+    "category": "Quality",
+    "description": "Emphasize extremely high-resolution visual output.",
+    "tags": ["resolution", "sharpness"]
+  },
+  {
+    "id": "neon",
+    "name": "/neon",
+    "category": "Lighting",
+    "description": "Neon lighting, vibrant glow effects, and futuristic illumination.",
+    "tags": ["glow", "lighting", "futuristic"]
+  },
+  {
+    "id": "cinematic",
+    "name": "/cinematic",
+    "category": "Photography",
+    "description": "Film-inspired composition, atmosphere, and visual storytelling.",
+    "tags": ["film", "composition", "mood"]
+  },
+  {
+    "id": "pov",
+    "name": "/pov",
+    "category": "Camera",
+    "description": "A point-of-view perspective that places the viewer inside the scene.",
+    "tags": ["perspective", "camera", "viewpoint"]
+  },
+  {
+    "id": "drone",
+    "name": "/drone",
+    "category": "Camera",
+    "description": "An aerial perspective resembling footage captured by a drone.",
+    "tags": ["aerial", "camera", "movement"]
+  },
+  {
+    "id": "bokeh",
+    "name": "/bokeh",
+    "category": "Photography",
+    "description": "Soft, aesthetically blurred background highlights.",
+    "tags": ["depth", "blur", "focus"]
+  },
+  {
+    "id": "macro",
+    "name": "/macro",
+    "category": "Photography",
+    "description": "Extreme close-up photography emphasizing small details.",
+    "tags": ["close-up", "detail", "texture"]
+  },
+  {
+    "id": "slowmotion",
+    "name": "/slowmotion",
+    "category": "Motion",
+    "description": "A slow-motion visual effect emphasizing movement and action.",
+    "tags": ["motion", "video", "movement"]
+  },
+  {
+    "id": "tracking",
+    "name": "/tracking",
+    "category": "Camera",
+    "description": "A camera movement that follows a moving subject.",
+    "tags": ["camera", "movement", "video"]
+  },
+  {
+    "id": "volumetric",
+    "name": "/volumetric",
+    "category": "Lighting",
+    "description": "Visible light rays and atmospheric illumination.",
+    "tags": ["light", "atmosphere", "rays"]
+  },
+  {
+    "id": "minimal",
+    "name": "/minimal",
+    "category": "Style",
+    "description": "A restrained composition with simple visual elements.",
+    "tags": ["minimalism", "clean", "composition"]
+  }
+]

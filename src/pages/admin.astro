@@ -1,0 +1,1017 @@
+---
+export const prerender = false;
+
+import MainLayout from "../layouts/MainLayout.astro";
+import PromptForm from "../components/PromptForm.astro";
+---
+
+<MainLayout title="PromptVault Admin">
+  <main class="admin-shell">
+    <div class="admin-wrap">
+      <section id="dashboard">
+        <header class="dash-header">
+          <div>
+            <span class="eyebrow">PROMPTVAULT / CONTROL</span>
+            <h1>Dashboard</h1>
+            <p id="admin-email"></p>
+          </div>
+          <div class="header-actions">
+            <button id="refresh-button" class="btn btn-quiet" type="button">Refresh</button>
+            <button id="logout-button" class="btn btn-danger" type="button">Sign out</button>
+          </div>
+        </header>
+
+        <div class="stats-grid">
+          <article class="stat-card stat-violet"><span>Total prompts</span><strong id="total-prompts">—</strong></article>
+          <article class="stat-card stat-cyan"><span>Shortcuts</span><strong id="total-shortcuts">—</strong></article>
+          <article class="stat-card stat-amber"><span>Categories</span><strong id="total-categories">—</strong></article>
+          <article class="stat-card stat-rose"><span>Drafts</span><strong id="total-drafts">—</strong></article>
+        </div>
+
+        <section class="management-panel">
+          <div class="section-top">
+            <div><span class="eyebrow">LIBRARY</span><h2>Manage prompts</h2></div>
+            <span id="prompt-total-label" class="muted"></span>
+          </div>
+          <div class="toolbar">
+            <input id="prompt-search" type="search" placeholder="Search prompts..." aria-label="Search prompts" />
+            <select id="status-filter" aria-label="Filter by status">
+              <option value="all">All statuses</option>
+              <option value="draft">Drafts</option>
+              <option value="published">Published</option>
+            </select>
+            <select id="type-filter" aria-label="Filter by type">
+              <option value="all">All types</option>
+              <option value="image">Image</option>
+              <option value="video">Video</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div id="bulk-actions" class="bulk-actions" hidden>
+            <div class="bulk-selection-info"><strong id="bulk-selected-count">0 selected</strong><span>Choose an action for the selected prompts.</span></div>
+            <div class="bulk-action-controls">
+              <button id="select-filtered-prompts" class="btn btn-quiet" type="button">Select all filtered</button>
+              <button id="clear-prompt-selection" class="btn btn-quiet" type="button">Clear selection</button>
+              <button id="bulk-publish-prompts" class="btn btn-quiet" type="button">Publish</button>
+              <button id="bulk-unpublish-prompts" class="btn btn-quiet" type="button">Unpublish</button>
+              <button id="bulk-delete-prompts" class="btn btn-danger" type="button">Delete selected</button>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <div class="admin-table-head"><span>Prompt</span><span>Type</span><span>Status</span><span>Actions</span></div>
+            <div id="prompt-list"><p class="empty-row">Loading prompts...</p></div>
+          </div>
+          <div class="pagination">
+            <span id="page-label" class="muted">Page 1 · 10 prompts per page</span>
+            <div><button id="prev-page" class="btn btn-quiet" type="button">Previous</button><button id="next-page" class="btn btn-quiet" type="button">Next</button></div>
+          </div>
+          <p id="dashboard-message" role="status" class="status-message"></p>
+        </section>
+
+
+        <section class="bulk-panel" aria-labelledby="bulk-heading">
+          <div class="bulk-heading">
+            <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts from CSV</h2></div>
+            <button id="download-csv-template" class="btn btn-quiet" type="button">Download CSV template</button>
+          </div>
+          <p class="bulk-intro">CSV imports are saved as drafts.</p>
+          <div class="csv-format">
+            <div class="csv-format-title">CSV columns</div>
+            <code>title,content,prompt_type,description,categories,tags,ai_tools</code>
+            <div class="csv-columns">
+              <p><strong>Required:</strong> <code>title</code>, <code>content</code>, <code>prompt_type</code>.</p>
+              <p><strong>Optional:</strong> <code>description</code>, <code>categories</code>, <code>tags</code>, <code>ai_tools</code>.</p>
+            </div>
+            <ul>
+              <li><code>prompt_type</code>: <code>image</code>, <code>video</code>, or <code>other</code>.</li>
+              <li>Every imported prompt is saved as <code>draft</code>.</li>
+              <li>Separate multiple categories, tags, or tools with <code>|</code>.</li>
+              <li>Category and tag names must match existing PromptVault entries.</li>
+              <li>Quote values containing commas or line breaks using standard CSV double quotes.</li>
+            </ul>
+            <div class="csv-example"><span>Example row</span><code>"Neon Portrait","A cinematic neon-lit portrait of a subject...","image","Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT"</code></div>
+          </div>
+          <div class="bulk-upload-row">
+            <label class="csv-file-label" for="bulk-csv-file">Choose CSV file</label>
+            <input id="bulk-csv-file" type="file" accept=".csv,text/csv" />
+            <button id="bulk-validate-button" class="btn btn-quiet" type="button" disabled>1. Validate CSV</button>
+            <button id="bulk-import-button" class="btn btn-primary" type="button" disabled>2. Import selected</button>
+          </div>
+          <p id="bulk-file-name" class="muted">No file selected.</p>
+          <div id="bulk-validation" class="bulk-validation" role="status" aria-live="polite"></div>
+          <div id="bulk-errors" class="bulk-errors" hidden></div>
+          <section id="bulk-preview" class="bulk-preview" hidden aria-label="Validated prompt selection">
+            <div class="bulk-preview-heading">
+              <strong>Review prompts to import</strong>
+              <div class="bulk-preview-controls">
+                <button id="bulk-select-all" type="button">Select all ready</button>
+                <button id="bulk-clear-selection" type="button">Clear selection</button>
+                <span id="bulk-selection-count">0 selected</span>
+              </div>
+            </div>
+            <div class="bulk-preview-list" id="bulk-preview-list"></div>
+          </section>
+        </section>
+        <div id="prompt-editor" class="editor-section">
+          <PromptForm />
+        </div>
+      </section>
+    </div>
+  </main>
+</MainLayout>
+
+<style is:global>
+  .admin-shell {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    overflow: hidden;
+    padding: 48px 24px 100px;
+    color: #f4f4f5;
+    background:
+      radial-gradient(ellipse at 8% 5%, #0e749044, transparent 34%),
+      radial-gradient(ellipse at 92% 18%, #c2410c30, transparent 32%),
+      radial-gradient(ellipse at 50% 100%, #1d4ed822, transparent 42%),
+      #080b10;
+  }
+  .admin-shell::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+    opacity: .19;
+    background-image: radial-gradient(#94a3b8 0.7px, transparent 0.7px);
+    background-size: 25px 25px;
+    mask-image: linear-gradient(to bottom, black, transparent 78%);
+  }
+  .admin-wrap { position: relative; max-width: 1220px; margin: 0 auto; }
+  .login-card, .management-panel {
+    border: 1px solid #ffffff16;
+    border-radius: 22px;
+    background: linear-gradient(145deg, #151c25f2, #0e131bf5);
+    box-shadow: 0 24px 90px #0008, inset 0 1px #ffffff08;
+    backdrop-filter: blur(18px);
+  }
+  .login-card {
+    max-width: 440px;
+    margin: 10vh auto;
+    padding: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-card::before {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    top: -130px;
+    right: -90px;
+    content: "";
+    border-radius: 50%;
+    background: #06b6d4;
+    filter: blur(85px);
+    opacity: .2;
+    pointer-events: none;
+  }
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #67e8f955;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #0e7490, #155e75);
+    color: #cffafe;
+    font-size: 19px;
+    font-weight: 850;
+    box-shadow: 0 8px 30px #0891b233;
+  }
+  h1 { font-size: 32px; font-weight: 760; letter-spacing: -.045em; }
+  .login-card h1 { margin-top: 20px; }
+  .login-form { display: grid; gap: 17px; margin-top: 27px; }
+  .login-form label { display: grid; gap: 8px; color: #cbd5e1; font-size: 12px; font-weight: 650; }
+  input, select {
+    min-width: 0;
+    border: 1px solid #ffffff1b;
+    border-radius: 11px;
+    background: #090e15;
+    color: #f4f4f5;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+  input::placeholder { color: #64748b; }
+  input:focus, select:focus {
+    border-color: #22d3ee99;
+    background: #0b141d;
+    box-shadow: 0 0 0 3px #06b6d41c;
+  }
+  .btn {
+    border: 1px solid #ffffff1b;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .015em;
+    transition: transform .18s ease, filter .18s ease, border-color .18s ease;
+  }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.13); }
+  .btn:disabled, button:disabled { cursor: not-allowed; opacity: .45; transform: none; }
+  .btn-primary {
+    border: 0;
+    padding: 13px;
+    color: #04212a;
+    background: linear-gradient(110deg, #67e8f9, #22d3ee 55%, #0ea5e9);
+    box-shadow: 0 8px 28px #0891b233;
+  }
+  .btn-quiet { background: #ffffff08; color: #dbeafe; }
+  .btn-quiet:hover { border-color: #67e8f966; }
+  .btn-danger { border-color: #fb718544; background: #fb718510; color: #fda4af; }
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 1px solid #ffffff18;
+    padding: 10px 0 27px;
+  }
+  .dash-header h1 { margin-top: 7px; }
+  #admin-email, .muted { color: #94a3b8; font-size: 12px; }
+  .eyebrow { color: #67e8f9; font-size: 10px; font-weight: 800; letter-spacing: .2em; }
+  .header-actions { display: flex; gap: 9px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 25px 0; }
+  .stat-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 112px;
+    border: 1px solid #ffffff16;
+    border-radius: 16px;
+    background: linear-gradient(145deg, #151c25, #10151d);
+    padding: 19px;
+    box-shadow: inset 0 1px #ffffff08;
+  }
+  .stat-card::after {
+    position: absolute;
+    z-index: -1;
+    right: -25px;
+    top: -40px;
+    width: 115px;
+    height: 115px;
+    border-radius: 50%;
+    content: "";
+    filter: blur(28px);
+    opacity: .36;
+  }
+  .stat-card span { display: block; color: #a1a1aa; font-size: 11px; font-weight: 650; }
+  .stat-card strong { display: block; margin-top: 12px; font-size: 31px; line-height: 1; letter-spacing: -.04em; }
+  .stat-violet { border-top: 2px solid #a78bfa; }.stat-violet strong { color: #c4b5fd; }.stat-violet::after { background: #8b5cf6; }
+  .stat-cyan { border-top: 2px solid #22d3ee; }.stat-cyan strong { color: #67e8f9; }.stat-cyan::after { background: #0891b2; }
+  .stat-amber { border-top: 2px solid #fbbf24; }.stat-amber strong { color: #fcd34d; }.stat-amber::after { background: #d97706; }
+  .stat-rose { border-top: 2px solid #fb7185; }.stat-rose strong { color: #fda4af; }.stat-rose::after { background: #e11d48; }
+  .management-panel { padding: 24px; }
+  .section-top { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+  .section-top h2 { margin-top: 6px; font-size: 21px; font-weight: 730; letter-spacing: -.025em; }
+  .toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) 170px 150px; gap: 10px; margin: 21px 0 15px; }
+  .admin-table-wrap {
+    min-width: 0;
+    max-height: 690px;
+    overflow: auto;
+    border: 1px solid #ffffff16;
+    border-radius: 14px;
+    background: #080d14a8;
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0b1119;
+  }
+  .admin-table-head { position: sticky; top: 0; z-index: 2; }
+  #prompt-list { min-width: 800px; }
+  .admin-table-head, .admin-prompt-row {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) 110px 130px 220px;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+  }
+  .admin-table-head {
+    min-width: 800px;
+    background: #ffffff07;
+    color: #8291a5;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+  }
+  .admin-prompt-row { min-width: 800px; border-top: 1px solid #ffffff0d; transition: background .16s ease; }
+  .admin-prompt-row.is-selected { background: #22d3ee0b; }
+  .admin-prompt-name-wrap { display:flex; align-items:center; gap:11px; min-width:0; }
+  .prompt-select-checkbox { width:15px; height:15px; flex:0 0 auto; accent-color:#22d3ee; cursor:pointer; }
+  .bulk-actions { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin:0 0 13px; padding:13px 14px; border:1px solid #22d3ee35; border-radius:12px; background:#0c1b23; }
+  .bulk-actions[hidden] { display:none; }
+  .bulk-selection-info { display:flex; flex-direction:column; gap:3px; color:#94a3b8; font-size:11px; }
+  .bulk-selection-info strong { color:#67e8f9; font-size:13px; }
+  .bulk-action-controls { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
+  .bulk-action-controls button { font-size:10px; }
+  .btn-danger { border:1px solid #fb718555; border-radius:9px; background:#fb718514; padding:9px 12px; color:#fda4af; font-weight:700; }
+  .btn-danger:hover { background:#fb718526; }
+  .btn:disabled, .bulk-action-controls button:disabled { opacity:.45; cursor:not-allowed; }
+  .admin-prompt-row:hover { background: #ffffff06; }
+  .admin-prompt-row > * { min-width: 0; }
+  .admin-prompt-row .admin-prompt-meta, .admin-prompt-row .admin-status-pill { white-space: nowrap; }
+  .admin-row-actions { align-items: center; justify-content: flex-start; min-width: 190px; }
+  .admin-prompt-name { min-width: 0; color: #e2e8f0; font-size: 12px; font-weight: 680; overflow-wrap: anywhere; }
+  .admin-prompt-meta { color: #a5b4c5; font-size: 11px; text-transform: capitalize; }
+  .admin-status-pill {
+    justify-self: start;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: capitalize;
+  }
+  .admin-status-draft { border-color: #fbbf2433; background: #fbbf2414; color: #fcd34d; }
+  .admin-status-published { border-color: #34d39933; background: #34d39914; color: #6ee7b7; }
+  .admin-row-actions { display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 6px; white-space: nowrap; }
+  .admin-row-actions button {
+    border: 1px solid #ffffff1b;
+    border-radius: 8px;
+    background: #ffffff06;
+    padding: 6px 9px;
+    color: #cbd5e1;
+    font-size: 10px;
+    font-weight: 650;
+    transition: background .16s ease, border-color .16s ease;
+  }
+  .admin-row-actions button:hover { background: #ffffff10; border-color: #ffffff38; }
+  .admin-row-actions .edit-action { border-color: #22d3ee55; color: #67e8f9; }
+  .admin-row-actions .delete-action { border-color: #fb718544; color: #fda4af; }
+  .empty-row { padding: 23px; color: #8291a5; font-size: 12px; }
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; }
+  .pagination > div { display: flex; gap: 8px; }
+  .status-message { min-height: 18px; margin-top: 13px; color: #94a3b8; font-size: 11px; }
+  #login-message { min-height: 18px; margin: 0; color: #fda4af; font-size: 12px; }
+  .editor-section { margin-top: 25px; }
+
+  .bulk-panel { margin-top:25px; padding:25px; border:1px solid #22d3ee26; border-radius:20px; background:linear-gradient(145deg,#111c24f2,#10131bf5 70%,#1b1714); box-shadow:0 22px 70px #0007,inset 0 1px #ffffff09; }
+  .bulk-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .bulk-heading h2 { margin-top:7px; font-size:21px; font-weight:730; letter-spacing:-.025em; }
+  .bulk-eyebrow { color:#67e8f9; }
+  .bulk-intro { margin:12px 0 18px; color:#a5b4c5; font-size:12px; }
+  .csv-format { padding:17px; border:1px solid #ffffff16; border-radius:13px; background:#080d14b8; }
+  .csv-format-title { margin-bottom:9px; color:#e2e8f0; font-size:12px; font-weight:750; }
+  .csv-format > code,.csv-example code { display:block; overflow-wrap:anywhere; color:#67e8f9; font-family:"JetBrains Mono",monospace; font-size:11px; line-height:1.8; }
+  .csv-columns { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+  .csv-columns p,.csv-format li { color:#a5b4c5; font-size:11px; line-height:1.8; }
+  .csv-columns strong { color:#e2e8f0; }
+  .csv-format ul { margin:12px 0 0; padding-left:18px; }
+  .csv-format li code,.csv-columns code { color:#fbbf24; font-family:"JetBrains Mono",monospace; font-size:10px; }
+  .csv-example { margin-top:13px; padding:12px; border:1px solid #ffffff12; border-radius:9px; background:#ffffff05; }
+  .csv-example span { display:block; margin-bottom:5px; color:#94a3b8; font-size:10px; font-weight:700; }
+  .bulk-upload-row { display:flex; align-items:center; gap:10px; margin-top:17px; flex-wrap:wrap; }
+  .csv-file-label { padding:10px 13px; border:1px solid #22d3ee55; border-radius:9px; color:#67e8f9; font-size:11px; font-weight:700; cursor:pointer; }
+  #bulk-csv-file { max-width:260px; padding:7px; font-size:10px; }
+  .bulk-validation { min-height:18px; margin-top:12px; color:#94a3b8; font-size:11px; white-space:pre-wrap; }
+  .bulk-validation.success { color:#6ee7b7; }.bulk-validation.error { color:#fda4af; }
+  .bulk-errors { max-height:220px; overflow:auto; margin-top:8px; padding:12px; border:1px solid #fb718544; border-radius:10px; background:#fb71850b; color:#fda4af; font-size:11px; line-height:1.8; }
+  .bulk-errors ul { margin:0; padding-left:18px; }
+  .bulk-preview { margin-top:14px; border:1px solid #ffffff18; border-radius:12px; overflow:hidden; background:#080d14a8; }
+  .bulk-preview-heading { display:flex; justify-content:space-between; gap:12px; padding:13px 15px; border-bottom:1px solid #ffffff12; color:#e2e8f0; font-size:12px; }
+  .bulk-preview-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .bulk-preview-controls button { border:0; padding:0; background:transparent; color:#67e8f9; font-size:10px; cursor:pointer; }
+  .bulk-preview-heading span { color:#67e8f9; font-family:"JetBrains Mono",monospace; font-size:10px; }
+  .bulk-preview-list { max-height:340px; overflow:auto; }
+  .bulk-preview-row { display:grid; grid-template-columns:24px minmax(0,1fr) auto; gap:10px; align-items:center; padding:11px 14px; border-bottom:1px solid #ffffff0c; font-size:11px; }
+  .bulk-preview-row:last-child { border-bottom:0; }
+  .bulk-preview-row input { width:15px; height:15px; accent-color:#22d3ee; }
+  .bulk-preview-title { color:#e2e8f0; font-weight:700; overflow-wrap:anywhere; }
+  .bulk-preview-meta { margin-top:3px; color:#94a3b8; font-size:10px; }
+  .bulk-row-state { color:#6ee7b7; font-size:10px; font-weight:700; }
+  .bulk-row-state.duplicate { color:#fda4af; }
+  .bulk-row-state.invalid { color:#fbbf24; }
+  [hidden] { display: none !important; }
+  @media (max-width: 760px) {
+    .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .toolbar { grid-template-columns: 1fr 1fr; }
+    .toolbar input { grid-column: 1 / -1; }
+    .admin-table-head, .admin-prompt-row { grid-template-columns: minmax(280px, 1fr) 110px 130px 220px; }
+    .dash-header { align-items: flex-start; }
+    .admin-shell { padding: 28px 14px 80px; }
+  }
+  @media (max-width: 460px) {
+    .stats-grid { gap: 9px; }
+    .stat-card { min-height: 100px; padding: 14px; }
+    .stat-card strong { font-size: 26px; }
+    .management-panel { padding: 14px; }
+    .admin-table-head, .admin-prompt-row { gap: 10px; padding: 12px 14px; }
+    .toolbar { grid-template-columns: 1fr; }
+    .toolbar input { grid-column: auto; }
+    .header-actions { flex-direction: column; }
+    .csv-columns { grid-template-columns:1fr; }
+    .bulk-heading { align-items:flex-start; flex-direction:column; }
+    .bulk-panel { padding:16px; }
+    .dash-header h1 { font-size: 27px; }
+    .login-card { padding: 26px 22px; }
+  }
+</style>
+
+<script>
+  import { supabase } from "../lib/supabase.js";
+
+  const $ = <T extends HTMLElement = HTMLElement>(selector: string): T => {
+    const element = document.querySelector<HTMLElement>(selector);
+    if (!element) throw new Error(`Required admin element not found: ${selector}`);
+    return element as T;
+  };
+
+  const dashboard = $<HTMLElement>("#dashboard");
+  const promptList = $<HTMLElement>("#prompt-list");
+  const dashboardMessage = $<HTMLElement>("#dashboard-message");
+
+  let allPrompts = [];
+  let currentPage = 1;
+  const pageSize = 10;
+  const selectedPromptIds = new Set<string>();
+  let filteredPromptIds: string[] = [];
+
+  function updateBulkActionBar() {
+    const bar = $<HTMLElement>("#bulk-actions");
+    const count = selectedPromptIds.size;
+    bar.hidden = count === 0;
+    $("#bulk-selected-count").textContent = `${count} selected`;
+    const selectedPrompts = allPrompts.filter((prompt) => selectedPromptIds.has(prompt.id));
+    const hasDrafts = selectedPrompts.some((prompt) => prompt.status !== "published");
+    const hasPublished = selectedPrompts.some((prompt) => prompt.status === "published");
+    $<HTMLButtonElement>("#bulk-publish-prompts").disabled = !hasDrafts;
+    $<HTMLButtonElement>("#bulk-unpublish-prompts").disabled = !hasPublished;
+    $<HTMLButtonElement>("#bulk-delete-prompts").disabled = count === 0;
+  }
+
+  function renderPrompts() {
+    const query = $<HTMLInputElement>("#prompt-search").value.trim().toLowerCase();
+    const status = $<HTMLSelectElement>("#status-filter").value;
+    const type = $<HTMLSelectElement>("#type-filter").value;
+    const filtered = allPrompts.filter((prompt) =>
+      (prompt.title || "").toLowerCase().includes(query) &&
+      (status === "all" || prompt.status === status) &&
+      (type === "all" || prompt.prompt_type === type)
+    );
+    const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    currentPage = Math.min(currentPage, pages);
+    filteredPromptIds = filtered.map((prompt) => prompt.id);
+    for (const id of Array.from(selectedPromptIds)) {
+      if (!allPrompts.some((prompt) => prompt.id === id)) selectedPromptIds.delete(id);
+    }
+    const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    promptList.replaceChildren();
+
+    if (!visible.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-row";
+      empty.textContent = "No matching prompts.";
+      promptList.append(empty);
+    }
+
+    visible.forEach((prompt) => {
+      const row = document.createElement("div");
+      row.className = "admin-prompt-row";
+
+      row.classList.toggle("is-selected", selectedPromptIds.has(prompt.id));
+
+      const titleWrap = document.createElement("div");
+      titleWrap.className = "admin-prompt-name-wrap";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "prompt-select-checkbox";
+      checkbox.checked = selectedPromptIds.has(prompt.id);
+      checkbox.setAttribute("aria-label", `Select ${prompt.title}`);
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) selectedPromptIds.add(prompt.id);
+        else selectedPromptIds.delete(prompt.id);
+        row.classList.toggle("is-selected", checkbox.checked);
+        updateBulkActionBar();
+      });
+
+      const title = document.createElement("span");
+      title.className = "admin-prompt-name";
+      title.textContent = prompt.title;
+      titleWrap.append(checkbox, title);
+
+      const type = document.createElement("span");
+      type.className = "admin-prompt-meta";
+      type.textContent = prompt.prompt_type;
+
+      const statusBadge = document.createElement("span");
+      statusBadge.className = `admin-status-pill admin-status-${prompt.status}`;
+      statusBadge.textContent = prompt.status;
+
+      const actions = document.createElement("div");
+      actions.className = "admin-row-actions";
+
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "edit-action";
+      edit.textContent = "Edit";
+      edit.addEventListener("click", () => {
+        window.dispatchEvent(new CustomEvent("promptvault:edit-prompt", { detail: { id: prompt.id } }));
+        $("#prompt-editor").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.textContent = prompt.status === "published" ? "Unpublish" : "Publish";
+      toggle.addEventListener("click", async () => {
+        toggle.disabled = true;
+        const nextStatus = prompt.status === "published" ? "draft" : "published";
+        try {
+          const { error } = await supabase.from("prompts").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", prompt.id);
+          if (error) throw error;
+          dashboardMessage.textContent = `Prompt ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
+          await loadDashboard();
+        } catch (error) {
+          dashboardMessage.textContent = error instanceof Error ? error.message : "Could not update prompt status.";
+          toggle.disabled = false;
+        }
+      });
+
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "delete-action";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm(`Permanently delete "${prompt.title}"?`)) return;
+        remove.disabled = true;
+        try {
+          const { data: record, error: readError } = await supabase.from("prompts").select("thumbnail_path").eq("id", prompt.id).single();
+          if (readError) throw readError;
+          const { error } = await supabase.from("prompts").delete().eq("id", prompt.id);
+          if (error) throw error;
+          let message = "Prompt deleted.";
+          if (record?.thumbnail_path) {
+            const { error: storageError } = await supabase.storage.from("prompt-thumbnails").remove([record.thumbnail_path]);
+            if (storageError) message = `Prompt deleted. Thumbnail cleanup failed: ${storageError.message}`;
+          }
+          dashboardMessage.textContent = message;
+          await loadDashboard();
+        } catch (error) {
+          dashboardMessage.textContent = error instanceof Error ? error.message : "Could not delete prompt.";
+          remove.disabled = false;
+        }
+      });
+
+      actions.append(edit, toggle, remove);
+      row.append(titleWrap, type, statusBadge, actions);
+      promptList.append(row);
+    });
+
+    $("#prompt-total-label").textContent = `${filtered.length} ${filtered.length === 1 ? "prompt" : "prompts"}`;
+    $("#page-label").textContent = `Page ${currentPage} of ${pages}`;
+    $<HTMLButtonElement>("#prev-page").disabled = currentPage <= 1;
+    $<HTMLButtonElement>("#next-page").disabled = currentPage >= pages;
+    updateBulkActionBar();
+  }
+
+  async function loadDashboard() {
+    dashboardMessage.textContent = "Refreshing...";
+    const [promptsResult, shortcutsResult, categoriesResult, draftsResult] = await Promise.all([
+      supabase.from("prompts").select("id", { count: "exact", head: true }),
+      supabase.from("shortcuts").select("id", { count: "exact", head: true }),
+      supabase.from("categories").select("id", { count: "exact", head: true }),
+      supabase.from("prompts").select("id", { count: "exact", head: true }).eq("status", "draft"),
+    ]);
+    const errors = [promptsResult.error, shortcutsResult.error, categoriesResult.error, draftsResult.error].filter(Boolean);
+    if (errors.length) {
+      dashboardMessage.textContent = errors[0].message;
+      return;
+    }
+    $("#total-prompts").textContent = String(promptsResult.count ?? 0);
+    $("#total-shortcuts").textContent = String(shortcutsResult.count ?? 0);
+    $("#total-categories").textContent = String(categoriesResult.count ?? 0);
+    $("#total-drafts").textContent = String(draftsResult.count ?? 0);
+
+    const { data, error } = await supabase.from("prompts")
+      .select("id, title, prompt_type, status, created_at")
+      .order("created_at", { ascending: false });
+    if (error) {
+      dashboardMessage.textContent = error.message;
+      return;
+    }
+    allPrompts = data || [];
+    renderPrompts();
+    dashboardMessage.textContent = "";
+  }
+
+
+  $("#select-filtered-prompts").addEventListener("click", () => {
+    filteredPromptIds.forEach((id) => selectedPromptIds.add(id));
+    renderPrompts();
+  });
+
+  $("#clear-prompt-selection").addEventListener("click", () => {
+    selectedPromptIds.clear();
+    renderPrompts();
+  });
+
+  function verifyBulkAction(actionWord: "PUBLISH" | "UNPUBLISH" | "DELETE", count: number) {
+    const entered = window.prompt(
+      `You are about to ${actionWord.toLowerCase()} ${count} selected prompt(s).\\n\\nType ${actionWord} exactly to confirm.`
+    );
+    return entered === actionWord;
+  }
+
+  async function runBulkStatusUpdate(nextStatus: "published" | "draft") {
+    const ids = Array.from(selectedPromptIds);
+    if (!ids.length) return;
+    const action = nextStatus === "published" ? "publish" : "move to drafts";
+    const verificationWord = nextStatus === "published" ? "PUBLISH" : "UNPUBLISH";
+    if (!verifyBulkAction(verificationWord, ids.length)) {
+      dashboardMessage.textContent = `${verificationWord} cancelled. No prompts were changed.`;
+      return;
+    }
+
+    const buttons = ["#bulk-publish-prompts", "#bulk-unpublish-prompts", "#bulk-delete-prompts"]
+      .map((selector) => $<HTMLButtonElement>(selector));
+    buttons.forEach((button) => { button.disabled = true; });
+    dashboardMessage.textContent = `Updating ${ids.length} prompts...`;
+
+    const { error } = await supabase.from("prompts")
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
+      .in("id", ids);
+
+    if (error) {
+      dashboardMessage.textContent = `Bulk ${action} failed: ${error.message}`;
+      buttons.forEach((button) => { button.disabled = false; });
+      return;
+    }
+
+    selectedPromptIds.clear();
+    dashboardMessage.textContent = `${ids.length} prompt(s) ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
+    await loadDashboard();
+  }
+
+  $("#bulk-publish-prompts").addEventListener("click", () => runBulkStatusUpdate("published"));
+  $("#bulk-unpublish-prompts").addEventListener("click", () => runBulkStatusUpdate("draft"));
+
+  $("#bulk-delete-prompts").addEventListener("click", async () => {
+    const ids = Array.from(selectedPromptIds);
+    if (!ids.length) return;
+    if (!verifyBulkAction("DELETE", ids.length)) {
+      dashboardMessage.textContent = "DELETE cancelled. No prompts were removed.";
+      return;
+    }
+
+    const buttons = ["#bulk-publish-prompts", "#bulk-unpublish-prompts", "#bulk-delete-prompts"]
+      .map((selector) => $<HTMLButtonElement>(selector));
+    buttons.forEach((button) => { button.disabled = true; });
+    dashboardMessage.textContent = `Deleting ${ids.length} prompts...`;
+
+    const { data: records, error: readError } = await supabase.from("prompts")
+      .select("id, thumbnail_path").in("id", ids);
+    if (readError) {
+      dashboardMessage.textContent = `Could not load selected prompts: ${readError.message}`;
+      buttons.forEach((button) => { button.disabled = false; });
+      return;
+    }
+
+    const { error } = await supabase.from("prompts").delete().in("id", ids);
+    if (error) {
+      dashboardMessage.textContent = `Bulk delete failed: ${error.message}`;
+      buttons.forEach((button) => { button.disabled = false; });
+      return;
+    }
+
+    const paths = (records || []).map((record) => record.thumbnail_path).filter(Boolean);
+    let cleanupMessage = "";
+    if (paths.length) {
+      const { error: storageError } = await supabase.storage.from("prompt-thumbnails").remove(paths);
+      if (storageError) cleanupMessage = ` Thumbnail cleanup failed: ${storageError.message}`;
+    }
+
+    selectedPromptIds.clear();
+    dashboardMessage.textContent = `${ids.length} prompt(s) deleted.${cleanupMessage}`;
+    await loadDashboard();
+  });
+
+  const csvInput = $<HTMLInputElement>("#bulk-csv-file");
+  const csvValidateButton = $<HTMLButtonElement>("#bulk-validate-button");
+  const csvImportButton = $<HTMLButtonElement>("#bulk-import-button");
+  const csvFileName = $<HTMLElement>("#bulk-file-name");
+  const csvValidation = $<HTMLElement>("#bulk-validation");
+  const csvErrors = $<HTMLElement>("#bulk-errors");
+  const csvPreview = $<HTMLElement>("#bulk-preview");
+  const csvPreviewList = $<HTMLElement>("#bulk-preview-list");
+  const csvSelectionCount = $<HTMLElement>("#bulk-selection-count");
+  let selectedCsvFile: File | null = null;
+  let validatedRows: any[] = [];
+  let validationReady = false;
+
+  function parseCsv(text: string) {
+    const rows: string[][] = [];
+    let row: string[] = [], field = "", quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (quoted) {
+        if (char === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (char === '"') quoted = false;
+        else field += char;
+      } else if (char === '"' && field.length === 0) quoted = true;
+      else if (char === ",") { row.push(field); field = ""; }
+      else if (char === "\n" || char === "\r") {
+        if (char === "\r" && text[i + 1] === "\n") i++;
+        row.push(field); field = "";
+        if (row.some((cell) => cell.trim())) rows.push(row);
+        row = [];
+      } else field += char;
+    }
+    if (quoted) throw new Error("CSV contains an unclosed quoted field.");
+    if (field.length || row.length) { row.push(field); if (row.some((cell) => cell.trim())) rows.push(row); }
+    return rows;
+  }
+
+  function splitList(value: string) { return value.split("|").map((part) => part.trim()).filter(Boolean); }
+  function normalizeContent(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
+  function normalizeTitle(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
+
+  function showCsvErrors(messages: string[]) {
+    csvErrors.replaceChildren();
+    if (!messages.length) { csvErrors.hidden = true; return; }
+    const list = document.createElement("ul");
+    messages.forEach((message) => { const item = document.createElement("li"); item.textContent = message; list.append(item); });
+    csvErrors.append(list); csvErrors.hidden = false;
+  }
+
+  function updateSelectionCount() {
+    const selected = validatedRows.filter((item) => item.selected && item.state === "ready").length;
+    csvSelectionCount.textContent = `${selected} selected of ${validatedRows.filter((item) => item.state === "ready").length} available`;
+    csvImportButton.disabled = !validationReady || selected === 0;
+  }
+
+  function renderCsvPreview() {
+    csvPreviewList.replaceChildren();
+    validatedRows.forEach((item) => {
+      const row = document.createElement("label");
+      row.className = "bulk-preview-row";
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = item.selected === true;
+      checkbox.disabled = item.state !== "ready";
+      checkbox.addEventListener("change", () => { item.selected = checkbox.checked; updateSelectionCount(); });
+      const details = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "bulk-preview-title";
+      title.textContent = `Row ${item.line}: ${item.title || "(untitled)"}`;
+      const meta = document.createElement("div");
+      meta.className = "bulk-preview-meta";
+      meta.textContent = `${item.prompt_type || "Unknown type"}${item.reason ? ` · ${item.reason}` : ""}`;
+      details.append(title, meta);
+      const state = document.createElement("span");
+      state.className = `bulk-row-state${item.state === "duplicate" ? " duplicate" : item.state === "invalid" ? " invalid" : ""}`;
+      state.textContent = item.state === "ready" ? "READY" : item.state === "duplicate" ? "DUPLICATE" : item.state === "imported" ? "IMPORTED" : "INVALID";
+      row.append(checkbox, details, state);
+      csvPreviewList.append(row);
+    });
+    csvPreview.hidden = validatedRows.length === 0;
+    updateSelectionCount();
+  }
+
+  $("#download-csv-template").addEventListener("click", () => {
+    const sample = 'title,content,prompt_type,description,categories,tags,ai_tools\r\n"Neon Portrait","A cinematic neon-lit portrait of a subject...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT"\r\n';
+    const url = URL.createObjectURL(new Blob([sample], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "promptvault-prompts-template.csv"; anchor.click(); URL.revokeObjectURL(url);
+  });
+
+  $("#bulk-select-all").addEventListener("click", () => {
+    validatedRows.forEach((item) => { if (item.state === "ready") item.selected = true; });
+    renderCsvPreview();
+  });
+  $("#bulk-clear-selection").addEventListener("click", () => {
+    validatedRows.forEach((item) => { if (item.state === "ready") item.selected = false; });
+    renderCsvPreview();
+  });
+
+  csvInput.addEventListener("change", () => {
+    selectedCsvFile = csvInput.files?.[0] || null;
+    validatedRows = []; validationReady = false;
+    csvFileName.textContent = selectedCsvFile ? selectedCsvFile.name : "No file selected.";
+    csvValidateButton.disabled = !selectedCsvFile;
+    csvImportButton.disabled = true;
+    csvValidation.textContent = "";
+    csvValidation.className = "bulk-validation";
+    csvPreview.hidden = true;
+    csvPreviewList.replaceChildren();
+    showCsvErrors([]);
+  });
+
+  csvValidateButton.addEventListener("click", async () => {
+    if (!selectedCsvFile) return;
+    csvValidateButton.disabled = true;
+    csvValidateButton.textContent = "Validating...";
+    csvImportButton.disabled = true;
+    validationReady = false;
+    validatedRows = [];
+    csvPreview.hidden = true;
+    csvValidation.className = "bulk-validation";
+    csvValidation.textContent = "Checking CSV structure, required fields, categories, tags, and duplicates...";
+    showCsvErrors([]);
+
+    try {
+      const rawRows = parseCsv(await selectedCsvFile.text());
+      if (rawRows.length < 2) throw new Error("The CSV must contain a header and at least one prompt row.");
+      const headers = rawRows[0].map((header) => header.trim().toLowerCase().replace(/^\uFEFF/, ""));
+      const required = ["title", "content", "prompt_type"];
+      const missingHeaders = required.filter((header) => !headers.includes(header));
+      if (missingHeaders.length) throw new Error(`Missing required CSV columns: ${missingHeaders.join(", ")}`);
+      if (new Set(headers).size !== headers.length) throw new Error("CSV contains duplicate column names.");
+      const allowedHeaders = [...required, "description", "categories", "tags", "ai_tools", "status"];
+      const unknownHeaders = headers.filter((header) => !allowedHeaders.includes(header));
+      if (unknownHeaders.length) throw new Error(`Unknown CSV columns: ${unknownHeaders.join(", ")}`);
+      const index = Object.fromEntries(headers.map((header, i) => [header, i]));
+      const [categoryResult, tagResult, existingResult] = await Promise.all([
+        supabase.from("categories").select("id, name"),
+        supabase.from("tags").select("id, name"),
+        supabase.from("prompts").select("id, title, content")
+      ]);
+      if (categoryResult.error) throw categoryResult.error;
+      if (tagResult.error) throw tagResult.error;
+      if (existingResult.error) throw existingResult.error;
+
+      const categories = new Map((categoryResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
+      const tags = new Map((tagResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
+      const existingTitles = new Set((existingResult.data || []).map((item: any) => normalizeTitle(item.title || "")));
+      const existingContents = new Set((existingResult.data || []).map((item: any) => normalizeContent(item.content || "")));
+      const seenTitles = new Set<string>();
+      const seenContents = new Set<string>();
+
+      rawRows.slice(1).forEach((cells, rowIndex) => {
+        const line = rowIndex + 2;
+        const get = (key: string) => index[key] === undefined ? "" : (cells[index[key]] || "").trim();
+        const title = get("title"), content = get("content"), promptType = get("prompt_type").toLowerCase();
+        const categoryNames = splitList(get("categories")), tagNames = splitList(get("tags"));
+        const aiTools = splitList(get("ai_tools"));
+        const issues: string[] = [];
+        if (cells.length !== headers.length) issues.push(`expected ${headers.length} columns, found ${cells.length}`);
+        if (!title) issues.push("title is required");
+        if (!content) issues.push("content is required");
+        if (!["image", "video", "other"].includes(promptType)) issues.push("prompt_type must be image, video, or other");
+
+        const categoryIds = categoryNames.map((name) => categories.get(name.toLowerCase())?.id);
+        const tagIds = tagNames.map((name) => tags.get(name.toLowerCase())?.id);
+        categoryNames.forEach((name, i) => { if (!categoryIds[i]) issues.push(`category does not exist: ${name}`); });
+        tagNames.forEach((name, i) => { if (!tagIds[i]) issues.push(`tag does not exist: ${name}`); });
+
+        const normalizedTitle = normalizeTitle(title), normalized = normalizeContent(content);
+        const duplicateReasons: string[] = [];
+        if (normalizedTitle && existingTitles.has(normalizedTitle)) duplicateReasons.push("title already exists in PromptVault");
+        if (normalized && existingContents.has(normalized)) duplicateReasons.push("content already exists in PromptVault");
+        if (normalizedTitle && seenTitles.has(normalizedTitle)) duplicateReasons.push("title duplicates an earlier CSV row");
+        if (normalized && seenContents.has(normalized)) duplicateReasons.push("content duplicates an earlier CSV row");
+        if (normalizedTitle) seenTitles.add(normalizedTitle);
+        if (normalized) seenContents.add(normalized);
+
+        validatedRows.push({
+          line, title, content, prompt_type: promptType,
+          description: get("description") || null, ai_tools: aiTools,
+          categoryIds: categoryIds.filter(Boolean), tagIds: tagIds.filter(Boolean), normalized,
+          state: issues.length ? "invalid" : duplicateReasons.length ? "duplicate" : "ready",
+          reason: [...issues, ...duplicateReasons].join("; "),
+          selected: issues.length === 0 && duplicateReasons.length === 0
+        });
+      });
+
+      validationReady = true;
+      const readyCount = validatedRows.filter((item) => item.state === "ready").length;
+      const duplicateCount = validatedRows.filter((item) => item.state === "duplicate").length;
+      const invalidCount = validatedRows.filter((item) => item.state === "invalid").length;
+      renderCsvPreview();
+      csvValidation.className = readyCount ? "bulk-validation success" : "bulk-validation error";
+      csvValidation.textContent = `Validation complete: ${readyCount} ready to import, ${duplicateCount} duplicate(s) skipped, ${invalidCount} invalid row(s) excluded. Select the rows you want, then import.`;
+      showCsvErrors(validatedRows.filter((item) => item.state !== "ready").map((item) => `Row ${item.line}: ${item.reason}.`));
+    } catch (error) {
+      validationReady = false;
+      csvValidation.className = "bulk-validation error";
+      csvValidation.textContent = error instanceof Error ? error.message : "CSV validation failed.";
+      showCsvErrors([]);
+    } finally {
+      csvValidateButton.disabled = !selectedCsvFile;
+      csvValidateButton.textContent = "1. Validate CSV";
+      updateSelectionCount();
+    }
+  });
+
+  csvImportButton.addEventListener("click", async () => {
+    if (!validationReady) return;
+    const selected = validatedRows.filter((item) => item.state === "ready" && item.selected);
+    if (!selected.length) return;
+    csvImportButton.disabled = true;
+    csvValidateButton.disabled = true;
+    csvImportButton.textContent = "Importing...";
+    csvValidation.className = "bulk-validation";
+    csvValidation.textContent = `Importing ${selected.length} selected prompt(s) as drafts...`;
+    showCsvErrors([]);
+
+    let imported = 0;
+    const failed: string[] = [];
+    const importedItems = new Set<any>();
+    const failedItems = new Set<any>();
+
+    const getSupabaseError = (error: any) => {
+      if (!error) return "Unknown database error";
+      const parts = [
+        error.message,
+        error.details ? `Details: ${error.details}` : "",
+        error.hint ? `Hint: ${error.hint}` : "",
+        error.code ? `Code: ${error.code}` : ""
+      ].filter(Boolean);
+      return parts.length ? parts.join(" · ") : String(error);
+    };
+
+    for (const item of selected) {
+      let insertedPromptId: string | null = null;
+      try {
+        const slug = `${item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "prompt"}-${crypto.randomUUID().slice(0, 8)}`;
+        const { data, error } = await supabase.from("prompts").insert({
+          slug, title: item.title, content: item.content,
+          description: item.description, prompt_type: item.prompt_type,
+          status: "draft", ai_tools: item.ai_tools
+        }).select("id").single();
+        if (error) throw new Error(getSupabaseError(error));
+        if (!data?.id) throw new Error("The prompt was inserted, but Supabase did not return its ID.");
+        insertedPromptId = data.id;
+
+        if (item.categoryIds.length) {
+          const { error: categoryError } = await supabase.from("prompt_categories")
+            .insert(item.categoryIds.map((category_id: string) => ({ prompt_id: data.id, category_id })));
+          if (categoryError) throw new Error(`Category linking failed: ${getSupabaseError(categoryError)}`);
+        }
+        if (item.tagIds.length) {
+          const { error: tagError } = await supabase.from("prompt_tags")
+            .insert(item.tagIds.map((tag_id: string) => ({ prompt_id: data.id, tag_id })));
+          if (tagError) throw new Error(`Tag linking failed: ${getSupabaseError(tagError)}`);
+        }
+
+        imported++;
+        importedItems.add(item);
+      } catch (error: any) {
+        let message = error?.message || getSupabaseError(error);
+        if (insertedPromptId) {
+          const { error: cleanupError } = await supabase.from("prompts").delete().eq("id", insertedPromptId);
+          if (cleanupError) {
+            message += ` · Cleanup also failed: ${getSupabaseError(cleanupError)}. Check this prompt in Manage Prompts before retrying.`;
+          } else {
+            message += " · The incomplete prompt record was removed; you can retry this row.";
+          }
+        }
+        failedItems.add(item);
+        failed.push(`Row ${item.line} (${item.title}): ${message}`);
+      }
+    }
+
+    if (failed.length) showCsvErrors(failed);
+    csvValidation.className = imported ? "bulk-validation success" : "bulk-validation error";
+    csvValidation.textContent = `${imported} prompt(s) imported as drafts. ${failed.length} failed.`;
+    if (imported) window.dispatchEvent(new CustomEvent("promptvault:prompt-saved"));
+
+    validatedRows.forEach((item) => {
+      if (importedItems.has(item)) {
+        item.state = "imported";
+        item.selected = false;
+        item.reason = "Successfully imported as draft";
+      } else if (failedItems.has(item)) {
+        item.state = "invalid";
+        item.selected = false;
+        item.reason = "Import failed. See the detailed error above.";
+      }
+    });
+
+    renderCsvPreview();
+    csvValidateButton.disabled = !selectedCsvFile;
+    csvValidateButton.textContent = "1. Validate CSV";
+    csvImportButton.textContent = "2. Import selected";
+  });
+
+  $("#refresh-button").addEventListener("click", loadDashboard);
+  $("#logout-button").addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+  });
+  ["#prompt-search", "#status-filter", "#type-filter"].forEach((selector) => {
+    $(selector).addEventListener("input", () => { currentPage = 1; renderPrompts(); });
+  });
+  $("#prev-page").addEventListener("click", () => { currentPage--; renderPrompts(); });
+  $("#next-page").addEventListener("click", () => { currentPage++; renderPrompts(); });
+  window.addEventListener("promptvault:prompt-saved", loadDashboard);
+
+  async function initializeDashboard() {
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      window.location.replace("/admin-login");
+      return;
+    }
+
+    $("#admin-email").textContent = user.email || "";
+    await loadDashboard();
+  }
+
+  initializeDashboard();
+</script>

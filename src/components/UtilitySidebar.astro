@@ -1,0 +1,549 @@
+
+<div class="utility-dock">
+  <div class="utility-layout">
+    <section id="utility-panel" class="utility-panel hidden">
+      <div class="utility-panel-header">
+        <h2 id="utility-title">Utilities</h2>
+        <button id="utility-close" class="close-button" aria-label="Close panel">✕</button>
+      </div>
+      <div id="utility-content" class="utility-panel-content">
+        <p>Select a utility.</p>
+      </div>
+    </section>
+
+    <nav aria-label="Utilities" class="utility-nav">
+      <button data-utility="favorites" aria-label="Favourites" title="Favourites" class="utility-button utility-purple">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
+      </button>
+
+      <button data-utility="recent" aria-label="Recently viewed" title="Recently viewed" class="utility-button utility-cyan">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </button>
+
+      <button data-utility="random" aria-label="Random discovery" title="Random discovery" class="utility-button utility-orange">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20l6-6M16 16l5 5M21 16v5h-5M4 4l5 5"/><path d="M14 5h2a5 5 0 0 1 5 5M4 14a5 5 0 0 0 5 5h2"/></svg>
+      </button>
+
+      <div class="utility-divider"></div>
+
+      <button data-utility="settings" aria-label="Settings" title="Settings" class="utility-button utility-green">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.9l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.8Z"/></svg>
+      </button>
+    </nav>
+  </div>
+</div>
+
+<div class="utility-mobile">
+  <nav aria-label="Mobile utilities" class="utility-mobile-nav">
+    <button data-utility="favorites" aria-label="Favourites" class="utility-button utility-purple">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
+    </button>
+    <button data-utility="recent" aria-label="Recently viewed" class="utility-button utility-cyan">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </button>
+    <button data-utility="random" aria-label="Random discovery" class="utility-button utility-orange">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20l6-6M16 16l5 5M21 16v5h-5M4 4l5 5"/><path d="M14 5h2a5 5 0 0 1 5 5M4 14a5 5 0 0 0 5 5h2"/></svg>
+    </button>
+    <button data-utility="settings" aria-label="Settings" class="utility-button utility-green">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.9l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.8Z"/></svg>
+    </button>
+  </nav>
+</div>
+
+<div id="mobile-utility-panel" class="mobile-utility-panel hidden">
+  <div class="mobile-panel-header">
+    <h2 id="mobile-utility-title">Utilities</h2>
+    <button id="mobile-utility-close" class="close-button" aria-label="Close panel">✕</button>
+  </div>
+  <div id="mobile-utility-content" class="utility-panel-content"></div>
+</div>
+
+<style>
+  .utility-dock {
+    position: fixed;
+    right: 24px;
+    bottom: 26px;
+    z-index: 60;
+    display: none;
+  }
+
+  .utility-layout {
+    display: flex;
+    align-items: flex-end;
+    gap: 13px;
+  }
+
+  .utility-nav,
+  .utility-mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 9px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 19px;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(34,211,238,.09), transparent 45%),
+      linear-gradient(145deg, rgba(27,29,34,.96), rgba(10,11,15,.97));
+    box-shadow: 0 18px 55px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.07);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .utility-button {
+    position: relative;
+    display: grid;
+    width: 41px;
+    height: 41px;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    background: rgba(255,255,255,.035);
+    color: #a7a9b4;
+    cursor: pointer;
+    transition: transform .2s ease, border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
+  }
+
+  .utility-button svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .utility-purple:hover { border-color:#b69aff80; background:#8b5cf626; color:#c4b5fd; box-shadow:0 0 20px #8b5cf62b; }
+  .utility-cyan:hover { border-color:#67e8f980; background:#06b6d426; color:#67e8f9; box-shadow:0 0 20px #06b6d42b; }
+  .utility-orange:hover { border-color:#fb923c80; background:#f9731626; color:#fdba74; box-shadow:0 0 20px #f973162b; }
+  .utility-green:hover { border-color:#4ade8080; background:#22c55e26; color:#86efac; box-shadow:0 0 20px #22c55e2b; }
+  .utility-button:hover { transform: translateY(-2px); }
+
+  .utility-divider {
+    height: 1px;
+    margin: 5px 5px;
+    background: linear-gradient(90deg, transparent, #ffffff35, transparent);
+  }
+
+  .utility-panel,
+  .mobile-utility-panel {
+    width: 292px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 19px;
+    background:
+      radial-gradient(ellipse at 100% 0%, rgba(249,115,22,.10), transparent 45%),
+      radial-gradient(ellipse at 0% 100%, rgba(34,211,238,.08), transparent 50%),
+      linear-gradient(145deg, rgba(25,27,32,.98), rgba(10,11,15,.98));
+    box-shadow: 0 24px 70px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter: blur(26px);
+    -webkit-backdrop-filter: blur(26px);
+  }
+
+  .utility-panel-header,
+  .mobile-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(255,255,255,.09);
+  }
+
+  .utility-panel-header h2,
+  .mobile-panel-header h2 {
+    color: #f4f4f5;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+  }
+
+  .close-button {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 9px;
+    background: rgba(255,255,255,.045);
+    color: #a7a9b4;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .close-button:hover {
+    border-color: #fb718580;
+    background: #fb71851a;
+    color: #fda4af;
+  }
+
+  .utility-panel-content {
+    padding: 18px;
+    color: #a7a9b4;
+    font-size: 12px;
+    line-height: 1.75;
+  }
+
+  .utility-mobile {
+    position: fixed;
+    bottom: 13px;
+    left: 50%;
+    z-index: 60;
+    display: block;
+    transform: translateX(-50%);
+  }
+
+  .utility-mobile-nav {
+    flex-direction: row;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 17px;
+  }
+
+  .utility-mobile-nav .utility-button {
+    width: 44px;
+    height: 42px;
+  }
+
+  .mobile-utility-panel {
+    position: fixed;
+    right: 13px;
+    bottom: 78px;
+    left: 13px;
+    z-index: 59;
+    width: auto;
+  }
+
+  .mobile-panel-header { padding: 13px 16px; }
+  .mobile-utility-panel .utility-panel-content { padding: 15px 16px; }
+  /* Isolate utility panel layout from global typography and form styles. */
+  .utility-dock, .utility-mobile, .utility-panel, .mobile-utility-panel,
+  .utility-panel *, .mobile-utility-panel * { box-sizing:border-box !important; }
+  .utility-panel, .mobile-utility-panel { width: min(360px, calc(100vw - 104px)) !important; min-width:0 !important; }
+  .utility-panel-content { display:block !important; width:100% !important; min-width:0 !important; overflow-wrap:anywhere; }
+  .utility-list { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; gap:9px !important; }
+  .utility-item { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:row !important; align-items:center !important; justify-content:space-between !important; gap:14px !important; padding:12px 13px !important; border:1px solid rgba(255,255,255,.09); border-radius:11px; background:rgba(255,255,255,.035); color:#e5e7eb; text-decoration:none; }
+  .utility-item-details { display:flex !important; min-width:0 !important; flex:1 1 auto !important; flex-direction:column !important; align-items:flex-start !important; justify-content:center !important; gap:5px !important; }
+  .utility-item-details strong { display:block !important; width:100% !important; margin:0 !important; color:#f4f4f5; font-size:12px; font-weight:600; line-height:1.45 !important; overflow-wrap:anywhere; }
+  .utility-item-details small { display:block !important; width:100% !important; margin:0 !important; color:#9294a1; font-family:"JetBrains Mono",monospace; font-size:9px; letter-spacing:.08em; line-height:1.4 !important; }
+  .utility-item-arrow { display:block !important; flex:0 0 auto !important; margin-left:auto !important; color:#a78bfa; }
+  .utility-empty,.utility-note { display:block !important; margin:0; color:#a7a9b4; font-size:11px; line-height:1.7; }
+  .random-result { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; align-items:stretch !important; gap:10px !important; }
+  .random-result h3 { display:block !important; margin:0 !important; color:#f4f4f5; font-family:"Space Grotesk",sans-serif; font-size:17px; line-height:1.4 !important; overflow-wrap:anywhere; }
+  .utility-random-type,.utility-eyebrow { display:block !important; margin:0 !important; color:#9294a1; font-family:"JetBrains Mono",monospace; font-size:9px; letter-spacing:.08em; line-height:1.5 !important; }
+  .utility-random-actions { display:flex !important; width:100% !important; flex-wrap:wrap !important; align-items:center !important; gap:8px !important; margin-top:3px !important; }
+  .utility-action,.utility-secondary { display:inline-flex !important; width:auto !important; min-height:36px; flex:0 0 auto !important; align-items:center; justify-content:center; margin:0 !important; padding:0 13px; border:1px solid rgba(251,146,60,.3); border-radius:9px; background:rgba(249,115,22,.09); color:#fed7aa; font-size:11px; font-weight:600; line-height:1 !important; text-decoration:none; cursor:pointer; white-space:nowrap; }
+  .utility-secondary { border-color:rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#d4d4d8; }
+  .utility-settings { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; align-items:stretch !important; gap:17px !important; }
+  .utility-setting { display:grid !important; width:100% !important; min-width:0 !important; grid-template-columns:minmax(0,1fr) 18px !important; align-items:start !important; justify-content:initial !important; gap:12px !important; margin:0 !important; padding:0 !important; cursor:pointer; }
+  .utility-setting > span { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; align-items:flex-start !important; gap:5px !important; }
+  .utility-setting strong { display:block !important; width:100% !important; margin:0 !important; color:#e5e7eb; font-size:12px; line-height:1.45 !important; }
+  .utility-setting small { display:block !important; width:100% !important; max-width:100% !important; margin:0 !important; color:#9294a1; font-size:10px; line-height:1.65 !important; white-space:normal !important; }
+  .utility-setting input { display:block !important; position:static !important; width:16px !important; height:16px !important; margin:2px 0 0 !important; padding:0 !important; accent-color:#a78bfa; flex-shrink:0 !important; }
+  .utility-note { width:100% !important; margin:0 !important; padding-top:12px !important; border-top:1px solid rgba(255,255,255,.08); }
+  .utility-panel-header,.mobile-panel-header { min-width:0 !important; }
+  .utility-panel-header h2,.mobile-panel-header h2 { min-width:0 !important; margin:0 !important; }
+  @media (max-width:767px) {
+    .mobile-utility-panel { width:auto !important; max-height:min(65vh,520px) !important; overflow-y:auto !important; }
+    .mobile-utility-panel .utility-panel-content { width:100% !important; }
+  }
+  .pv-reduced-motion *, .pv-reduced-motion *::before, .pv-reduced-motion *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+  .hidden { display: none !important; }
+
+  @media (min-width: 768px) {
+    .utility-dock { display: block; }
+    .utility-mobile { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .utility-button,
+    .close-button { transition: none; }
+  }
+</style>
+
+<script>
+  import { supabase } from "../lib/supabase.js";
+
+  type SavedItem = {
+    type: "prompt" | "shortcut";
+    id: string;
+    title: string;
+    url: string;
+  };
+
+  type UtilitySettings = {
+    reducedMotion: boolean;
+    reopenLastPanel: boolean;
+  };
+
+  const FAVORITES_KEY = "promptvault:favourites";
+  const RECENT_KEY = "promptvault:recent";
+  const SETTINGS_KEY = "promptvault:settings";
+  const LAST_PANEL_KEY = "promptvault:last-utility";
+
+  const utilityData: Record<string, { title: string }> = {
+    favorites: { title: "Favourites" },
+    recent: { title: "Recently viewed" },
+    random: { title: "Random discovery" },
+    settings: { title: "Settings" }
+  };
+
+  const desktopPanel = document.querySelector<HTMLElement>("#utility-panel");
+  const desktopTitle = document.querySelector<HTMLElement>("#utility-title");
+  const desktopContent = document.querySelector<HTMLElement>("#utility-content");
+  const mobilePanel = document.querySelector<HTMLElement>("#mobile-utility-panel");
+  const mobileTitle = document.querySelector<HTMLElement>("#mobile-utility-title");
+  const mobileContent = document.querySelector<HTMLElement>("#mobile-utility-content");
+
+  function readList(key: string): SavedItem[] {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) || "[]");
+      if (!Array.isArray(value)) return [];
+      return value.filter((item): item is SavedItem =>
+        item && (item.type === "prompt" || item.type === "shortcut") &&
+        typeof item.id === "string" && typeof item.title === "string" &&
+        typeof item.url === "string"
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  function readSettings(): UtilitySettings {
+    try {
+      const value = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      return {
+        reducedMotion: Boolean(value.reducedMotion),
+        reopenLastPanel: Boolean(value.reopenLastPanel)
+      };
+    } catch {
+      return { reducedMotion: false, reopenLastPanel: false };
+    }
+  }
+
+  let settings = readSettings();
+
+  function saveSettings() {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    document.documentElement.classList.toggle("pv-reduced-motion", settings.reducedMotion);
+  }
+
+  function makeElement<K extends keyof HTMLElementTagNameMap>(
+    tag: K, className?: string, text?: string
+  ): HTMLElementTagNameMap[K] {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function renderSavedItems(items: SavedItem[], emptyText: string): HTMLElement {
+    const wrapper = makeElement("div", "utility-list");
+    if (!items.length) {
+      wrapper.append(makeElement("p", "utility-empty", emptyText));
+      return wrapper;
+    }
+
+    items.forEach((item) => {
+      const row = makeElement("a", "utility-item");
+      row.href = item.url;
+      const details = makeElement("span", "utility-item-details");
+      details.append(makeElement("strong", "", item.title));
+      details.append(makeElement("small", "", item.type === "prompt" ? "PROMPT" : "SHORTCUT"));
+      row.append(details);
+      row.append(makeElement("span", "utility-item-arrow", "↗"));
+      wrapper.append(row);
+    });
+    return wrapper;
+  }
+
+  function renderSettings(): HTMLElement {
+    const wrapper = makeElement("div", "utility-settings");
+
+    const motionLabel = makeElement("label", "utility-setting");
+    motionLabel.style.cssText = "display:grid;grid-template-columns:minmax(0,1fr) 18px;align-items:start;gap:12px;width:100%;margin:0;cursor:pointer;";
+    const motionText = makeElement("span");
+    motionText.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;width:100%;";
+    const motionHeading = makeElement("strong", "", "Reduced motion");
+    motionHeading.style.cssText = "display:block;width:100%;color:#e5e7eb;font-size:12px;line-height:1.4;";
+    const motionDescription = makeElement("small", "", "Disable interface transitions and movement.");
+    motionDescription.style.cssText = "display:block;width:100%;margin:0;color:#9294a1;font-size:10px;line-height:1.6;white-space:normal;";
+    motionText.append(motionHeading, motionDescription);
+    const motion = makeElement("input");
+    motion.type = "checkbox";
+    motion.style.cssText = "display:block;position:static;width:16px;height:16px;margin:2px 0 0;padding:0;accent-color:#a78bfa;flex-shrink:0;";
+    motion.checked = settings.reducedMotion;
+    motion.addEventListener("change", () => {
+      settings.reducedMotion = motion.checked;
+      saveSettings();
+    });
+    motionLabel.append(motionText, motion);
+    wrapper.append(motionLabel);
+
+    const reopenLabel = makeElement("label", "utility-setting");
+    reopenLabel.style.cssText = "display:grid;grid-template-columns:minmax(0,1fr) 18px;align-items:start;gap:12px;width:100%;margin:0;cursor:pointer;";
+    const reopenText = makeElement("span");
+    reopenText.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;width:100%;";
+    const reopenHeading = makeElement("strong", "", "Reopen last utility");
+    reopenHeading.style.cssText = "display:block;width:100%;color:#e5e7eb;font-size:12px;line-height:1.4;";
+    const reopenDescription = makeElement("small", "", "Restore the last opened panel after navigation.");
+    reopenDescription.style.cssText = "display:block;width:100%;margin:0;color:#9294a1;font-size:10px;line-height:1.6;white-space:normal;";
+    reopenText.append(reopenHeading, reopenDescription);
+    const reopen = makeElement("input");
+    reopen.type = "checkbox";
+    reopen.style.cssText = "display:block;position:static;width:16px;height:16px;margin:2px 0 0;padding:0;accent-color:#a78bfa;flex-shrink:0;";
+    reopen.checked = settings.reopenLastPanel;
+    reopen.addEventListener("change", () => {
+      settings.reopenLastPanel = reopen.checked;
+      saveSettings();
+      if (!reopen.checked) sessionStorage.removeItem(LAST_PANEL_KEY);
+    });
+    reopenLabel.append(reopenText, reopen);
+    wrapper.append(reopenLabel);
+
+    const note = makeElement("p", "utility-note", "Preferences are stored in this browser.");
+    note.style.cssText = "display:block;width:100%;margin:2px 0 0;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);color:#a7a9b4;font-size:11px;line-height:1.7;";
+    wrapper.append(note);
+    return wrapper;
+  }
+
+  function closePanels() {
+    desktopPanel?.classList.add("hidden");
+    mobilePanel?.classList.add("hidden");
+  }
+
+  function showContent(name: string, content: HTMLElement) {
+    const item = utilityData[name];
+    if (!item) return;
+
+    closePanels();
+    if (settings.reopenLastPanel) sessionStorage.setItem(LAST_PANEL_KEY, name);
+
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      if (mobileTitle) mobileTitle.textContent = item.title;
+      mobileContent?.replaceChildren(content);
+      mobilePanel?.classList.remove("hidden");
+    } else {
+      if (desktopTitle) desktopTitle.textContent = item.title;
+      desktopContent?.replaceChildren(content);
+      desktopPanel?.classList.remove("hidden");
+    }
+  }
+
+  function openUtility(name: string) {
+    if (!utilityData[name]) return;
+
+    if (name === "favorites") {
+      showContent(name, renderSavedItems(readList(FAVORITES_KEY), "No saved items yet. Use the star on a prompt or shortcut to save it."));
+      return;
+    }
+
+    if (name === "recent") {
+      showContent(name, renderSavedItems(readList(RECENT_KEY), "No recently viewed items yet."));
+      return;
+    }
+
+    if (name === "settings") {
+      showContent(name, renderSettings());
+      return;
+    }
+
+    showContent(name, makeElement("div", "utility-list"));
+    loadRandomItem();
+  }
+
+  async function loadRandomItem() {
+    const desktop = desktopContent;
+    const mobile = mobileContent;
+    const target = window.matchMedia("(max-width: 767px)").matches ? mobile : desktop;
+    if (!target || target.querySelector(".random-result")) return;
+
+    const loading = makeElement("p", "utility-empty", "Finding something to explore...");
+    target.replaceChildren(loading);
+
+    try {
+      const [promptsResult, shortcutsResult] = await Promise.all([
+        supabase.from("prompts").select("id, title").eq("status", "published"),
+        supabase.from("shortcuts").select("id, name").eq("status", "published")
+      ]);
+      if (promptsResult.error) throw promptsResult.error;
+      if (shortcutsResult.error) throw shortcutsResult.error;
+
+      const candidates: SavedItem[] = [
+        ...(promptsResult.data || []).map((item: any) => ({
+          type: "prompt" as const, id: item.id, title: item.title, url: `/prompts#prompt-${item.id}`
+        })),
+        ...(shortcutsResult.data || []).map((item: any) => ({
+          type: "shortcut" as const, id: item.id, title: item.name, url: `/shortcuts#shortcut-${item.id}`
+        }))
+      ];
+
+      const result = makeElement("div", "random-result");
+      if (!candidates.length) {
+        result.append(makeElement("p", "utility-empty", "No published prompts or shortcuts are available yet."));
+      } else {
+        const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+        result.append(makeElement("span", "utility-eyebrow", "YOUR RANDOM PICK"));
+        result.append(makeElement("h3", "", chosen.title));
+        result.append(makeElement("p", "utility-random-type", chosen.type === "prompt" ? "PROMPT" : "SHORTCUT"));
+        const actions = makeElement("div", "utility-random-actions");
+        const link = makeElement("a", "utility-action", "Open item ↗");
+        link.href = chosen.url;
+        actions.append(link);
+        const another = makeElement("button", "utility-secondary", "Try another");
+        another.type = "button";
+        another.addEventListener("click", () => {
+          result.remove();
+          loadRandomItem();
+        });
+        actions.append(another);
+        result.append(actions);
+      }
+      target.replaceChildren(result);
+    } catch (error) {
+      console.error("Random discovery failed:", error);
+      target.replaceChildren(makeElement("p", "utility-empty", "Random discovery could not load. Please try again."));
+    }
+  }
+
+  function refreshOpenUtility() {
+    const activeName = sessionStorage.getItem(LAST_PANEL_KEY);
+    if (!activeName) return;
+    const isOpen = !desktopPanel?.classList.contains("hidden") || !mobilePanel?.classList.contains("hidden");
+    if (isOpen) openUtility(activeName);
+  }
+
+  document.querySelectorAll<HTMLButtonElement>(".utility-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const name = button.dataset.utility;
+      if (name) openUtility(name);
+    });
+  });
+
+  document.querySelector("#utility-close")?.addEventListener("click", closePanels);
+  document.querySelector("#mobile-utility-close")?.addEventListener("click", closePanels);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closePanels();
+  });
+
+  window.addEventListener("promptvault:favourites-updated", () => {
+    if (!desktopPanel?.classList.contains("hidden")) {
+      const title = desktopTitle?.textContent;
+      if (title === "Favourites") openUtility("favorites");
+    }
+    if (!mobilePanel?.classList.contains("hidden") && mobileTitle?.textContent === "Favourites") {
+      openUtility("favorites");
+    }
+  });
+
+  window.addEventListener("promptvault:recent-updated", () => {
+    if (!desktopPanel?.classList.contains("hidden") && desktopTitle?.textContent === "Recently viewed") openUtility("recent");
+    if (!mobilePanel?.classList.contains("hidden") && mobileTitle?.textContent === "Recently viewed") openUtility("recent");
+  });
+
+  saveSettings();
+  if (settings.reopenLastPanel) {
+    const last = sessionStorage.getItem(LAST_PANEL_KEY);
+    if (last && utilityData[last]) openUtility(last);
+  }
+</script>

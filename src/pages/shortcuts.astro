@@ -1,0 +1,904 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+---
+
+<MainLayout
+  title="Shortcuts — PromptVault"
+  description="Browse published creative shortcuts."
+>
+  <main class="shortcuts-page">
+    <section class="shortcuts-hero">
+      <div class="hero-light hero-light-amber"></div>
+      <div class="hero-light hero-light-violet"></div>
+      <div class="hero-inner">
+        <span class="eyebrow"><i></i> CREATIVE COMMANDS</span>
+        <h1>Small commands.<br /><span>Big transformations.</span></h1>
+        <p id="hero-subtitle" class="hero-subtitle">Loading published shortcuts...</p>
+        <label class="search-field">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m16 16 4 4"></path>
+          </svg>
+          <input id="shortcut-search" type="search" placeholder="Search shortcuts, categories, tags..." aria-label="Search shortcuts" />
+          <kbd>SEARCH</kbd>
+        </label>
+      </div>
+      <div class="hero-rule"></div>
+    </section>
+
+    <section class="shortcut-collection">
+      <div class="toolbar">
+        <div id="shortcut-categories" class="filter-list" aria-label="Filter shortcuts by category">
+          <button data-category="all" class="category-button active" aria-pressed="true">All <span id="all-shortcut-total">0</span></button>
+        </div>
+      </div>
+
+      <div class="results-heading">
+        <div>
+          <span class="results-kicker">QUICK COMMANDS</span>
+          <h2>Shortcut collection<span>.</span></h2>
+        </div>
+        <p><strong id="shortcut-count">0</strong> results</p>
+      </div>
+
+      <div id="shortcut-grid" class="shortcut-grid" aria-live="polite">
+        <p class="load-state">Loading published shortcuts...</p>
+      </div>
+
+      <div id="shortcut-empty" class="empty-state hidden">
+        <div class="empty-symbol">⌕</div>
+        <h3 id="empty-title">No matching shortcuts</h3>
+        <button id="reset-filters" type="button">Clear filters <span>↗</span></button>
+      </div>
+      <p id="shortcut-error" class="load-error hidden" role="alert"></p>
+    </section>
+  </main>
+
+  <script>
+    import { supabase } from "../lib/supabase.js";
+
+    const search = document.querySelector<HTMLInputElement>("#shortcut-search");
+    const categoryContainer = document.querySelector<HTMLElement>("#shortcut-categories");
+    const grid = document.querySelector<HTMLElement>("#shortcut-grid");
+    const count = document.querySelector<HTMLElement>("#shortcut-count");
+    const allTotal = document.querySelector<HTMLElement>("#all-shortcut-total");
+    const heroSubtitle = document.querySelector<HTMLElement>("#hero-subtitle");
+    const empty = document.querySelector<HTMLElement>("#shortcut-empty");
+    const emptyTitle = document.querySelector<HTMLElement>("#empty-title");
+    const errorMessage = document.querySelector<HTMLElement>("#shortcut-error");
+    const resetButton = document.querySelector<HTMLButtonElement>("#reset-filters");
+
+    let shortcuts: any[] = [];
+    let activeCategory = "all";
+
+    const FAVOURITES_KEY = "promptvault:favourites";
+    const RECENT_KEY = "promptvault:recent";
+
+    function readStoredItems(key: string): any[] {
+      try {
+        const value = JSON.parse(localStorage.getItem(key) || "[]");
+        return Array.isArray(value) ? value : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveFavourite(item: any, button: HTMLButtonElement) {
+      const favourites = readStoredItems(FAVOURITES_KEY);
+      const exists = favourites.some((entry) => entry.type === "shortcut" && entry.id === item.id);
+
+      const updated = exists
+        ? favourites.filter((entry) => !(entry.type === "shortcut" && entry.id === item.id))
+        : [...favourites, {
+            type: "shortcut",
+            id: item.id,
+            title: item.name,
+            url: "/shortcuts",
+          }];
+
+      localStorage.setItem(FAVOURITES_KEY, JSON.stringify(updated));
+      updateFavouriteButton(button, !exists);
+      window.dispatchEvent(new CustomEvent("promptvault:favourites-updated"));
+    }
+
+    function updateFavouriteButton(button: HTMLButtonElement, active: boolean) {
+      button.classList.toggle("is-favourite", active);
+      button.setAttribute("aria-pressed", String(active));
+      button.setAttribute("aria-label", active ? "Remove from favourites" : "Add to favourites");
+      button.textContent = active ? "★" : "☆";
+      button.title = active ? "Remove from favourites" : "Add to favourites";
+    }
+
+    function recordRecentlyUsed(item: any) {
+      const recent = readStoredItems(RECENT_KEY).filter(
+        (entry) => !(entry.type === "shortcut" && entry.id === item.id)
+      );
+      recent.unshift({
+        type: "shortcut",
+        id: item.id,
+        title: item.name,
+        url: "/shortcuts",
+      });
+      localStorage.setItem(RECENT_KEY, JSON.stringify(recent.slice(0, 20)));
+      window.dispatchEvent(new CustomEvent("promptvault:recent-updated"));
+    }
+
+    function makeElement<K extends keyof HTMLElementTagNameMap>(
+      tag: K, className?: string, text?: string
+    ): HTMLElementTagNameMap[K] {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function renderCategories() {
+      if (!categoryContainer) return;
+      categoryContainer.replaceChildren();
+      const allButton = makeElement("button", "category-button active");
+      allButton.dataset.category = "all";
+      allButton.setAttribute("aria-pressed", "true");
+      allButton.append(document.createTextNode("All "));
+      const total = makeElement("span", "", String(shortcuts.length));
+      total.id = "all-shortcut-total";
+      allButton.append(total);
+      categoryContainer.append(allButton);
+
+      const names = [...new Set(shortcuts.flatMap((item) => item.categories))].sort((a, b) => a.localeCompare(b));
+      names.forEach((name) => {
+        const button = makeElement("button", "category-button", name);
+        button.dataset.category = name;
+        button.setAttribute("aria-pressed", "false");
+        categoryContainer.append(button);
+      });
+      categoryContainer.querySelectorAll<HTMLButtonElement>(".category-button").forEach((button) => {
+        button.addEventListener("click", () => {
+          activeCategory = button.dataset.category || "all";
+          updateButtons();
+          filterShortcuts();
+        });
+      });
+    }
+
+    function renderCards() {
+      if (!grid) return;
+      grid.replaceChildren();
+      shortcuts.forEach((item, index) => {
+        const card = makeElement("article", "shortcut-card");
+        card.id = `shortcut-${item.id}`;
+        card.dataset.id = String(item.id);
+        card.dataset.categories = JSON.stringify(item.categories);
+        card.dataset.search = [item.name, item.description, ...item.categories, ...item.tags].join(" ").toLowerCase();
+
+        const top = makeElement("div", "card-topline");
+        top.append(makeElement("span", "command-icon", "/"));
+        const topActions = makeElement("div", "card-top-actions");
+        topActions.append(makeElement("span", "card-number", String(index + 1).padStart(2, "0")));
+        const favourite = makeElement("button", "favourite-shortcut") as HTMLButtonElement;
+        favourite.type = "button";
+        const isFavourite = readStoredItems(FAVOURITES_KEY).some(
+          (entry) => entry.type === "shortcut" && entry.id === item.id
+        );
+        updateFavouriteButton(favourite, isFavourite);
+        favourite.addEventListener("click", () => saveFavourite(item, favourite));
+        topActions.append(favourite);
+        top.append(topActions);
+        card.append(top);
+
+        const meta = makeElement("div", "card-meta");
+        meta.append(makeElement("span", "category-name", item.categories[0] || "Shortcut"));
+        meta.append(makeElement("span", "command-label", "COMMAND"));
+        card.append(meta);
+
+        card.append(makeElement("h3", "", item.name));
+        card.append(makeElement("p", "card-description", item.description || ""));
+
+        const tags = makeElement("div", "tag-list");
+        item.tags.forEach((tag) => tags.append(makeElement("span", "", `#${tag}`)));
+        card.append(tags);
+
+        const footer = makeElement("div", "card-footer");
+        const indicator = makeElement("span", "footer-indicator");
+        indicator.append(makeElement("i"));
+        indicator.append(document.createTextNode(" READY TO USE"));
+        const copy = makeElement("button", "copy-shortcut");
+        copy.type = "button";
+        copy.dataset.copy = item.name;
+        copy.setAttribute("aria-label", `Copy ${item.name}`);
+        copy.append(makeElement("span", "copy-icon", "▢"));
+        copy.append(document.createTextNode(" Copy"));
+        copy.addEventListener("click", async () => {
+          recordRecentlyUsed(item);
+          try {
+            await navigator.clipboard.writeText(item.name);
+            copy.replaceChildren(makeElement("span", "copy-icon", "✓"), document.createTextNode(" Copied"));
+            window.setTimeout(() => {
+              copy.replaceChildren(makeElement("span", "copy-icon", "▢"), document.createTextNode(" Copy"));
+            }, 1500);
+          } catch {
+            copy.textContent = "Copy failed";
+          }
+        });
+        footer.append(indicator, copy);
+        card.append(footer);
+        grid.append(card);
+      });
+    }
+
+    function filterShortcuts() {
+      const query = search?.value.trim().toLowerCase() || "";
+      let visible = 0;
+      Array.from(grid?.querySelectorAll<HTMLElement>(".shortcut-card") || []).forEach((card) => {
+        const categories = JSON.parse(card.dataset.categories || "[]");
+        const show = (card.dataset.search || "").includes(query) &&
+          (activeCategory === "all" || categories.includes(activeCategory));
+        card.classList.toggle("hidden", !show);
+        if (show) visible++;
+      });
+      if (count) count.textContent = String(visible);
+      empty?.classList.toggle("hidden", visible !== 0);
+      if (emptyTitle) emptyTitle.textContent = shortcuts.length ? "No matching shortcuts" : "No published shortcuts yet";
+    }
+
+    function updateButtons() {
+      categoryContainer?.querySelectorAll<HTMLButtonElement>(".category-button").forEach((button) => {
+        const active = button.dataset.category === activeCategory;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+    }
+
+    async function loadShortcuts() {
+      if (!grid) return;
+      grid.replaceChildren(makeElement("p", "load-state", "Loading published shortcuts..."));
+      errorMessage?.classList.add("hidden");
+      try {
+        const { data: rows, error } = await supabase
+          .from("shortcuts")
+          .select("id, name, description, created_at")
+          .eq("status", "published")
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+
+        const ids = (rows || []).map((row: any) => row.id);
+        let categoryRows: any[] = [];
+        let tagRows: any[] = [];
+        if (ids.length) {
+          const [categoryResult, tagResult] = await Promise.all([
+            supabase.from("shortcut_categories").select("shortcut_id, category_id").in("shortcut_id", ids),
+            supabase.from("shortcut_tags").select("shortcut_id, tag_id").in("shortcut_id", ids),
+          ]);
+          if (categoryResult.error) throw categoryResult.error;
+          if (tagResult.error) throw tagResult.error;
+          categoryRows = categoryResult.data || [];
+          tagRows = tagResult.data || [];
+        }
+
+        const categoryIds = [...new Set(categoryRows.map((row: any) => row.category_id))];
+        const tagIds = [...new Set(tagRows.map((row: any) => row.tag_id))];
+        const [categoriesResult, tagsResult] = await Promise.all([
+          categoryIds.length ? supabase.from("categories").select("id, name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
+          tagIds.length ? supabase.from("tags").select("id, name").in("id", tagIds) : Promise.resolve({ data: [], error: null }),
+        ]);
+        if (categoriesResult.error) throw categoriesResult.error;
+        if (tagsResult.error) throw tagsResult.error;
+
+        const categoryNames = new Map((categoriesResult.data || []).map((row: any) => [row.id, row.name]));
+        const tagNames = new Map((tagsResult.data || []).map((row: any) => [row.id, row.name]));
+        shortcuts = (rows || []).map((row: any) => ({
+          ...row,
+          categories: categoryRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => categoryNames.get(rel.category_id)).filter(Boolean),
+          tags: tagRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => tagNames.get(rel.tag_id)).filter(Boolean),
+        }));
+
+        if (heroSubtitle) heroSubtitle.textContent = `${shortcuts.length} shortcuts in one collection.`;
+        renderCategories();
+        renderCards();
+        if (allTotal) allTotal.textContent = String(shortcuts.length);
+        filterShortcuts();
+      } catch (error) {
+        console.error("Shortcut library load failed:", error);
+        grid.replaceChildren();
+        if (errorMessage) {
+          errorMessage.textContent = "Shortcuts could not be loaded. Please try again later.";
+          errorMessage.classList.remove("hidden");
+        }
+        if (heroSubtitle) heroSubtitle.textContent = "Published shortcuts could not be loaded.";
+        if (empty) empty.classList.add("hidden");
+        if (count) count.textContent = "0";
+        if (allTotal) allTotal.textContent = "0";
+      }
+    }
+
+    search?.addEventListener("input", filterShortcuts);
+    resetButton?.addEventListener("click", () => {
+      if (search) search.value = "";
+      activeCategory = "all";
+      updateButtons();
+      filterShortcuts();
+    });
+    window.addEventListener("promptvault:shortcut-saved", loadShortcuts);
+    loadShortcuts();
+  </script>
+</MainLayout>
+
+<style>
+  .shortcuts-page {
+    min-height: 100vh;
+    padding-bottom: 100px;
+    color: #f3f2f7;
+  }
+
+  .shortcuts-hero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    padding: 78px 24px 65px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    background:
+      linear-gradient(180deg,rgba(10,11,15,.3),rgba(8,9,12,.94)),
+      radial-gradient(ellipse at 50% 0%,rgba(170,107,45,.16),transparent 48%);
+    text-align: center;
+  }
+
+  .shortcuts-hero::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    background:
+      linear-gradient(90deg,transparent 0 12%,rgba(255,255,255,.025) 12.2%,transparent 12.8% 27%,rgba(255,157,67,.11) 27.2%,transparent 28% 72%,rgba(255,255,255,.025) 72.2%,transparent 73% 87%,rgba(167,139,250,.09) 87.2%,transparent 88%),
+      radial-gradient(rgba(255,255,255,.16) .65px,transparent .8px);
+    background-size: auto,19px 19px;
+    opacity: .65;
+  }
+
+  .hero-light {
+    position: absolute;
+    z-index: -1;
+    width: 310px;
+    height: 310px;
+    border-radius: 50%;
+    filter: blur(105px);
+    pointer-events: none;
+  }
+
+  .hero-light-amber {
+    top: -155px;
+    left: 22%;
+    background: rgba(249,115,22,.16);
+  }
+
+  .hero-light-violet {
+    top: -120px;
+    right: 13%;
+    background: rgba(139,92,246,.13);
+  }
+
+  .hero-inner {
+    position: relative;
+    width: min(100%,780px);
+    margin: 0 auto;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 13px;
+    border: 1px solid rgba(251,146,60,.24);
+    border-radius: 999px;
+    background: rgba(249,115,22,.07);
+    color: #fdba74;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .12em;
+  }
+
+  .eyebrow i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fb923c;
+    box-shadow: 0 0 10px #fb923c;
+  }
+
+  .shortcuts-hero h1 {
+    margin: 24px 0 0;
+    color: #f4f2f7;
+    font-family: "Space Grotesk",sans-serif;
+    font-size: clamp(42px,6vw,66px);
+    font-weight: 600;
+    letter-spacing: -.065em;
+    line-height: 1.08;
+  }
+
+  .shortcuts-hero h1 span {
+    background: linear-gradient(100deg,#ffc27e,#f6a45f 48%,#c2a5ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .hero-subtitle {
+    margin: 17px 0 0;
+    color: #999aa7;
+    font-size: 14px;
+  }
+
+  .search-field {
+    display: flex;
+    width: min(100%,660px);
+    min-height: 61px;
+    align-items: center;
+    gap: 13px;
+    margin: 34px auto 0;
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 15px;
+    background: rgba(24,25,32,.82);
+    box-shadow: 0 16px 48px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.045);
+    backdrop-filter: blur(20px);
+    transition: border-color .2s ease,box-shadow .2s ease;
+  }
+
+  .search-field:focus-within {
+    border-color: rgba(251,146,60,.5);
+    box-shadow: 0 0 0 3px rgba(249,115,22,.08),0 16px 48px rgba(0,0,0,.3);
+  }
+
+  .search-field svg {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: #f6ad6b;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+  }
+
+  .search-field input {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #f4f3f7;
+    font-size: 13px;
+    box-shadow: none;
+  }
+
+  .search-field input:focus {
+    border: 0;
+    outline: none;
+    box-shadow: none;
+  }
+
+  .search-field input::placeholder {
+    color: #777985;
+  }
+
+  .search-field kbd {
+    flex-shrink: 0;
+    color: #727481;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .08em;
+  }
+
+  .hero-rule {
+    position: absolute;
+    right: 5%;
+    bottom: 0;
+    left: 5%;
+    height: 1px;
+    background: linear-gradient(90deg,transparent,rgba(251,146,60,.28),rgba(167,139,250,.2),transparent);
+  }
+
+  .shortcut-collection {
+    width: min(100% - 48px,1250px);
+    margin: 0 auto;
+    padding-top: 44px;
+  }
+
+  .toolbar {
+    margin-bottom: 43px;
+  }
+
+  .filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .category-button {
+    min-height: 39px;
+    padding: 0 15px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 10px;
+    background: rgba(255,255,255,.025);
+    color: #a3a3af;
+    font-size: 11px;
+    transition: .2s ease;
+  }
+
+  .category-button:hover {
+    border-color: rgba(251,146,60,.4);
+    color: #fff1e4;
+  }
+
+  .category-button.active {
+    border-color: rgba(251,146,60,.43);
+    background: linear-gradient(110deg,rgba(234,88,12,.23),rgba(251,146,60,.10));
+    color: #fed7aa;
+    box-shadow: 0 5px 20px rgba(249,115,22,.08);
+  }
+
+  .category-button span {
+    margin-left: 6px;
+    color: #fdba74;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .results-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .results-kicker {
+    color: #a78bfa;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+    letter-spacing: .14em;
+  }
+
+  .results-heading h2 {
+    margin: 7px 0 0;
+    color: #f0eef4;
+    font-family: "Space Grotesk",sans-serif;
+    font-size: 25px;
+    font-weight: 600;
+    letter-spacing: -.045em;
+  }
+
+  .results-heading h2 span {
+    color: #fb923c;
+  }
+
+  .results-heading > p {
+    margin: 0 0 3px;
+    color: #858692;
+    font-size: 11px;
+  }
+
+  .results-heading > p strong {
+    color: #fdba74;
+    font-family: "JetBrains Mono",monospace;
+    font-weight: 500;
+  }
+
+  .shortcut-grid {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 16px;
+  }
+
+  .shortcut-card {
+    --accent: #fdba74;
+    --accent-rgb: 251,146,60;
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 275px;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 21px;
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 16px;
+    background: linear-gradient(145deg,#1b1c23,#121319 82%);
+    box-shadow: 0 13px 35px rgba(0,0,0,.19),inset 0 1px 0 rgba(255,255,255,.035);
+    transition: transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+  }
+
+  .shortcut-card:nth-child(3n + 2) {
+    --accent: #a5b4fc;
+    --accent-rgb: 129,140,248;
+  }
+
+  .shortcut-card:nth-child(3n) {
+    --accent: #67e8f9;
+    --accent-rgb: 34,211,238;
+  }
+
+  .shortcut-card::after {
+    position: absolute;
+    right: -75px;
+    bottom: -110px;
+    width: 190px;
+    height: 190px;
+    border-radius: 50%;
+    background: rgba(var(--accent-rgb),.12);
+    content: "";
+    filter: blur(65px);
+    opacity: .45;
+    pointer-events: none;
+    transition: opacity .22s ease;
+  }
+
+  .shortcut-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(var(--accent-rgb),.4);
+    box-shadow: 0 20px 45px rgba(0,0,0,.32),0 0 24px rgba(var(--accent-rgb),.06);
+  }
+
+  .shortcut-card:hover::after {
+    opacity: .9;
+  }
+
+  .card-topline,.card-meta,.card-footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .command-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(var(--accent-rgb),.2);
+    border-radius: 12px;
+    background: rgba(var(--accent-rgb),.11);
+    color: var(--accent);
+    font-family: "JetBrains Mono",monospace;
+    font-size: 22px;
+  }
+
+  .card-number {
+    color: #696b77;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .card-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+
+  .favourite-shortcut {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.11);
+    border-radius: 9px;
+    background: rgba(255,255,255,.035);
+    color: #a1a1aa;
+    font-size: 19px;
+    line-height: 1;
+    cursor: pointer;
+    transition: .2s ease;
+  }
+
+  .favourite-shortcut:hover,
+  .favourite-shortcut.is-favourite {
+    border-color: rgba(251,146,60,.42);
+    background: rgba(249,115,22,.12);
+    color: #fdba74;
+  }
+
+  .card-meta {
+    justify-content: flex-start;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .category-name {
+    color: var(--accent);
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .command-label {
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,.15);
+    color: #858692;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .shortcut-card h3 {
+    position: relative;
+    z-index: 1;
+    margin: 13px 0 0;
+    color: var(--accent);
+    font-family: "Space Grotesk",sans-serif;
+    font-size: 27px;
+    font-weight: 600;
+    letter-spacing: -.04em;
+    overflow-wrap: anywhere;
+  }
+
+  .card-description {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    margin: 10px 0 0;
+    color: #a0a0ac;
+    font-size: 12px;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+  }
+
+  .tag-list {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 17px;
+  }
+
+  .tag-list span {
+    padding: 4px 7px;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px;
+    background: rgba(255,255,255,.025);
+    color: #858692;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 9px;
+  }
+
+  .card-footer {
+    margin-top: 18px;
+    padding-top: 13px;
+    border-top: 1px solid rgba(255,255,255,.09);
+  }
+
+  .footer-indicator {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #777985;
+    font-family: "JetBrains Mono",monospace;
+    font-size: 8px;
+    letter-spacing: .06em;
+  }
+
+  .footer-indicator i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    box-shadow: 0 0 8px rgba(74,222,128,.6);
+  }
+
+  .copy-shortcut {
+    min-width: 75px;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 11px;
+    border: 1px solid rgba(var(--accent-rgb),.25);
+    border-radius: 9px;
+    background: rgba(var(--accent-rgb),.10);
+    color: var(--accent);
+    font-size: 10px;
+    font-weight: 600;
+    transition: background .2s ease,border-color .2s ease;
+  }
+
+  .copy-shortcut:hover {
+    border-color: rgba(var(--accent-rgb),.5);
+    background: rgba(var(--accent-rgb),.2);
+  }
+
+  .copy-icon {
+    font-size: 14px;
+  }
+
+  .empty-state {
+    padding: 75px 20px;
+    border: 1px dashed rgba(255,255,255,.15);
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .empty-symbol {
+    color: #fdba74;
+    font-size: 35px;
+  }
+
+  .empty-state h3 {
+    margin: 12px 0 18px;
+    color: #eeeef3;
+    font-family: "Space Grotesk",sans-serif;
+    font-size: 20px;
+  }
+
+  .empty-state button {
+    padding: 9px 14px;
+    border: 1px solid rgba(251,146,60,.28);
+    border-radius: 9px;
+    background: rgba(249,115,22,.09);
+    color: #fed7aa;
+    font-size: 11px;
+  }
+
+  .empty-state button span {
+    margin-left: 5px;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 900px) {
+    .shortcut-grid {
+      grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+  }
+
+  @media (max-width: 600px) {
+    .shortcuts-hero {
+      padding: 65px 19px 48px;
+    }
+
+    .shortcuts-hero h1 {
+      font-size: clamp(39px,10vw,54px);
+    }
+
+    .search-field {
+      gap: 9px;
+      padding: 7px 11px;
+    }
+
+    .search-field kbd {
+      display: none;
+    }
+
+    .shortcut-collection {
+      width: calc(100% - 34px);
+      padding-top: 32px;
+    }
+
+    .filter-list {
+      gap: 7px;
+    }
+
+    .category-button {
+      min-height: 36px;
+      padding: 0 11px;
+      font-size: 10px;
+    }
+
+    .shortcut-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .shortcut-card {
+      min-height: 260px;
+    }
+
+    .results-heading h2 {
+      font-size: 22px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shortcut-card,.copy-shortcut,.category-button,.search-field {
+      transition: none;
+    }
+  }
+</style>

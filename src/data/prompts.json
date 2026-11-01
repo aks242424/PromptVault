@@ -1,0 +1,62 @@
+[
+  {
+    "id": "cyberpunk-portrait",
+    "title": "Cyberpunk Portrait",
+    "type": "image",
+    "category": "Portrait",
+    "description": "A futuristic portrait with dramatic neon lighting and detailed textures.",
+    "content": "A cinematic cyberpunk portrait of a person in a futuristic city at night, vibrant neon signs illuminating the face, intricate clothing details, atmospheric lighting, realistic skin texture, shallow depth of field, cinematic composition.",
+    "tags": ["portrait", "cyberpunk", "neon"],
+    "relatedShortcutIds": ["neon", "cinematic", "bokeh"]
+  },
+  {
+    "id": "product-photography",
+    "title": "Professional Product Photography",
+    "type": "image",
+    "category": "Photography",
+    "description": "A refined product photograph with controlled studio lighting.",
+    "content": "Professional studio product photography of a premium product, carefully controlled softbox lighting, clean composition, realistic material textures, subtle reflections, crisp focus, premium commercial advertising aesthetic.",
+    "tags": ["product", "studio", "commercial"],
+    "relatedShortcutIds": ["4k", "minimal", "bokeh"]
+  },
+  {
+    "id": "cinematic-landscape",
+    "title": "Cinematic Landscape",
+    "type": "image",
+    "category": "Landscape",
+    "description": "A dramatic cinematic landscape with atmospheric depth.",
+    "content": "A breathtaking cinematic landscape with distant mountains, atmospheric fog, dramatic natural lighting, rich environmental details, realistic textures, wide-angle composition, subtle film grain.",
+    "tags": ["landscape", "cinematic", "nature"],
+    "relatedShortcutIds": ["cinematic", "4k", "volumetric"]
+  },
+  {
+    "id": "cinematic-city",
+    "title": "Cinematic City Sequence",
+    "type": "video",
+    "category": "Cinematic",
+    "description": "A futuristic city scene with dynamic camera movement.",
+    "content": "A cinematic aerial tracking shot moving slowly through a futuristic city at night, glowing neon architecture, atmospheric haze, moving traffic, realistic reflections, smooth camera movement, cinematic lighting.",
+    "tags": ["city", "tracking", "cinematic"],
+    "relatedShortcutIds": ["drone", "neon", "tracking"]
+  },
+  {
+    "id": "slow-motion-action",
+    "title": "Slow Motion Action",
+    "type": "video",
+    "category": "Action",
+    "description": "A dramatic slow-motion sequence emphasizing movement.",
+    "content": "A cinematic slow-motion action sequence, detailed movement and realistic physics, dramatic lighting, dynamic camera tracking, subtle environmental particles, sharp subject focus, high-end film production quality.",
+    "tags": ["slow motion", "action", "movement"],
+    "relatedShortcutIds": ["slowmotion", "cinematic", "tracking"]
+  },
+  {
+    "id": "nature-documentary",
+    "title": "Nature Documentary",
+    "type": "video",
+    "category": "Nature",
+    "description": "A realistic wildlife documentary-style video sequence.",
+    "content": "A realistic wildlife documentary shot of an animal moving through its natural environment, natural sunlight, authentic environmental details, smooth telephoto camera tracking, realistic movement and cinematic documentary quality.",
+    "tags": ["wildlife", "nature", "documentary"],
+    "relatedShortcutIds": ["4k", "pov", "tracking"]
+  }
+]
