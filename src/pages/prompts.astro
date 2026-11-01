@@ -11,7 +11,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       <div class="hero-light hero-light-blue"></div>
       <div class="hero-light hero-light-rose"></div>
       <div class="hero-inner">
-        <span class="eyebrow"><i></i> VISUAL PROMPT COLLECTION</span>
+        <span class="eyebrow"><i></i> THE VISUAL PROMPT LIBRARY</span>
         <h1>Prompts <span>that create.</span></h1>
         <p id="hero-subtitle" class="hero-subtitle">Loading published prompts...</p>
         <label class="search-field">
@@ -28,22 +28,23 @@ import MainLayout from "../layouts/MainLayout.astro";
 
     <section class="prompt-collection">
       <div class="toolbar">
-        <div id="prompt-types" class="filter-list" aria-label="Filter prompt type">
+        <div id="prompt-types" class="filter-list type-filters" aria-label="Filter prompt type">
           <button data-type="all" class="type-button active" aria-pressed="true">All prompts <span id="all-prompt-total">0</span></button>
-          <button data-type="image" class="type-button" aria-pressed="false">Image prompts</button>
-          <button data-type="video" class="type-button" aria-pressed="false">Video prompts</button>
+          <button data-type="image" class="type-button type-image" aria-pressed="false">Image prompts</button>
+          <button data-type="video" class="type-button type-video" aria-pressed="false">Video prompts</button>
+          <button data-type="other" class="type-button type-other" aria-pressed="false">Other prompts</button>
         </div>
-        <label class="category-select-wrap">
-          <span>CATEGORY</span>
-          <select id="prompt-category" aria-label="Filter by category">
-            <option value="all">All categories</option>
-          </select>
-        </label>
+        <div class="category-filter-block">
+          <span class="filter-label">CATEGORIES</span>
+          <div id="prompt-categories" class="filter-list category-filters" aria-label="Filter prompts by category">
+            <button data-category="all" class="category-button active" aria-pressed="true">All categories</button>
+          </div>
+        </div>
       </div>
 
       <div class="results-heading">
         <div>
-          <span class="results-kicker">THE COLLECTION</span>
+          <span class="results-kicker">PROMPT LIBRARY</span>
           <h2>Creative prompts<span>.</span></h2>
         </div>
         <p><strong id="prompt-count">0</strong> results</p>
@@ -66,7 +67,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     import { supabase } from "../lib/supabase.js";
 
     const search = document.querySelector<HTMLInputElement>("#prompt-search");
-    const categorySelect = document.querySelector<HTMLSelectElement>("#prompt-category");
+    const categoryContainer = document.querySelector<HTMLElement>("#prompt-categories");
     const grid = document.querySelector<HTMLElement>("#prompt-grid");
     const count = document.querySelector<HTMLElement>("#prompt-count");
     const allTotal = document.querySelector<HTMLElement>("#all-prompt-total");
@@ -78,7 +79,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     const typeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".type-button"));
 
     let prompts: any[] = [];
-    let activeType = "all";
+    let activeType = "all";\n    let activeCategory = "all";
 
     function element<K extends keyof HTMLElementTagNameMap>(
       tag: K,
@@ -219,7 +220,7 @@ import MainLayout from "../layouts/MainLayout.astro";
 
     function filterPrompts() {
       const query = search?.value.trim().toLowerCase() || "";
-      const category = categorySelect?.value || "all";
+      const category = activeCategory;
       let visible = 0;
 
       Array.from(grid?.querySelectorAll<HTMLElement>(".prompt-card") || []).forEach((card) => {
@@ -239,6 +240,11 @@ import MainLayout from "../layouts/MainLayout.astro";
     function updateButtons() {
       typeButtons.forEach((button) => {
         const active = button.dataset.type === activeType;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      categoryContainer?.querySelectorAll<HTMLButtonElement>(".category-button").forEach((button) => {
+        const active = button.dataset.category === activeCategory;
         button.classList.toggle("active", active);
         button.setAttribute("aria-pressed", String(active));
       });
@@ -307,8 +313,21 @@ import MainLayout from "../layouts/MainLayout.astro";
         }
 
         const categories = [...new Set(prompts.flatMap((prompt) => prompt.categories))].sort((a, b) => a.localeCompare(b));
-        categorySelect?.replaceChildren(new Option("All categories", "all"));
-        categories.forEach((category) => categorySelect?.add(new Option(category, category)));
+        if (categoryContainer) {
+          categoryContainer.replaceChildren();
+          const allButton = element("button", "category-button active", "All categories") as HTMLButtonElement;
+          allButton.type = "button";
+          allButton.dataset.category = "all";
+          allButton.setAttribute("aria-pressed", "true");
+          categoryContainer.append(allButton);
+          categories.forEach((category) => {
+            const button = element("button", "category-button", category) as HTMLButtonElement;
+            button.type = "button";
+            button.dataset.category = category;
+            button.setAttribute("aria-pressed", "false");
+            categoryContainer.append(button);
+          });
+        }
 
         if (allTotal) allTotal.textContent = String(prompts.length);
         if (heroSubtitle) heroSubtitle.textContent = `${prompts.length} published ${prompts.length === 1 ? "prompt" : "prompts"} in one collection.`;
@@ -339,7 +358,13 @@ import MainLayout from "../layouts/MainLayout.astro";
     }
 
     search?.addEventListener("input", filterPrompts);
-    categorySelect?.addEventListener("change", filterPrompts);
+    categoryContainer?.addEventListener("click", (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>(".category-button");
+      if (!button) return;
+      activeCategory = button.dataset.category || "all";
+      updateButtons();
+      filterPrompts();
+    });
 
     typeButtons.forEach((button) => {
       button.addEventListener("click", () => {
@@ -351,7 +376,7 @@ import MainLayout from "../layouts/MainLayout.astro";
 
     resetButton?.addEventListener("click", () => {
       if (search) search.value = "";
-      if (categorySelect) categorySelect.value = "all";
+      activeCategory = "all";
       activeType = "all";
       updateButtons();
       filterPrompts();
@@ -543,70 +568,91 @@ import MainLayout from "../layouts/MainLayout.astro";
 
   .toolbar {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 20px;
-    margin-bottom: 45px;
+    margin-bottom: 42px;
   }
 
   .filter-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 9px;
   }
 
-  .type-button {
-    min-height: 39px;
-    padding: 0 15px;
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 10px;
+  .type-button,
+  .category-button {
+    min-height: 42px;
+    padding: 0 17px;
+    border: 1px solid rgba(255,255,255,.11);
+    border-radius: 11px;
     background: rgba(255,255,255,.025);
-    color: #a3a3af;
-    font-size: 11px;
+    color: #a7a7b4;
+    font-size: 12px;
+    cursor: pointer;
     transition: .2s ease;
   }
 
-  .type-button:hover {
-    border-color: rgba(96,165,250,.38);
-    color: #e8f3ff;
+  .type-button:hover,
+  .category-button:hover {
+    border-color: rgba(255,255,255,.25);
+    color: #f4f4f7;
+    transform: translateY(-1px);
   }
 
-  .type-button.active {
-    border-color: rgba(96,165,250,.42);
-    background: linear-gradient(110deg,rgba(37,99,235,.23),rgba(96,165,250,.10));
-    color: #bfdbfe;
-    box-shadow: 0 5px 20px rgba(59,130,246,.08);
+  .type-button.active,
+  .category-button.active {
+    border-color: rgba(251,146,60,.48);
+    background: linear-gradient(110deg,rgba(249,115,22,.20),rgba(251,191,36,.08));
+    color: #fed7aa;
+    box-shadow: 0 5px 20px rgba(249,115,22,.07);
   }
 
   .type-button span {
-    margin-left: 6px;
-    color: #93c5fd;
+    margin-left: 7px;
+    color: #fdba74;
     font-family: "JetBrains Mono",monospace;
-    font-size: 9px;
+    font-size: 10px;
   }
 
-  .category-select-wrap {
+  .type-button.type-image.active {
+    border-color: rgba(52,211,153,.45);
+    background: rgba(16,185,129,.12);
+    color: #6ee7b7;
+  }
+
+  .type-button.type-video.active {
+    border-color: rgba(167,139,250,.48);
+    background: rgba(139,92,246,.14);
+    color: #c4b5fd;
+  }
+
+  .type-button.type-other.active {
+    border-color: rgba(56,189,248,.45);
+    background: rgba(14,165,233,.12);
+    color: #7dd3fc;
+  }
+
+  .category-filter-block {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 11px;
   }
 
-  .category-select-wrap > span {
-    color: #777985;
+  .filter-label {
+    color: #8b8b98;
     font-family: "JetBrains Mono",monospace;
     font-size: 9px;
-    letter-spacing: .1em;
+    letter-spacing: .16em;
   }
 
-  .category-select-wrap select {
-    min-width: 160px;
-    min-height: 40px;
-    padding: 0 33px 0 12px;
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 10px;
-    background-color: #17181e;
-    color: #d1d0da;
-    font-size: 11px;
+  .category-filters {
+    gap: 9px;
+  }
+
+  .category-button.active {
+    border-color: rgba(96,165,250,.42);
+    background: rgba(59,130,246,.12);
+    color: #bfdbfe;
   }
 
   .results-heading {
@@ -618,7 +664,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .results-kicker {
-    color: #fb9aaa;
+    color: #fbbf24;
     font-family: "JetBrains Mono",monospace;
     font-size: 9px;
     letter-spacing: .14em;
@@ -634,7 +680,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .results-heading h2 span {
-    color: #fb7185;
+    color: #f59e0b;
   }
 
   .results-heading > p {
@@ -657,8 +703,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .prompt-card {
-    --accent: #93c5fd;
-    --accent-rgb: 96,165,250;
+    --accent: #fbbf24;
+    --accent-rgb: 245,158,11;
     position: relative;
     display: flex;
     min-width: 0;
@@ -673,24 +719,19 @@ import MainLayout from "../layouts/MainLayout.astro";
     transition: transform .22s ease,border-color .22s ease,box-shadow .22s ease;
   }
 
+  .prompt-image {
+    --accent: #6ee7b7;
+    --accent-rgb: 16,185,129;
+  }
+
   .prompt-video {
     --accent: #c4b5fd;
-    --accent-rgb: 167,139,250;
+    --accent-rgb: 139,92,246;
   }
 
   .prompt-other {
-    --accent: #67e8f9;
-    --accent-rgb: 34,211,238;
-  }
-
-  .prompt-card:nth-child(3n + 2):not(.prompt-video):not(.prompt-other) {
-    --accent: #f9a8d4;
-    --accent-rgb: 236,72,153;
-  }
-
-  .prompt-card:nth-child(3n):not(.prompt-video):not(.prompt-other) {
-    --accent: #86efac;
-    --accent-rgb: 74,222,128;
+    --accent: #7dd3fc;
+    --accent-rgb: 14,165,233;
   }
 
   .prompt-card::after {
@@ -976,8 +1017,14 @@ import MainLayout from "../layouts/MainLayout.astro";
     }
 
     .toolbar {
-      align-items: flex-start;
-      flex-direction: column;
+      gap: 16px;
+    }
+
+    .type-button,
+    .category-button {
+      min-height: 38px;
+      padding: 0 13px;
+      font-size: 11px;
     }
   }
 
@@ -1014,14 +1061,8 @@ import MainLayout from "../layouts/MainLayout.astro";
       font-size: 10px;
     }
 
-    .category-select-wrap {
-      width: 100%;
-      justify-content: space-between;
-    }
-
-    .category-select-wrap select {
-      flex: 1;
-      max-width: 230px;
+    .category-filter-block {
+      gap: 9px;
     }
 
     .prompt-grid {
