@@ -104,46 +104,45 @@ import PromptForm from "../components/PromptForm.astro";
 
         <section class="bulk-panel" aria-labelledby="bulk-heading">
           <div class="bulk-heading">
-            <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts and shortcuts from CSV</h2></div>
-            <button id="download-csv-template" class="btn btn-quiet" type="button">Download CSV template</button>
-          </div>
-          <p class="bulk-intro">Import prompts and shortcuts together. Mark each row as <code>prompt</code> or <code>shortcut</code>. Every imported item is saved as a draft; publish it later from its management list.</p>
-          <div class="csv-format">
-            <div class="csv-format-title">CSV columns</div>
-            <code>item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status</code>
-            <div class="csv-columns">
-              <p><strong>Prompt required:</strong> <code>title</code>, <code>content</code>, <code>prompt_type</code>.</p>
-              <p><strong>Shortcut required:</strong> <code>name</code>, <code>description</code>.</p>
+            <div>
+              <span class="eyebrow bulk-eyebrow">CSV IMPORT</span>
+              <h2 id="bulk-heading">Import your library</h2>
             </div>
-            <ul>
-              <li><code>item_type</code> is required: <code>prompt</code> or <code>shortcut</code>.</li>
-              <li>Prompts require <code>title</code>, <code>content</code> and <code>prompt_type</code> (<code>image</code>, <code>video</code> or <code>other</code>).</li>
-              <li>Shortcuts require <code>name</code> and <code>description</code>.</li>
-              <li>All imported prompts and shortcuts are saved as <code>draft</code>, even if the CSV contains a status value.</li>
-              <li>Separate each category and tag with <code>|</code> or <code>;</code>. Each value is created and linked individually. AI tools apply to prompts only.</li>
-              <li>Use standard CSV quotes around values containing commas, quotes or line breaks.</li>
-            </ul>
-            <div class="csv-example"><span>Example rows</span><code>prompt,"Neon Portrait",,"A cinematic neon-lit portrait...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft<br />shortcut,,"Copy prompt shortcut",,"Quick description",,"Productivity|Writing","Workflow|Copy",,published</code></div>
+            <button id="download-csv-template" class="btn btn-quiet" type="button">Download template</button>
+          </div>
+          <p class="bulk-intro">Add prompts and shortcuts in one CSV. Review the rows before importing; every new record is saved as a draft.</p>
+          <div class="csv-format">
+            <div class="csv-format-title">File format</div>
+            <code>item_type,title,name,content,prompt_type,description,categories,tags,ai_tools</code>
+            <div class="csv-columns">
+              <p><strong>Prompt:</strong> title, content and prompt_type are required.</p>
+              <p><strong>Shortcut:</strong> name and description are required.</p>
+            </div>
+            <p class="csv-help">Use <code>prompt</code> or <code>shortcut</code> in item_type. Prompt types: <code>image</code>, <code>video</code>, <code>other</code>. Separate multiple categories, tags and AI tools with <code>|</code> or <code>;</code>. AI tools are used for prompts only.</p>
+            <div class="csv-example">
+              <span>Sample rows</span>
+              <code>prompt,"Neon Portrait",,"A cinematic neon-lit portrait...",image,"Portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT"<br />shortcut,,"/windy",,,"Visible or implied wind","Weather|Nature","wind|atmosphere",</code>
+            </div>
           </div>
           <div class="bulk-upload-row">
             <label class="csv-file-label" for="bulk-csv-file">Choose CSV file</label>
             <input id="bulk-csv-file" type="file" accept=".csv,text/csv" />
-            <button id="bulk-validate-button" class="btn btn-quiet" type="button" disabled>1. Validate CSV</button>
-            <button id="bulk-import-button" class="btn btn-primary" type="button" disabled>2. Import selected</button>
+            <button id="bulk-validate-button" class="btn btn-quiet" type="button" disabled>Validate file</button>
+            <button id="bulk-import-button" class="btn btn-primary" type="button" disabled>Import selected</button>
           </div>
           <p id="bulk-file-name" class="muted">No file selected.</p>
           <div id="bulk-validation" class="bulk-validation" role="status" aria-live="polite"></div>
           <div id="bulk-errors" class="bulk-errors" hidden></div>
-          <section id="bulk-preview" class="bulk-preview" hidden aria-label="Validated prompt selection">
+          <section id="bulk-preview" class="bulk-preview" hidden aria-label="Validated import rows">
             <div class="bulk-preview-heading">
-              <strong>Review items to import</strong>
+              <strong>Review import</strong>
               <div class="bulk-preview-controls">
                 <button id="bulk-select-all" type="button">Select all ready</button>
                 <button id="bulk-clear-selection" type="button">Clear selection</button>
                 <span id="bulk-selection-count">0 selected</span>
               </div>
             </div>
-            <div class="bulk-preview-list" id="bulk-preview-list"></div>
+            <div id="bulk-preview-list" class="bulk-preview-list"></div>
           </section>
         </section>
         <div id="prompt-editor" class="editor-section">
@@ -649,7 +648,6 @@ import PromptForm from "../components/PromptForm.astro";
       supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false })
     ]);
 
-    // Shortcut management does not depend on a shortcut type column.
     const shortcutsDataResult = await supabase.from("shortcuts")
       .select("id, name, description, status, created_at")
       .order("created_at", { ascending: false });
@@ -1035,9 +1033,9 @@ import PromptForm from "../components/PromptForm.astro";
   }
 
   $("#download-csv-template").addEventListener("click", () => {
-    const sample = 'item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status\r\n' +
-      'prompt,"Neon Portrait",,"A cinematic neon-lit portrait of a subject...",image,"Neon portrait prompt",,"Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft\r\n' +
-      'shortcut,,"Copy prompt shortcut",,"Quick description of the shortcut",Other,"Productivity|Writing","Workflow|Copy",,published\r\n';
+    const sample = 'item_type,title,name,content,prompt_type,description,categories,tags,ai_tools\r\n' +
+      'prompt,"Neon Portrait",,"A cinematic neon-lit portrait of a subject...",image,"Portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT"\r\n' +
+      'shortcut,,"/windy",,,"Visible or implied wind","Weather|Nature","wind|atmosphere",\r\n';
     const url = URL.createObjectURL(new Blob([sample], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a"); anchor.href = url; anchor.download = "promptvault-import-template.csv"; anchor.click(); URL.revokeObjectURL(url);
   });
@@ -1081,7 +1079,7 @@ import PromptForm from "../components/PromptForm.astro";
       if (rawRows.length < 2) throw new Error("The CSV must contain a header and at least one data row.");
       const headers = rawRows[0].map((header) => header.trim().toLowerCase().replace(/^\uFEFF/, ""));
       if (new Set(headers).size !== headers.length) throw new Error("CSV contains duplicate column names.");
-      const allowedHeaders = ["item_type", "title", "name", "content", "prompt_type", "description", "categories", "tags", "ai_tools", "status"];
+      const allowedHeaders = ["item_type", "title", "name", "content", "prompt_type", "description", "categories", "tags", "ai_tools"];
       const unknownHeaders = headers.filter((header) => !allowedHeaders.includes(header));
       if (unknownHeaders.length) throw new Error(`Unknown CSV columns: ${unknownHeaders.join(", ")}`);
       const index = Object.fromEntries(headers.map((header, i) => [header, i]));
@@ -1107,7 +1105,6 @@ import PromptForm from "../components/PromptForm.astro";
         const title = get("title"), name = get("name"), content = get("content");
         const label = itemType === "shortcut" ? name : title;
         const promptType = get("prompt_type").toLowerCase();
-        // Import is intentionally draft-only. CSV status values are ignored.
         const status = "draft";
         const categoryNames = splitList(get("categories")), tagNames = splitList(get("tags"));
         const aiTools = splitList(get("ai_tools"));
