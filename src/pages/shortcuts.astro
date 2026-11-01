@@ -168,7 +168,7 @@ import MainLayout from "../layouts/MainLayout.astro";
         card.id = `shortcut-${item.id}`;
         card.dataset.id = String(item.id);
         card.dataset.categories = JSON.stringify(item.categories);
-        card.dataset.search = [item.name, item.description, ...item.categories, ...item.tags].join(" ").toLowerCase();
+        card.dataset.search = [item.name, item.description, ...(item.categories || []), ...(item.tags || [])].join(" ").toLowerCase();
 
         const top = makeElement("div", "card-topline");
         top.append(makeElement("span", "command-icon", "/"));
@@ -186,15 +186,15 @@ import MainLayout from "../layouts/MainLayout.astro";
         card.append(top);
 
         const meta = makeElement("div", "card-meta");
-        meta.append(makeElement("span", "category-name", item.categories[0] || "Shortcut"));
-        meta.append(makeElement("span", "command-label", "COMMAND"));
+        meta.append(makeElement("span", "category-name", (item.categories || [])[0] || "Shortcut"));
+        meta.append(makeElement("span", "command-label", item.shortcut_type || "Other"));
         card.append(meta);
 
         card.append(makeElement("h3", "", item.name));
         card.append(makeElement("p", "card-description", item.description || ""));
 
         const tags = makeElement("div", "tag-list");
-        item.tags.forEach((tag) => tags.append(makeElement("span", "", `#${tag}`)));
+        (item.tags || []).forEach((tag) => tags.append(makeElement("span", "", `#${tag}`)));
         card.append(tags);
 
         const footer = makeElement("div", "card-footer");
@@ -253,25 +253,37 @@ import MainLayout from "../layouts/MainLayout.astro";
       grid.replaceChildren(makeElement("p", "load-state", "Loading published shortcuts..."));
       errorMessage?.classList.add("hidden");
       try {
-        const { data: rows, error } = await supabase
-          .from("shortcuts")
-          .select("id, name, description, created_at")
+        // shortcut_type is optional on older deployments. The public library must
+        // still load if that migration has not yet been applied.
+        let baseResult = await supabase.from("shortcuts")
+          .select("id, name, description, shortcut_type, created_at")
           .eq("status", "published")
           .order("created_at", { ascending: false });
-        if (error) throw error;
-
-        const ids = (rows || []).map((row: any) => row.id);
+        if (baseResult.error && /shortcut_type|column .* does not exist|schema cache/i.test(baseResult.error.message || "")) {
+          baseResult = await supabase.from("shortcuts")
+            .select("id, name, description, created_at")
+            .eq("status", "published")
+            .order("created_at", { ascending: false });
+        }
+        if (baseResult.error) throw baseResult.error;
+        const rows = baseResult.data || [];
+        const ids = rows.map((row: any) => row.id);
         let categoryRows: any[] = [];
         let tagRows: any[] = [];
-        if (ids.length) {
+        let taxonomyWarning = "";
+
+        // Taxonomy is loaded independently. If a public SELECT policy is missing
+        // for one relationship table, shortcuts themselves still remain visible.
+        for (let offset = 0; offset < ids.length; offset += 100) {
+          const batch = ids.slice(offset, offset + 100);
           const [categoryResult, tagResult] = await Promise.all([
-            supabase.from("shortcut_categories").select("shortcut_id, category_id").in("shortcut_id", ids),
-            supabase.from("shortcut_tags").select("shortcut_id, tag_id").in("shortcut_id", ids),
+            supabase.from("shortcut_categories").select("shortcut_id, category_id").in("shortcut_id", batch),
+            supabase.from("shortcut_tags").select("shortcut_id, tag_id").in("shortcut_id", batch),
           ]);
-          if (categoryResult.error) throw categoryResult.error;
-          if (tagResult.error) throw tagResult.error;
-          categoryRows = categoryResult.data || [];
-          tagRows = tagResult.data || [];
+          if (categoryResult.error) taxonomyWarning = `Shortcut categories unavailable: ${categoryResult.error.message}`;
+          else categoryRows.push(...(categoryResult.data || []));
+          if (tagResult.error) taxonomyWarning = [taxonomyWarning, `Shortcut tags unavailable: ${tagResult.error.message}`].filter(Boolean).join(" · ");
+          else tagRows.push(...(tagResult.data || []));
         }
 
         const categoryIds = [...new Set(categoryRows.map((row: any) => row.category_id))];
@@ -280,13 +292,13 @@ import MainLayout from "../layouts/MainLayout.astro";
           categoryIds.length ? supabase.from("categories").select("id, name").in("id", categoryIds) : Promise.resolve({ data: [], error: null }),
           tagIds.length ? supabase.from("tags").select("id, name").in("id", tagIds) : Promise.resolve({ data: [], error: null }),
         ]);
-        if (categoriesResult.error) throw categoriesResult.error;
-        if (tagsResult.error) throw tagsResult.error;
-
+        if (categoriesResult.error) taxonomyWarning = [taxonomyWarning, `Category names unavailable: ${categoriesResult.error.message}`].filter(Boolean).join(" · ");
+        if (tagsResult.error) taxonomyWarning = [taxonomyWarning, `Tag names unavailable: ${tagsResult.error.message}`].filter(Boolean).join(" · ");
         const categoryNames = new Map((categoriesResult.data || []).map((row: any) => [row.id, row.name]));
         const tagNames = new Map((tagsResult.data || []).map((row: any) => [row.id, row.name]));
-        shortcuts = (rows || []).map((row: any) => ({
+        shortcuts = rows.map((row: any) => ({
           ...row,
+          shortcut_type: row.shortcut_type || "Other",
           categories: categoryRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => categoryNames.get(rel.category_id)).filter(Boolean),
           tags: tagRows.filter((rel: any) => rel.shortcut_id === row.id).map((rel: any) => tagNames.get(rel.tag_id)).filter(Boolean),
         }));
@@ -296,11 +308,19 @@ import MainLayout from "../layouts/MainLayout.astro";
         renderCards();
         if (allTotal) allTotal.textContent = String(shortcuts.length);
         filterShortcuts();
+        if (taxonomyWarning) {
+          console.warn("PromptVault shortcut taxonomy warning:", taxonomyWarning);
+          if (errorMessage) {
+            errorMessage.textContent = "Shortcuts loaded, but some category or tag filters may be unavailable. Check public SELECT permissions for shortcut_categories, shortcut_tags, categories and tags.";
+            errorMessage.classList.remove("hidden");
+          }
+        }
       } catch (error) {
         console.error("Shortcut library load failed:", error);
         grid.replaceChildren();
         if (errorMessage) {
-          errorMessage.textContent = "Shortcuts could not be loaded. Please try again later.";
+          const detail = error instanceof Error ? error.message : String(error);
+          errorMessage.textContent = `Shortcuts could not be loaded: ${detail}`;
           errorMessage.classList.remove("hidden");
         }
         if (heroSubtitle) heroSubtitle.textContent = "Published shortcuts could not be loaded.";
@@ -322,9 +342,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   </script>
 </MainLayout>
 
-<style is:global>
-  /* Cards, filters and controls are built at runtime in the page script.
-     Global selectors ensure Astro-scoped CSS also styles those generated nodes. */
+<style>
   .shortcuts-page {
     min-height: 100vh;
     padding-bottom: 100px;
@@ -515,7 +533,6 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .category-button {
-    cursor: pointer;
     min-height: 39px;
     padding: 0 15px;
     border: 1px solid rgba(255,255,255,.10);
@@ -785,7 +802,6 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .copy-shortcut {
-    cursor: pointer;
     min-width: 75px;
     min-height: 34px;
     display: inline-flex;
