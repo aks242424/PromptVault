@@ -274,13 +274,15 @@
     reducedMotion: boolean;
     reopenLastPanel: boolean;
   };
+  type UtilityName = "favorites" | "recent" | "random" | "settings";
+  type DatabaseItem = { id: string; title?: string; name?: string };
 
   const FAVORITES_KEY = "promptvault:favourites";
   const RECENT_KEY = "promptvault:recent";
   const SETTINGS_KEY = "promptvault:settings";
   const LAST_PANEL_KEY = "promptvault:last-utility";
 
-  const utilityData: Record<string, { title: string }> = {
+  const utilityData: Record<UtilityName, { title: string }> = {
     favorites: { title: "Favourites" },
     recent: { title: "Recently viewed" },
     random: { title: "Random discovery" },
@@ -411,7 +413,7 @@
     mobilePanel?.classList.add("hidden");
   }
 
-  function showContent(name: string, content: HTMLElement) {
+  function showContent(name: UtilityName, content: HTMLElement) {
     const item = utilityData[name];
     if (!item) return;
 
@@ -430,24 +432,25 @@
   }
 
   function openUtility(name: string) {
-    if (!utilityData[name]) return;
+    if (!(name in utilityData)) return;
+    const utilityName = name as UtilityName;
 
     if (name === "favorites") {
-      showContent(name, renderSavedItems(readList(FAVORITES_KEY), "No saved items yet. Use the star on a prompt or shortcut to save it."));
+      showContent(utilityName, renderSavedItems(readList(FAVORITES_KEY), "No saved items yet. Use the star on a prompt or shortcut to save it."));
       return;
     }
 
     if (name === "recent") {
-      showContent(name, renderSavedItems(readList(RECENT_KEY), "No recently viewed items yet."));
+      showContent(utilityName, renderSavedItems(readList(RECENT_KEY), "No recently viewed items yet."));
       return;
     }
 
     if (name === "settings") {
-      showContent(name, renderSettings());
+      showContent(utilityName, renderSettings());
       return;
     }
 
-    showContent(name, makeElement("div", "utility-list"));
+    showContent(utilityName, makeElement("div", "utility-list"));
     loadRandomItem();
   }
 
@@ -468,12 +471,16 @@
       if (promptsResult.error) throw promptsResult.error;
       if (shortcutsResult.error) throw shortcutsResult.error;
 
+      const promptRows = (promptsResult.data || []) as DatabaseItem[];
+      const shortcutRows = (shortcutsResult.data || []) as DatabaseItem[];
       const candidates: SavedItem[] = [
-        ...(promptsResult.data || []).map((item: any) => ({
-          type: "prompt" as const, id: item.id, title: item.title, url: `/prompts#prompt-${item.id}`
+        ...promptRows.filter((item) => item.id && item.title).map((item) => ({
+          type: "prompt" as const, id: item.id, title: item.title as string,
+          url: `/prompts#prompt-${encodeURIComponent(item.id)}`
         })),
-        ...(shortcutsResult.data || []).map((item: any) => ({
-          type: "shortcut" as const, id: item.id, title: item.name, url: `/shortcuts#shortcut-${item.id}`
+        ...shortcutRows.filter((item) => item.id && item.name).map((item) => ({
+          type: "shortcut" as const, id: item.id, title: item.name as string,
+          url: `/shortcuts#shortcut-${encodeURIComponent(item.id)}`
         }))
       ];
 
@@ -515,7 +522,7 @@
   document.querySelectorAll<HTMLButtonElement>(".utility-button").forEach((button) => {
     button.addEventListener("click", () => {
       const name = button.dataset.utility;
-      if (name) openUtility(name);
+      if (name && name in utilityData) openUtility(name);
     });
   });
 
