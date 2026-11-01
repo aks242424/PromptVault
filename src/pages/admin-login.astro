@@ -6,224 +6,189 @@ import MainLayout from "../layouts/MainLayout.astro";
 
 <MainLayout title="Admin Access | PromptVault">
   <main class="login-shell">
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+
     <section class="login-card" aria-labelledby="login-title">
-      <a class="brand" href="/" aria-label="PromptVault home">
-        <span class="brand-mark">P</span>
-        <span>Prompt<span class="brand-accent">Vault</span></span>
-      </a>
+      <header class="card-header">
+        <a class="brand" href="/" aria-label="PromptVault home">
+          <span class="brand-mark" aria-hidden="true">P</span>
+          <span class="brand-name">Prompt<span>Vault</span></span>
+        </a>
+        <span class="secure-label"><span class="status-dot"></span> SECURE ADMIN ACCESS</span>
+      </header>
 
-      <span class="eyebrow">PROMPTVAULT / SECURE ACCESS</span>
+      <div class="card-content">
+        <section id="login-panel">
+          <p class="eyebrow">WELCOME BACK</p>
+          <h1 id="login-title">Your workspace<br /><span>awaits.</span></h1>
+          <p class="intro">Sign in with your administrator account to manage PromptVault.</p>
 
-      <section id="login-panel">
-        <h1 id="login-title">Admin login</h1>
-        <p class="intro">Sign in with your administrator account.</p>
-        <form id="admin-login" class="login-form">
-          <label for="email">Email</label>
-          <input id="email" type="email" required autocomplete="username" placeholder="Admin email" />
-          <label for="password">Password</label>
-          <input id="password" type="password" required autocomplete="current-password" placeholder="Password" />
-          <button id="login-button" type="submit">Sign in</button>
-        </form>
-        <div class="link-row">
-          <button class="text-link" id="forgot-link" type="button">Forgot password?</button>
-          <button class="text-link" id="change-link" type="button">Change password</button>
-        </div>
-      </section>
+          <form id="admin-login" class="login-form">
+            <label for="email">Admin email</label>
+            <input id="email" type="email" required autocomplete="username" placeholder="you@example.com" />
 
-      <section id="forgot-panel" hidden>
-        <h1>Reset your password</h1>
-        <p class="intro">Enter your admin email and we'll send you a secure password-reset link.</p>
-        <form id="forgot-form" class="login-form">
-          <label for="forgot-email">Admin email</label>
-          <input id="forgot-email" type="email" required autocomplete="email" placeholder="Admin email" />
-          <button id="forgot-button" type="submit">Send reset link</button>
-        </form>
-        <button class="text-link back-link" type="button" data-back="login">← Back to sign in</button>
-      </section>
+            <label for="password">Password</label>
+            <input id="password" type="password" required autocomplete="current-password" placeholder="Enter your password" />
 
-      <section id="recovery-panel" hidden>
-        <h1>Choose a new password</h1>
-        <p class="intro">Your recovery link is verified. Set a new password for your account.</p>
-        <form id="recovery-form" class="login-form">
-          <label for="recovery-password">New password</label>
-          <input id="recovery-password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" />
-          <label for="recovery-confirm">Confirm new password</label>
-          <input id="recovery-confirm" type="password" required minlength="8" autocomplete="new-password" placeholder="Repeat new password" />
-          <button id="recovery-button" type="submit">Save new password</button>
-        </form>
-        <button class="text-link back-link" type="button" data-back="login">← Back to sign in</button>
-      </section>
+            <button id="login-button" class="primary-button" type="submit">
+              <span>Sign in to dashboard</span><span aria-hidden="true">↗</span>
+            </button>
+          </form>
 
-      <section id="change-panel" hidden>
-        <h1>Change password</h1>
-        <p class="intro">You must be signed in to change your account password.</p>
-        <form id="change-form" class="login-form">
-          <label for="change-password">New password</label>
-          <input id="change-password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" />
-          <label for="change-confirm">Confirm new password</label>
-          <input id="change-confirm" type="password" required minlength="8" autocomplete="new-password" placeholder="Repeat new password" />
-          <button id="change-button" type="submit">Update password</button>
-        </form>
-        <button class="text-link back-link" type="button" data-back="login">← Back to sign in</button>
-      </section>
+          <div class="link-row">
+            <button class="text-link" id="forgot-link" type="button">Forgot password?</button>
+            <button class="text-link" id="change-link" type="button">Change password</button>
+          </div>
+        </section>
 
-      <p id="login-message" role="status" aria-live="polite"></p>
+        <section id="forgot-panel" hidden>
+          <p class="eyebrow">ACCOUNT RECOVERY</p>
+          <h1>Reset your<br /><span>password.</span></h1>
+          <p class="intro">Enter your administrator email. We’ll send a secure, time-limited recovery link.</p>
+          <form id="forgot-form" class="login-form">
+            <label for="forgot-email">Admin email</label>
+            <input id="forgot-email" type="email" required autocomplete="email" placeholder="you@example.com" />
+            <button id="forgot-button" class="primary-button" type="submit">
+              <span>Send recovery link</span><span aria-hidden="true">↗</span>
+            </button>
+          </form>
+          <button class="text-link back-link" type="button" data-back="login">← Back to sign in</button>
+        </section>
+
+        <section id="recovery-panel" hidden>
+          <p class="eyebrow">VERIFIED RECOVERY</p>
+          <h1>Create a new<br /><span>password.</span></h1>
+          <p class="intro">Your recovery link has been verified. Choose a new password for your account.</p>
+          <form id="recovery-form" class="login-form">
+            <label for="recovery-password">New password</label>
+            <input id="recovery-password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" />
+            <label for="recovery-confirm">Confirm new password</label>
+            <input id="recovery-confirm" type="password" required minlength="8" autocomplete="new-password" placeholder="Enter it again" />
+            <button id="recovery-button" class="primary-button" type="submit">
+              <span>Save new password</span><span aria-hidden="true">↗</span>
+            </button>
+          </form>
+          <p class="security-note">This form is available only during a verified Supabase password-recovery session.</p>
+        </section>
+
+        <section id="change-panel" hidden>
+          <p class="eyebrow">IDENTITY CHECK</p>
+          <h1>Verify, then<br /><span>change it.</span></h1>
+          <p class="intro">For your security, confirm your current password before setting a new one.</p>
+          <form id="change-form" class="login-form">
+            <label for="change-email">Admin email</label>
+            <input id="change-email" type="email" required autocomplete="username" placeholder="you@example.com" />
+            <label for="current-password">Current password</label>
+            <input id="current-password" type="password" required autocomplete="current-password" placeholder="Enter current password" />
+            <label for="change-password">New password</label>
+            <input id="change-password" type="password" required minlength="8" autocomplete="new-password" placeholder="At least 8 characters" />
+            <label for="change-confirm">Confirm new password</label>
+            <input id="change-confirm" type="password" required minlength="8" autocomplete="new-password" placeholder="Enter it again" />
+            <button id="change-button" class="primary-button" type="submit">
+              <span>Verify & update password</span><span aria-hidden="true">↗</span>
+            </button>
+          </form>
+          <p class="security-note">Your current credentials are checked against Supabase before the password is updated.</p>
+          <button class="text-link back-link" type="button" data-back="login">← Back to sign in</button>
+        </section>
+
+        <p id="login-message" role="status" aria-live="polite"></p>
+      </div>
+
+      <footer class="card-footer">
+        <span>PromptVault</span>
+        <span>AUTHORIZED PERSONNEL ONLY</span>
+      </footer>
     </section>
   </main>
 </MainLayout>
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
   .login-shell {
-    min-height: calc(100vh - 80px);
+    position: relative;
+    isolation: isolate;
+    min-height: calc(100vh - 64px);
     display: grid;
     place-items: center;
-    padding: 48px 20px 90px;
-    color: #f4f4f5;
+    overflow: hidden;
+    padding: 56px 20px;
+    color: #f6f5fb;
     background:
-      radial-gradient(ellipse at 8% 5%, #0e749044, transparent 34%),
-      radial-gradient(ellipse at 92% 18%, #c2410c30, transparent 32%),
-      #080b10;
+      radial-gradient(ellipse at 50% 0%, rgba(111, 76, 190, .18), transparent 42%),
+      radial-gradient(ellipse at 5% 80%, rgba(17, 167, 190, .09), transparent 34%),
+      #08090e;
+    font-family: "DM Sans", sans-serif;
   }
+
+  .login-shell::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    opacity: .22;
+    background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 52px 52px;
+    mask-image: linear-gradient(to bottom, black, transparent 88%);
+  }
+
+  .ambient { position: absolute; z-index: -1; width: 360px; height: 360px; border-radius: 50%; filter: blur(100px); pointer-events: none; }
+  .ambient-one { top: 8%; left: 12%; background: rgba(124, 78, 220, .12); }
+  .ambient-two { right: 8%; bottom: 4%; background: rgba(15, 178, 197, .08); }
 
   .login-card {
-    width: min(100%, 460px);
-    padding: 36px;
-    border: 1px solid #ffffff20;
-    border-radius: 22px;
-    background: linear-gradient(145deg, #171923f5, #0e131bf7);
-    box-shadow: 0 24px 90px #0008, inset 0 1px #ffffff08;
+    width: min(100%, 510px);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.11);
+    border-radius: 26px;
+    background: linear-gradient(150deg, rgba(25,25,37,.97), rgba(13,15,23,.98));
+    box-shadow: 0 30px 100px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.06);
+    backdrop-filter: blur(18px);
   }
 
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 11px;
-    margin-bottom: 30px;
-    color: #f8fafc;
-    font-size: 16px;
-    font-weight: 850;
-    letter-spacing: -.04em;
-    text-decoration: none;
-  }
+  .card-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 25px 30px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .brand { display: inline-flex; align-items: center; gap: 11px; color: #f8fafc; text-decoration: none; }
+  .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid rgba(255,178,113,.65); border-radius: 13px; background: linear-gradient(145deg,#ff9a45,#d94b0d); color: #211008; font-family: "Manrope", sans-serif; font-size: 20px; font-weight: 800; box-shadow: 0 7px 24px rgba(245,104,34,.22); }
+  .brand-name { font-family: "Manrope", sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -.7px; }
+  .brand-name span { color: #ffad70; }
+  .secure-label { display: inline-flex; align-items: center; gap: 8px; color: #9ba4b8; font-size: 9px; font-weight: 700; letter-spacing: .16em; white-space: nowrap; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #54d7e9; box-shadow: 0 0 12px rgba(84,215,233,.8); }
 
-  .brand-mark {
-    display: grid;
-    place-items: center;
-    width: 42px;
-    height: 42px;
-    border: 1px solid #fb923c88;
-    border-radius: 13px;
-    background: linear-gradient(135deg, #fb923c, #c2410c);
-    color: #1c1008;
-    font-size: 19px;
-    font-weight: 900;
-    box-shadow: 0 5px 22px #f973162c;
-  }
+  .card-content { padding: 38px 42px 30px; }
+  .eyebrow { margin: 0 0 12px; color: #70ddeb; font-size: 10px; font-weight: 700; letter-spacing: .2em; }
+  h1 { margin: 0; color: #f7f5fc; font-family: "Manrope", sans-serif; font-size: clamp(34px, 7vw, 43px); font-weight: 800; line-height: 1.12; letter-spacing: -.065em; }
+  h1 span { color: transparent; background: linear-gradient(100deg,#b69aff 5%,#7fc9ef 58%,#f2a1b8); background-clip: text; -webkit-background-clip: text; }
+  .intro { max-width: 390px; margin: 13px 0 0; color: #a4a8b8; font-size: 13px; line-height: 1.75; }
 
-  .brand-accent { color: #fdba74; }
+  .login-form { display: grid; gap: 10px; margin-top: 27px; }
+  .login-form label { margin-top: 5px; color: #d6d7e1; font-size: 12px; font-weight: 650; }
+  .login-form input { width: 100%; min-width: 0; box-sizing: border-box; border: 1px solid rgba(255,255,255,.12); border-radius: 12px; outline: none; background: rgba(5,8,14,.72); color: #f6f5fb; padding: 15px 16px; font: inherit; font-size: 13px; transition: border-color .18s, box-shadow .18s, background .18s; }
+  .login-form input::placeholder { color: #697184; }
+  .login-form input:focus { border-color: rgba(127,201,239,.8); background: rgba(8,13,21,.95); box-shadow: 0 0 0 3px rgba(70,190,215,.12); }
 
-  .eyebrow {
-    color: #67e8f9;
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: .2em;
-  }
+  .primary-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; border: 0; border-radius: 12px; padding: 15px 17px; color: #10101a; background: linear-gradient(105deg,#b59aff,#7fc9ef); font-family: "Manrope", sans-serif; font-size: 13px; font-weight: 800; cursor: pointer; transition: transform .18s, filter .18s, opacity .18s; }
+  .primary-button:hover { transform: translateY(-1px); filter: brightness(1.07); }
+  .primary-button:disabled { cursor: wait; opacity: .6; transform: none; }
 
-  h1 {
-    margin-top: 12px;
-    color: #f4f4f5;
-    font-size: 32px;
-    font-weight: 760;
-    letter-spacing: -.045em;
-  }
-
-  .intro {
-    margin-top: 8px;
-    color: #94a3b8;
-    font-size: 13px;
-    line-height: 1.7;
-  }
-
-  .login-form {
-    display: grid;
-    gap: 11px;
-    margin-top: 25px;
-  }
-
-  .login-form label {
-    margin-top: 5px;
-    color: #cbd5e1;
-    font-size: 12px;
-    font-weight: 650;
-  }
-
-  .login-form input {
-    width: 100%;
-    min-width: 0;
-    border: 1px solid #ffffff1b;
-    border-radius: 11px;
-    background: #090e15;
-    color: #f4f4f5;
-    padding: 13px 14px;
-    outline: none;
-  }
-
-  .login-form input:focus {
-    border-color: #22d3ee99;
-    box-shadow: 0 0 0 3px #06b6d41c;
-  }
-
-  .login-form button {
-    margin-top: 8px;
-    border: 0;
-    border-radius: 10px;
-    padding: 14px;
-    color: #071820;
-    background: linear-gradient(110deg, #67e8f9, #22d3ee 55%, #0ea5e9);
-    font-size: 12px;
-    font-weight: 850;
-    cursor: pointer;
-  }
-
-  .login-form button:disabled {
-    cursor: not-allowed;
-    opacity: .55;
-  }
-
-  .link-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 14px;
-    margin-top: 20px;
-  }
-
-  .text-link {
-    border: 0;
-    padding: 4px 0;
-    color: #a5b4fc;
-    background: transparent;
-    font-size: 12px;
-    font-weight: 650;
-    cursor: pointer;
-  }
-
-  .text-link:hover { color: #67e8f9; }
-  .back-link { margin-top: 18px; }
+  .link-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+  .text-link { border: 0; padding: 4px 0; color: #b8a5ff; background: transparent; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .text-link:hover { color: #79dcec; }
+  .back-link { margin-top: 20px; }
+  .security-note { margin: 16px 0 0; color: #858da0; font-size: 11px; line-height: 1.65; }
   [hidden] { display: none !important; }
 
-  #login-message {
-    min-height: 18px;
-    margin-top: 17px;
-    color: #fda4af;
-    font-size: 12px;
-    line-height: 1.6;
-  }
-
+  #login-message { min-height: 18px; margin: 17px 0 0; color: #fda4af; font-size: 12px; line-height: 1.6; }
   #login-message.success { color: #86efac; }
+  .card-footer { display: flex; justify-content: space-between; gap: 12px; padding: 15px 30px; border-top: 1px solid rgba(255,255,255,.07); color: #697184; font-size: 9px; font-weight: 700; letter-spacing: .13em; }
 
-  @media (max-width: 480px) {
-    .login-card { padding: 27px 22px; }
-    .link-row { flex-wrap: wrap; }
+  @media (max-width: 520px) {
+    .login-shell { min-height: calc(100vh - 56px); padding: 24px 14px; }
+    .login-card { border-radius: 21px; }
+    .card-header { align-items: flex-start; flex-direction: column; padding: 22px 23px; }
+    .card-content { padding: 30px 23px 24px; }
+    .card-footer { padding: 14px 23px; font-size: 8px; }
   }
 </style>
 
@@ -245,6 +210,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   const recoveryConfirm = byId<HTMLInputElement>("recovery-confirm");
   const recoveryButton = byId<HTMLButtonElement>("recovery-button");
   const changeForm = byId<HTMLFormElement>("change-form");
+  const changeEmail = byId<HTMLInputElement>("change-email");
+  const currentPassword = byId<HTMLInputElement>("current-password");
   const changePassword = byId<HTMLInputElement>("change-password");
   const changeConfirm = byId<HTMLInputElement>("change-confirm");
   const changeButton = byId<HTMLButtonElement>("change-button");
@@ -261,11 +228,13 @@ import MainLayout from "../layouts/MainLayout.astro";
     !form || !emailInput || !passwordInput || !loginButton ||
     !forgotForm || !forgotEmail || !forgotButton ||
     !recoveryForm || !recoveryPassword || !recoveryConfirm || !recoveryButton ||
-    !changeForm || !changePassword || !changeConfirm || !changeButton || !message ||
-    Object.values(panels).some((panel) => !panel)
+    !changeForm || !changeEmail || !currentPassword || !changePassword || !changeConfirm || !changeButton ||
+    !message || Object.values(panels).some((panel) => !panel)
   ) {
     throw new Error("Admin access form elements are missing.");
   }
+
+  let verifiedRecoverySession = false;
 
   const showPanel = (name: keyof typeof panels) => {
     Object.entries(panels).forEach(([key, panel]) => {
@@ -303,25 +272,14 @@ import MainLayout from "../layouts/MainLayout.astro";
     setMessage("This account does not have administrator access.");
   }
 
-  // Supabase returns the user to this page after a password recovery link.
-  const initialMode = params.get("mode");
-  if (initialMode === "recovery" || window.location.hash.includes("type=recovery")) {
-    showPanel("recovery");
-  }
-
   byId<HTMLButtonElement>("forgot-link")?.addEventListener("click", () => {
     if (emailInput.value.trim()) forgotEmail.value = emailInput.value.trim();
     showPanel("forgot");
   });
 
-  byId<HTMLButtonElement>("change-link")?.addEventListener("click", async () => {
+  byId<HTMLButtonElement>("change-link")?.addEventListener("click", () => {
+    if (emailInput.value.trim()) changeEmail.value = emailInput.value.trim();
     showPanel("change");
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) {
-      showPanel("login");
-      setMessage("Sign in first, then choose Change password from the admin area. For a forgotten password, use Forgot password.");
-      return;
-    }
   });
 
   document.querySelectorAll<HTMLButtonElement>("[data-back='login']").forEach((button) => {
@@ -330,7 +288,7 @@ import MainLayout from "../layouts/MainLayout.astro";
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    setBusy(loginButton, true, "Signing in...", "Sign in");
+    setBusy(loginButton, true, "Signing in...", "Sign in to dashboard");
     setMessage("");
 
     try {
@@ -343,94 +301,119 @@ import MainLayout from "../layouts/MainLayout.astro";
       window.location.replace("/admin");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Sign-in failed.");
-      setBusy(loginButton, false, "Signing in...", "Sign in");
+      setBusy(loginButton, false, "Signing in...", "Sign in to dashboard");
     }
   });
 
   forgotForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    setBusy(forgotButton, true, "Sending link...", "Send reset link");
+    setBusy(forgotButton, true, "Sending link...", "Send recovery link");
     setMessage("");
 
     try {
       const redirectTo = `${window.location.origin}/admin-login?mode=recovery`;
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        forgotEmail.value.trim(),
-        { redirectTo }
-      );
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.value.trim(), { redirectTo });
       if (error) throw error;
-      setMessage("If an account exists for that email, a password-reset link has been sent. Check your inbox and spam folder.", true);
+      setMessage("If an account exists for that email, a recovery link has been sent. Check your inbox and spam folder.", true);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not send the reset email.");
+      setMessage(error instanceof Error ? error.message : "Could not send the recovery email.");
     } finally {
-      setBusy(forgotButton, false, "Sending link...", "Send reset link");
+      setBusy(forgotButton, false, "Sending link...", "Send recovery link");
     }
   });
 
-  const saveNewPassword = async (
-    event: SubmitEvent,
-    passwordInputElement: HTMLInputElement,
-    confirmInputElement: HTMLInputElement,
-    button: HTMLButtonElement,
-    idleText: string,
-    successText: string,
-    redirectAfter: boolean
-  ) => {
+  recoveryForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const newPassword = passwordInputElement.value;
+
+    if (!verifiedRecoverySession) {
+      setMessage("A verified recovery link is required. Request a new recovery email and open its link.");
+      return;
+    }
+
+    const newPassword = recoveryPassword.value;
     if (newPassword.length < 8) {
       setMessage("Use a password with at least 8 characters.");
       return;
     }
-    if (newPassword !== confirmInputElement.value) {
+    if (newPassword !== recoveryConfirm.value) {
       setMessage("The passwords do not match.");
       return;
     }
 
-    setBusy(button, true, "Updating password...", idleText);
+    setBusy(recoveryButton, true, "Updating password...", "Save new password");
     setMessage("");
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        throw new Error("Your recovery session has expired. Request a new password-reset link.");
+      if (!sessionData.session || !verifiedRecoverySession) {
+        throw new Error("Your verified recovery session has expired. Request a new recovery link.");
       }
 
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
 
-      passwordInputElement.value = "";
-      confirmInputElement.value = "";
-      setMessage(successText, true);
-
-      if (redirectAfter) {
-        await verifyAdmin(sessionData.session.user.id);
-        window.setTimeout(() => window.location.replace("/admin"), 1200);
-      } else {
-        window.setTimeout(() => showPanel("login"), 1500);
-      }
+      await verifyAdmin(sessionData.session.user.id);
+      verifiedRecoverySession = false;
+      recoveryPassword.value = "";
+      recoveryConfirm.value = "";
+      setMessage("Password updated successfully. Redirecting to your dashboard...", true);
+      window.setTimeout(() => window.location.replace("/admin"), 1200);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not update the password.");
-      setBusy(button, false, "Updating password...", idleText);
+      setBusy(recoveryButton, false, "Updating password...", "Save new password");
     }
-  };
+  });
 
-  recoveryForm.addEventListener("submit", (event) =>
-    saveNewPassword(
-      event, recoveryPassword, recoveryConfirm, recoveryButton,
-      "Save new password", "Password updated successfully. Redirecting to admin...", true
-    )
-  );
+  changeForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-  changeForm.addEventListener("submit", (event) =>
-    saveNewPassword(
-      event, changePassword, changeConfirm, changeButton,
-      "Update password", "Password changed successfully.", false
-    )
-  );
+    const newPassword = changePassword.value;
+    if (newPassword.length < 8) {
+      setMessage("Use a new password with at least 8 characters.");
+      return;
+    }
+    if (newPassword !== changeConfirm.value) {
+      setMessage("The new passwords do not match.");
+      return;
+    }
+    if (newPassword === currentPassword.value) {
+      setMessage("Choose a new password that differs from your current password.");
+      return;
+    }
 
-  // Keep the recovery view active when Supabase emits its recovery event.
+    setBusy(changeButton, true, "Verifying credentials...", "Verify & update password");
+    setMessage("");
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: changeEmail.value.trim(),
+        password: currentPassword.value,
+      });
+      if (error) throw new Error("The email or current password is incorrect.");
+
+      await verifyAdmin(data.user.id);
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+
+      currentPassword.value = "";
+      changePassword.value = "";
+      changeConfirm.value = "";
+      passwordInput.value = "";
+      setMessage("Your identity was verified and your password has been changed. Please sign in again.", true);
+      await supabase.auth.signOut();
+      window.setTimeout(() => showPanel("login"), 1800);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not change the password.");
+    } finally {
+      setBusy(changeButton, false, "Verifying credentials...", "Verify & update password");
+    }
+  });
+
   supabase.auth.onAuthStateChange((event) => {
-    if (event === "PASSWORD_RECOVERY") showPanel("recovery");
+    if (event === "PASSWORD_RECOVERY") {
+      verifiedRecoverySession = true;
+      showPanel("recovery");
+    }
   });
 </script>
