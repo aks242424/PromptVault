@@ -364,6 +364,9 @@ import PromptForm from "../components/PromptForm.astro";
   .admin-row-actions { align-items: center; justify-content: flex-start; min-width: 190px; }
   .admin-prompt-name { min-width: 0; color: #e2e8f0; font-size: 12px; font-weight: 680; overflow-wrap: anywhere; }
   .admin-prompt-meta { color: #a5b4c5; font-size: 11px; text-transform: capitalize; }
+  .admin-shortcut-type-select { width:100%; max-width:100px; padding:7px 9px; border:1px solid #ffffff24; border-radius:8px; background:#111820; color:#cbd5e1; font:inherit; font-size:11px; }
+  .admin-shortcut-type-select:focus { outline:1px solid #22d3ee; border-color:#22d3ee; }
+  .admin-shortcut-type-select:disabled { opacity:.5; cursor:wait; }
   .admin-status-pill {
     justify-self: start;
     border: 1px solid transparent;
@@ -648,7 +651,7 @@ import PromptForm from "../components/PromptForm.astro";
       supabase.from("prompts").select("id", { count: "exact", head: true }).eq("status", "draft"),
       supabase.from("shortcuts").select("id", { count: "exact", head: true }).eq("status", "draft"),
       supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false }),
-      supabase.from("shortcuts").select("id, name, description, status, created_at").order("created_at", { ascending: false })
+      supabase.from("shortcuts").select("id, name, description, shortcut_type, status, created_at").order("created_at", { ascending: false })
     ]);
     const errors = [promptsResult.error, shortcutsResult.error, categoriesResult.error, promptDraftsResult.error, shortcutDraftsResult.error, promptsDataResult.error, shortcutsDataResult.error].filter(Boolean);
     if (errors.length) {
@@ -719,9 +722,32 @@ import PromptForm from "../components/PromptForm.astro";
       name.className = "admin-shortcut-name";
       name.textContent = shortcut.name || "(unnamed shortcut)";
       nameWrap.append(checkbox, name);
-      const type = document.createElement("span");
-      type.className = "admin-prompt-meta";
-      type.textContent = "Shortcut";
+      const type = document.createElement("select");
+      type.className = "admin-shortcut-type-select";
+      type.setAttribute("aria-label", `Type for ${shortcut.name || "shortcut"}`);
+      ["Image", "Video", "Other"].forEach((value) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = value;
+        type.append(option);
+      });
+      type.value = ["Image", "Video", "Other"].includes(shortcut.shortcut_type) ? shortcut.shortcut_type : "Other";
+      type.addEventListener("change", async () => {
+        const previousType = shortcut.shortcut_type || "Other";
+        type.disabled = true;
+        try {
+          const { error } = await supabase.from("shortcuts")
+            .update({ shortcut_type: type.value }).eq("id", shortcut.id);
+          if (error) throw error;
+          shortcut.shortcut_type = type.value;
+          $("#shortcut-message").textContent = `Shortcut type updated to ${type.value}.`;
+        } catch (error) {
+          type.value = previousType;
+          $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not update shortcut type.";
+        } finally {
+          type.disabled = false;
+        }
+      });
       const statusBadge = document.createElement("span");
       statusBadge.className = `admin-status-pill admin-status-${shortcut.status}`;
       statusBadge.textContent = shortcut.status;
