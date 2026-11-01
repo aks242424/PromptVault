@@ -71,25 +71,26 @@ import PromptForm from "../components/PromptForm.astro";
 
         <section class="bulk-panel" aria-labelledby="bulk-heading">
           <div class="bulk-heading">
-            <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts from CSV</h2></div>
+            <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts and shortcuts from CSV</h2></div>
             <button id="download-csv-template" class="btn btn-quiet" type="button">Download CSV template</button>
           </div>
-          <p class="bulk-intro">CSV imports are saved as drafts.</p>
+          <p class="bulk-intro">Choose <code>item_type</code> and <code>status</code> separately on every row. Missing categories and tags are created automatically.</p>
           <div class="csv-format">
             <div class="csv-format-title">CSV columns</div>
-            <code>title,content,prompt_type,description,categories,tags,ai_tools</code>
+            <code>item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status</code>
             <div class="csv-columns">
-              <p><strong>Required:</strong> <code>title</code>, <code>content</code>, <code>prompt_type</code>.</p>
-              <p><strong>Optional:</strong> <code>description</code>, <code>categories</code>, <code>tags</code>, <code>ai_tools</code>.</p>
+              <p><strong>Prompt required:</strong> <code>title</code>, <code>content</code>, <code>prompt_type</code>.</p>
+              <p><strong>Shortcut required:</strong> <code>name</code>, <code>description</code>.</p>
             </div>
             <ul>
-              <li><code>prompt_type</code>: <code>image</code>, <code>video</code>, or <code>other</code>.</li>
-              <li>Every imported prompt is saved as <code>draft</code>.</li>
-              <li>Separate multiple categories, tags, or tools with <code>|</code>.</li>
-              <li>Category and tag names must match existing PromptVault entries.</li>
+              <li><code>item_type</code>: <code>prompt</code> or <code>shortcut</code> (defaults to <code>prompt</code> for older CSV files).</li>
+              <li><code>status</code>: <code>draft</code> or <code>published</code> for each row (defaults to <code>draft</code>).</li>
+              <li><code>prompt_type</code> for prompts: <code>image</code>, <code>video</code>, or <code>other</code>.</li>
+              <li>Separate multiple categories, tags, or AI tools with <code>|</code>. Missing categories and tags are created.</li>
+              <li>Shortcuts use <code>name</code> and <code>description</code>; the shortcuts schema has no content or AI-tools field.</li>
               <li>Quote values containing commas or line breaks using standard CSV double quotes.</li>
             </ul>
-            <div class="csv-example"><span>Example row</span><code>"Neon Portrait","A cinematic neon-lit portrait of a subject...","image","Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT"</code></div>
+            <div class="csv-example"><span>Example rows</span><code>prompt,"Neon Portrait",,"A cinematic neon-lit portrait...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft<br />shortcut,,"Copy prompt shortcut",,"Quick description",,"Productivity|Writing","Workflow|Copy",,published</code></div>
           </div>
           <div class="bulk-upload-row">
             <label class="csv-file-label" for="bulk-csv-file">Choose CSV file</label>
@@ -731,6 +732,7 @@ import PromptForm from "../components/PromptForm.astro";
   function splitList(value: string) { return value.split("|").map((part) => part.trim()).filter(Boolean); }
   function normalizeContent(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
   function normalizeTitle(value: string) { return value.toLowerCase().trim().replace(/\s+/g, " "); }
+  function slugify(value: string) { return value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "item"; }
 
   function showCsvErrors(messages: string[]) {
     csvErrors.replaceChildren();
@@ -759,10 +761,10 @@ import PromptForm from "../components/PromptForm.astro";
       const details = document.createElement("div");
       const title = document.createElement("div");
       title.className = "bulk-preview-title";
-      title.textContent = `Row ${item.line}: ${item.title || "(untitled)"}`;
+      title.textContent = `Row ${item.line}: ${item.label || "(unnamed item)"}`;
       const meta = document.createElement("div");
       meta.className = "bulk-preview-meta";
-      meta.textContent = `${item.prompt_type || "Unknown type"}${item.reason ? ` · ${item.reason}` : ""}`;
+      meta.textContent = `${item.item_type} · ${item.status}${item.item_type === "prompt" ? ` · ${item.prompt_type}` : ""}${item.reason ? ` · ${item.reason}` : ""}`;
       details.append(title, meta);
       const state = document.createElement("span");
       state.className = `bulk-row-state${item.state === "duplicate" ? " duplicate" : item.state === "invalid" ? " invalid" : ""}`;
@@ -775,9 +777,11 @@ import PromptForm from "../components/PromptForm.astro";
   }
 
   $("#download-csv-template").addEventListener("click", () => {
-    const sample = 'title,content,prompt_type,description,categories,tags,ai_tools\r\n"Neon Portrait","A cinematic neon-lit portrait of a subject...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT"\r\n';
+    const sample = 'item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status\r\n' +
+      'prompt,"Neon Portrait",,"A cinematic neon-lit portrait of a subject...",image,"Neon portrait prompt","Portrait|Cyberpunk","4K|Neon","Midjourney|ChatGPT",draft\r\n' +
+      'shortcut,,"Copy prompt shortcut",,"Quick description of the shortcut",,"Productivity|Writing","Workflow|Copy",,published\r\n';
     const url = URL.createObjectURL(new Blob([sample], { type: "text/csv;charset=utf-8" }));
-    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "promptvault-prompts-template.csv"; anchor.click(); URL.revokeObjectURL(url);
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "promptvault-import-template.csv"; anchor.click(); URL.revokeObjectURL(url);
   });
 
   $("#bulk-select-all").addEventListener("click", () => {
@@ -811,66 +815,75 @@ import PromptForm from "../components/PromptForm.astro";
     validatedRows = [];
     csvPreview.hidden = true;
     csvValidation.className = "bulk-validation";
-    csvValidation.textContent = "Checking CSV structure, required fields, categories, tags, and duplicates...";
+    csvValidation.textContent = "Checking CSV structure, item fields, and duplicates...";
     showCsvErrors([]);
 
     try {
       const rawRows = parseCsv(await selectedCsvFile.text());
-      if (rawRows.length < 2) throw new Error("The CSV must contain a header and at least one prompt row.");
+      if (rawRows.length < 2) throw new Error("The CSV must contain a header and at least one data row.");
       const headers = rawRows[0].map((header) => header.trim().toLowerCase().replace(/^\uFEFF/, ""));
-      const required = ["title", "content", "prompt_type"];
-      const missingHeaders = required.filter((header) => !headers.includes(header));
-      if (missingHeaders.length) throw new Error(`Missing required CSV columns: ${missingHeaders.join(", ")}`);
       if (new Set(headers).size !== headers.length) throw new Error("CSV contains duplicate column names.");
-      const allowedHeaders = [...required, "description", "categories", "tags", "ai_tools", "status"];
+      const allowedHeaders = ["item_type", "title", "name", "content", "prompt_type", "description", "categories", "tags", "ai_tools", "status"];
       const unknownHeaders = headers.filter((header) => !allowedHeaders.includes(header));
       if (unknownHeaders.length) throw new Error(`Unknown CSV columns: ${unknownHeaders.join(", ")}`);
       const index = Object.fromEntries(headers.map((header, i) => [header, i]));
-      const [categoryResult, tagResult, existingResult] = await Promise.all([
-        supabase.from("categories").select("id, name"),
-        supabase.from("tags").select("id, name"),
-        supabase.from("prompts").select("id, title, content")
+      if (!headers.includes("item_type") && !(headers.includes("title") && headers.includes("content") && headers.includes("prompt_type"))) {
+        throw new Error("Add item_type, or use the legacy prompt columns title, content, and prompt_type.");
+      }
+      const [promptResult, shortcutResult] = await Promise.all([
+        supabase.from("prompts").select("id, title, content, normalized_content"),
+        supabase.from("shortcuts").select("id, name, description")
       ]);
-      if (categoryResult.error) throw categoryResult.error;
-      if (tagResult.error) throw tagResult.error;
-      if (existingResult.error) throw existingResult.error;
+      if (promptResult.error) throw promptResult.error;
+      if (shortcutResult.error) throw shortcutResult.error;
 
-      const categories = new Map<string, any>((categoryResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
-      const tags = new Map<string, any>((tagResult.data || []).map((item: any) => [item.name.toLowerCase(), item]));
-      const existingTitles = new Set((existingResult.data || []).map((item: any) => normalizeTitle(item.title || "")));
-      const existingContents = new Set((existingResult.data || []).map((item: any) => normalizeContent(item.content || "")));
-      const seenTitles = new Set<string>();
-      const seenContents = new Set<string>();
+      const existingPromptTitles = new Set((promptResult.data || []).map((item: any) => normalizeTitle(item.title || "")));
+      const existingPromptContents = new Set((promptResult.data || []).map((item: any) => normalizeContent(item.normalized_content || item.content || "")));
+      const existingShortcutNames = new Set((shortcutResult.data || []).map((item: any) => normalizeTitle(item.name || "")));
+      const seenPromptTitles = new Set<string>(), seenPromptContents = new Set<string>(), seenShortcutNames = new Set<string>();
 
       rawRows.slice(1).forEach((cells, rowIndex) => {
         const line = rowIndex + 2;
         const get = (key: string) => index[key] === undefined ? "" : (cells[index[key]] || "").trim();
-        const title = get("title"), content = get("content"), promptType = get("prompt_type").toLowerCase();
+        const itemType = (get("item_type") || "prompt").toLowerCase();
+        const title = get("title"), name = get("name"), content = get("content");
+        const label = itemType === "shortcut" ? name : title;
+        const promptType = get("prompt_type").toLowerCase();
+        const status = (get("status") || "draft").toLowerCase();
         const categoryNames = splitList(get("categories")), tagNames = splitList(get("tags"));
         const aiTools = splitList(get("ai_tools"));
         const issues: string[] = [];
         if (cells.length !== headers.length) issues.push(`expected ${headers.length} columns, found ${cells.length}`);
-        if (!title) issues.push("title is required");
-        if (!content) issues.push("content is required");
-        if (!["image", "video", "other"].includes(promptType)) issues.push("prompt_type must be image, video, or other");
-
-        // Missing categories and tags are created during import; they are not validation errors.
-        const categoryIds = categoryNames.map((name) => categories.get(name.trim().toLowerCase())?.id).filter(Boolean);
-        const tagIds = tagNames.map((name) => tags.get(name.trim().toLowerCase())?.id).filter(Boolean);
-
-        const normalizedTitle = normalizeTitle(title), normalized = normalizeContent(content);
+        if (!["prompt", "shortcut"].includes(itemType)) issues.push("item_type must be prompt or shortcut");
+        if (!["draft", "published"].includes(status)) issues.push("status must be draft or published");
+        if (itemType === "prompt") {
+          if (!title) issues.push("title is required for prompts");
+          if (!content) issues.push("content is required for prompts");
+          if (!content.trim()) issues.push("prompt content cannot be empty");
+          if (!["image", "video", "other"].includes(promptType)) issues.push("prompt_type must be image, video, or other for prompts");
+        } else if (itemType === "shortcut") {
+          if (!name) issues.push("name is required for shortcuts");
+          if (!get("description")) issues.push("description is required for shortcuts");
+        }
+        const normalizedLabel = normalizeTitle(label || "");
+        const normalized = normalizeContent(content || "");
         const duplicateReasons: string[] = [];
-        if (normalizedTitle && existingTitles.has(normalizedTitle)) duplicateReasons.push("title already exists in PromptVault");
-        if (normalized && existingContents.has(normalized)) duplicateReasons.push("content already exists in PromptVault");
-        if (normalizedTitle && seenTitles.has(normalizedTitle)) duplicateReasons.push("title duplicates an earlier CSV row");
-        if (normalized && seenContents.has(normalized)) duplicateReasons.push("content duplicates an earlier CSV row");
-        if (normalizedTitle) seenTitles.add(normalizedTitle);
-        if (normalized) seenContents.add(normalized);
-
+        if (itemType === "prompt") {
+          if (normalizedLabel && existingPromptTitles.has(normalizedLabel)) duplicateReasons.push("prompt title already exists");
+          if (normalized && existingPromptContents.has(normalized)) duplicateReasons.push("prompt content already exists");
+          if (normalizedLabel && seenPromptTitles.has(normalizedLabel)) duplicateReasons.push("prompt title duplicates an earlier CSV row");
+          if (normalized && seenPromptContents.has(normalized)) duplicateReasons.push("prompt content duplicates an earlier CSV row");
+          if (normalizedLabel) seenPromptTitles.add(normalizedLabel);
+          if (normalized) seenPromptContents.add(normalized);
+        } else if (itemType === "shortcut") {
+          if (normalizedLabel && existingShortcutNames.has(normalizedLabel)) duplicateReasons.push("shortcut name already exists");
+          if (normalizedLabel && seenShortcutNames.has(normalizedLabel)) duplicateReasons.push("shortcut name duplicates an earlier CSV row");
+          if (normalizedLabel) seenShortcutNames.add(normalizedLabel);
+        }
         validatedRows.push({
-          line, title, content, prompt_type: promptType,
-          description: get("description") || null, ai_tools: aiTools,
-          categoryNames, tagNames, categoryIds, tagIds, normalized,
+          line, item_type: itemType, title, name, label, content, prompt_type: promptType,
+          description: get("description") || "", categories: categoryNames, tags: tagNames,
+          ai_tools: aiTools, status,
           state: issues.length ? "invalid" : duplicateReasons.length ? "duplicate" : "ready",
           reason: [...issues, ...duplicateReasons].join("; "),
           selected: issues.length === 0 && duplicateReasons.length === 0
@@ -883,7 +896,7 @@ import PromptForm from "../components/PromptForm.astro";
       const invalidCount = validatedRows.filter((item) => item.state === "invalid").length;
       renderCsvPreview();
       csvValidation.className = readyCount ? "bulk-validation success" : "bulk-validation error";
-      csvValidation.textContent = `Validation complete: ${readyCount} ready to import, ${duplicateCount} duplicate(s) skipped, ${invalidCount} invalid row(s) excluded. Select the rows you want, then import.`;
+      csvValidation.textContent = `Validation complete: ${readyCount} ready, ${duplicateCount} duplicate(s) skipped, ${invalidCount} invalid row(s) excluded. Select the rows you want, then import.`;
       showCsvErrors(validatedRows.filter((item) => item.state !== "ready").map((item) => `Row ${item.line}: ${item.reason}.`));
     } catch (error) {
       validationReady = false;
@@ -897,96 +910,45 @@ import PromptForm from "../components/PromptForm.astro";
     }
   });
 
-  async function ensureNamedRecords(tableName: "categories" | "tags", names: string[]) {
-    const uniqueNames = Array.from(
-      new Map(names.map((name) => [name.trim().toLowerCase(), name.trim()])).values()
-    ).filter(Boolean);
-    if (!uniqueNames.length) return new Map<string, string>();
-
-    const table = supabase.from(tableName as any);
-    const { data: existing, error: readError } = await table.select("id, name");
-    if (readError) throw readError;
-
-    const ids = new Map<string, string>();
-    (existing || []).forEach((record: any) => {
-      if (record?.name && record?.id) {
-        ids.set(String(record.name).trim().toLowerCase(), record.id);
+  async function getOrCreateCategory(name: string, itemType: "prompt" | "shortcut") {
+    const slug = slugify(name);
+    const { data: found, error: findError } = await supabase.from("categories").select("id, name, slug, applies_to").eq("slug", slug).maybeSingle();
+    if (findError) throw findError;
+    if (found) {
+      const appliesTo = found.applies_to || "both";
+      if (appliesTo !== "both" && appliesTo !== itemType) {
+        const { error: updateError } = await supabase.from("categories").update({ applies_to: "both" }).eq("id", found.id);
+        if (updateError) throw updateError;
       }
-    });
-
-    const slugifyCategory = (value: string) => value
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-
-    for (const name of uniqueNames) {
-      const key = name.toLowerCase();
-      if (ids.has(key)) continue;
-
-      // Keep category creation identical to PromptForm.astro's existing schema.
-      let payload: Record<string, string>;
-      if (tableName === "categories") {
-        const slug = slugifyCategory(name);
-        if (!slug) throw new Error(`Category "${name}" cannot be converted into a valid slug.`);
-        payload = { name, slug, applies_to: "prompt" };
-      } else {
-        payload = { name };
-      }
-
-      let createError: any = null;
-      let created: any = null;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const result = await supabase
-          .from(tableName as any)
-          .insert(payload)
-          .select("id, name")
-          .single();
-        createError = result.error;
-        created = result.data;
-
-        if (!createError && created?.id) break;
-
-        // A concurrent import may have created the same name after our initial read.
-        const { data: refreshed, error: refreshError } = await supabase
-          .from(tableName as any)
-          .select("id, name");
-        if (refreshError) throw refreshError;
-        const match = (refreshed || []).find(
-          (record: any) => String(record?.name || "").trim().toLowerCase() === key
-        );
-        if (match?.id) {
-          ids.set(key, match.id);
-          created = null;
-          createError = null;
-          break;
-        }
-
-        // Retry a category slug collision when a different name normalizes to the same slug.
-        if (
-          tableName === "categories" &&
-          attempt === 0 &&
-          (createError?.code === "23505" || /duplicate key|unique constraint/i.test(createError?.message || ""))
-        ) {
-          payload.slug = `${slugifyCategory(name)}-${crypto.randomUUID().slice(0, 6)}`;
-          continue;
-        }
-        break;
-      }
-
-      if (ids.has(key)) continue;
-      if (!createError && created?.id) {
-        ids.set(String(created.name || name).trim().toLowerCase(), created.id);
-        continue;
-      }
-
-      const detail = createError?.message || "The database did not return the created record.";
-      throw new Error(
-        `Could not create ${tableName === "categories" ? "category" : "tag"} "${name}": ${detail}`
-      );
+      return found.id;
     }
+    const { data, error } = await supabase.from("categories").insert({ name, slug, applies_to: itemType }).select("id").single();
+    if (error) {
+      // Handle a concurrent import creating the same category slug.
+      const { data: raced, error: racedError } = await supabase.from("categories").select("id, applies_to").eq("slug", slug).maybeSingle();
+      if (racedError || !raced) throw error;
+      if (raced.applies_to !== "both" && raced.applies_to !== itemType) {
+        const { error: updateError } = await supabase.from("categories").update({ applies_to: "both" }).eq("id", raced.id);
+        if (updateError) throw updateError;
+      }
+      return raced.id;
+    }
+    if (!data?.id) throw new Error(`Category was created but no ID was returned: ${name}`);
+    return data.id;
+  }
 
-    return ids;
+  async function getOrCreateTag(name: string) {
+    const { data: found, error: findError } = await supabase.from("tags").select("id, name").ilike("name", name).maybeSingle();
+    if (findError) throw findError;
+    if (found) return found.id;
+    const { data, error } = await supabase.from("tags").insert({ name }).select("id").single();
+    if (error) {
+      const { data: raced, error: racedError } = await supabase.from("tags").select("id").ilike("name", name).maybeSingle();
+      if (racedError || !raced) throw error;
+      return raced.id;
+    }
+    if (!data?.id) throw new Error(`Tag was created but no ID was returned: ${name}`);
+    return data.id;
   }
 
   csvImportButton.addEventListener("click", async () => {
@@ -997,111 +959,94 @@ import PromptForm from "../components/PromptForm.astro";
     csvValidateButton.disabled = true;
     csvImportButton.textContent = "Importing...";
     csvValidation.className = "bulk-validation";
-    csvValidation.textContent = `Importing ${selected.length} selected prompt(s) as drafts...`;
+    csvValidation.textContent = `Importing ${selected.length} selected item(s)...`;
     showCsvErrors([]);
 
     let imported = 0;
     const failed: string[] = [];
     const importedItems = new Set<any>();
     const failedItems = new Set<any>();
-
     const getSupabaseError = (error: any) => {
       if (!error) return "Unknown database error";
-      const parts = [
-        error.message,
-        error.details ? `Details: ${error.details}` : "",
-        error.hint ? `Hint: ${error.hint}` : "",
-        error.code ? `Code: ${error.code}` : ""
-      ].filter(Boolean);
-      return parts.length ? parts.join(" · ") : String(error);
+      return [error.message, error.details ? `Details: ${error.details}` : "", error.hint ? `Hint: ${error.hint}` : "", error.code ? `Code: ${error.code}` : ""].filter(Boolean).join(" · ") || String(error);
     };
 
-    // Create/reuse categories and tags before inserting prompts, so each prompt
-    // can be linked using the same relationship tables as PromptForm.astro.
-    try {
-      const categoryNames = selected.flatMap((item) => item.categoryNames || []);
-      const tagNames = selected.flatMap((item) => item.tagNames || []);
-      const categoryIdsByName = await ensureNamedRecords("categories", categoryNames);
-      const tagIdsByName = await ensureNamedRecords("tags", tagNames);
-
-      selected.forEach((item) => {
-        item.categoryIds = (item.categoryNames || [])
-          .map((name: string) => categoryIdsByName.get(name.trim().toLowerCase()))
-          .filter(Boolean);
-        item.tagIds = (item.tagNames || [])
-          .map((name: string) => tagIdsByName.get(name.trim().toLowerCase()))
-          .filter(Boolean);
-      });
-    } catch (error: any) {
-      const message = error?.message || getSupabaseError(error);
-      showCsvErrors([`Could not prepare categories/tags: ${message}`]);
-      csvValidation.className = "bulk-validation error";
-      csvValidation.textContent = "Import stopped before creating prompts because categories or tags could not be prepared.";
-      csvValidateButton.disabled = !selectedCsvFile;
-      csvValidateButton.textContent = "1. Validate CSV";
-      csvImportButton.textContent = "2. Import selected";
-      updateSelectionCount();
-      return;
-    }
-
     for (const item of selected) {
-      let insertedPromptId: string | null = null;
+      let insertedId: string | null = null;
+      const table = item.item_type === "prompt" ? "prompts" : "shortcuts";
       try {
-        const slug = `${item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "prompt"}-${crypto.randomUUID().slice(0, 8)}`;
-        const { data, error } = await supabase.from("prompts").insert({
-          slug, title: item.title, content: item.content,
-          description: item.description, prompt_type: item.prompt_type,
-          status: "draft", ai_tools: item.ai_tools
-        }).select("id").single();
-        if (error) throw new Error(getSupabaseError(error));
-        if (!data?.id) throw new Error("The prompt was inserted, but Supabase did not return its ID.");
-        insertedPromptId = data.id;
-
-        if (item.categoryIds.length) {
-          const { error: categoryError } = await supabase.from("prompt_categories")
-            .insert(item.categoryIds.map((category_id: string) => ({ prompt_id: data.id, category_id })));
-          if (categoryError) throw new Error(`Category linking failed: ${getSupabaseError(categoryError)}`);
+        const slugBase = slugify(item.item_type === "prompt" ? item.title : item.name);
+        const slug = `${slugBase}-${crypto.randomUUID().slice(0, 8)}`;
+        let inserted: any;
+        if (item.item_type === "prompt") {
+          const { data, error } = await supabase.from("prompts").insert({
+            slug, title: item.title, content: item.content,
+            description: item.description || null, prompt_type: item.prompt_type,
+            status: item.status, ai_tools: item.ai_tools
+          }).select("id").single();
+          if (error) throw new Error(getSupabaseError(error));
+          inserted = data;
+        } else {
+          const { data, error } = await supabase.from("shortcuts").insert({
+            slug, name: item.name, description: item.description, status: item.status
+          }).select("id").single();
+          if (error) throw new Error(getSupabaseError(error));
+          inserted = data;
         }
-        if (item.tagIds.length) {
-          const { error: tagError } = await supabase.from("prompt_tags")
-            .insert(item.tagIds.map((tag_id: string) => ({ prompt_id: data.id, tag_id })));
-          if (tagError) throw new Error(`Tag linking failed: ${getSupabaseError(tagError)}`);
-        }
+        if (!inserted?.id) throw new Error(`${item.item_type} was inserted, but Supabase did not return its ID.`);
+        insertedId = inserted.id;
 
+        const categoryIds: string[] = [];
+        for (const name of item.categories) categoryIds.push(await getOrCreateCategory(name, item.item_type));
+        const tagIds: string[] = [];
+        for (const name of item.tags) tagIds.push(await getOrCreateTag(name));
+        if (categoryIds.length) {
+          const relationTable = item.item_type === "prompt" ? "prompt_categories" : "shortcut_categories";
+          const foreignKey = item.item_type === "prompt" ? "prompt_id" : "shortcut_id";
+          const { error } = await supabase.from(relationTable).insert(categoryIds.map((category_id) => ({ [foreignKey]: insertedId, category_id })));
+          if (error) throw new Error(`Category linking failed: ${getSupabaseError(error)}`);
+        }
+        if (tagIds.length) {
+          const relationTable = item.item_type === "prompt" ? "prompt_tags" : "shortcut_tags";
+          const foreignKey = item.item_type === "prompt" ? "prompt_id" : "shortcut_id";
+          const { error } = await supabase.from(relationTable).insert(tagIds.map((tag_id) => ({ [foreignKey]: insertedId, tag_id })));
+          if (error) throw new Error(`Tag linking failed: ${getSupabaseError(error)}`);
+        }
         imported++;
         importedItems.add(item);
       } catch (error: any) {
         let message = error?.message || getSupabaseError(error);
-        if (insertedPromptId) {
-          const { error: cleanupError } = await supabase.from("prompts").delete().eq("id", insertedPromptId);
-          if (cleanupError) {
-            message += ` · Cleanup also failed: ${getSupabaseError(cleanupError)}. Check this prompt in Manage Prompts before retrying.`;
-          } else {
-            message += " · The incomplete prompt record was removed; you can retry this row.";
-          }
+        if (insertedId) {
+          const foreignKey = item.item_type === "prompt" ? "prompt_id" : "shortcut_id";
+          const categoryTable = item.item_type === "prompt" ? "prompt_categories" : "shortcut_categories";
+          const tagTable = item.item_type === "prompt" ? "prompt_tags" : "shortcut_tags";
+          const { error: categoryCleanupError } = await supabase.from(categoryTable).delete().eq(foreignKey, insertedId);
+          const { error: tagCleanupError } = await supabase.from(tagTable).delete().eq(foreignKey, insertedId);
+          const { error: cleanupError } = await supabase.from(table).delete().eq("id", insertedId);
+          const cleanupErrors = [categoryCleanupError, tagCleanupError, cleanupError].filter(Boolean);
+          if (cleanupErrors.length) message += ` · Cleanup failed: ${cleanupErrors.map(getSupabaseError).join("; ")}. Check this ${item.item_type} before retrying.`;
+          else message += ` · The incomplete ${item.item_type} record and its links were removed; you can retry this row.`;
         }
         failedItems.add(item);
-        failed.push(`Row ${item.line} (${item.title}): ${message}`);
+        failed.push(`Row ${item.line} (${item.label}): ${message}`);
       }
     }
 
     if (failed.length) showCsvErrors(failed);
+    const promptCount = importedItems.size ? Array.from(importedItems).filter((item: any) => item.item_type === "prompt").length : 0;
+    const shortcutCount = importedItems.size - promptCount;
     csvValidation.className = imported ? "bulk-validation success" : "bulk-validation error";
-    csvValidation.textContent = `${imported} prompt(s) imported as drafts. ${failed.length} failed.`;
-    if (imported) window.dispatchEvent(new CustomEvent("promptvault:prompt-saved"));
+    csvValidation.textContent = `${imported} item(s) imported: ${promptCount} prompt(s), ${shortcutCount} shortcut(s). ${failed.length} failed.`;
+    if (promptCount) window.dispatchEvent(new CustomEvent("promptvault:prompt-saved"));
+    if (shortcutCount) window.dispatchEvent(new CustomEvent("promptvault:shortcut-saved"));
 
     validatedRows.forEach((item) => {
       if (importedItems.has(item)) {
-        item.state = "imported";
-        item.selected = false;
-        item.reason = "Successfully imported as draft";
+        item.state = "imported"; item.selected = false; item.reason = `Successfully imported as ${item.status}`;
       } else if (failedItems.has(item)) {
-        item.state = "invalid";
-        item.selected = false;
-        item.reason = "Import failed. See the detailed error above.";
+        item.state = "invalid"; item.selected = false; item.reason = "Import failed. See the detailed error above.";
       }
     });
-
     renderCsvPreview();
     csvValidateButton.disabled = !selectedCsvFile;
     csvValidateButton.textContent = "1. Validate CSV";
