@@ -58,7 +58,7 @@ import PromptForm from "../components/PromptForm.astro";
             </div>
           </div>
           <div class="admin-table-wrap">
-            <div class="admin-table-head"><span>Prompt</span><span>Type</span><span>Status</span><span>Actions</span></div>
+            <div class="admin-table-head"><span>Prompt</span><span>Type</span><span>Status</span><span>Created</span><span>Actions</span></div>
             <div id="prompt-list"><p class="empty-row">Loading prompts...</p></div>
           </div>
           <div class="pagination">
@@ -92,7 +92,7 @@ import PromptForm from "../components/PromptForm.astro";
             </div>
           </div>
           <div class="admin-table-wrap">
-            <div class="admin-table-head shortcut-table-head"><span>Shortcut</span><span>Status</span><span>Created</span><span>Actions</span></div>
+            <div class="admin-table-head shortcut-table-head"><span>Shortcut</span><span>Type</span><span>Status</span><span>Created</span><span>Actions</span></div>
             <div id="shortcut-list"><p class="empty-row">Loading shortcuts...</p></div>
           </div>
           <div class="pagination">
@@ -107,7 +107,7 @@ import PromptForm from "../components/PromptForm.astro";
             <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts and shortcuts from CSV</h2></div>
             <button id="download-csv-template" class="btn btn-quiet" type="button">Download CSV template</button>
           </div>
-          <p class="bulk-intro">Import prompts and shortcuts together. Mark each row as <code>prompt</code> or <code>shortcut</code>; new categories and tags are created automatically.</p>
+          <p class="bulk-intro">Import prompts and shortcuts together. Mark each row as <code>prompt</code> or <code>shortcut</code>. Every imported item is saved as a draft; publish it later from its management list.</p>
           <div class="csv-format">
             <div class="csv-format-title">CSV columns</div>
             <code>item_type,title,name,content,prompt_type,description,categories,tags,ai_tools,status</code>
@@ -119,7 +119,7 @@ import PromptForm from "../components/PromptForm.astro";
               <li><code>item_type</code> is required: <code>prompt</code> or <code>shortcut</code>.</li>
               <li>Prompts require <code>title</code>, <code>content</code> and <code>prompt_type</code> (<code>image</code>, <code>video</code> or <code>other</code>).</li>
               <li>Shortcuts require <code>name</code> and <code>description</code>.</li>
-              <li><code>status</code> can be <code>draft</code> or <code>published</code>; it defaults to <code>draft</code>.</li>
+              <li>All imported prompts and shortcuts are saved as <code>draft</code>, even if the CSV contains a status value.</li>
               <li>Separate categories and tags with <code>|</code>. AI tools apply to prompts only.</li>
               <li>Use standard CSV quotes around values containing commas, quotes or line breaks.</li>
             </ul>
@@ -136,7 +136,7 @@ import PromptForm from "../components/PromptForm.astro";
           <div id="bulk-errors" class="bulk-errors" hidden></div>
           <section id="bulk-preview" class="bulk-preview" hidden aria-label="Validated prompt selection">
             <div class="bulk-preview-heading">
-              <strong>Review prompts to import</strong>
+              <strong>Review items to import</strong>
               <div class="bulk-preview-controls">
                 <button id="bulk-select-all" type="button">Select all ready</button>
                 <button id="bulk-clear-selection" type="button">Clear selection</button>
@@ -318,16 +318,16 @@ import PromptForm from "../components/PromptForm.astro";
     scrollbar-color: #334155 #0b1119;
   }
   .admin-table-head { position: sticky; top: 0; z-index: 2; }
-  #prompt-list { min-width: 800px; }
+  #prompt-list { min-width: 850px; }
   .admin-table-head, .admin-prompt-row {
     display: grid;
-    grid-template-columns: minmax(280px, 1fr) 110px 130px 220px;
+    grid-template-columns: minmax(260px, 1fr) 90px 110px 120px 190px;
     align-items: center;
     gap: 14px;
     padding: 14px 16px;
   }
   .admin-table-head {
-    min-width: 800px;
+    min-width: 850px;
     background: #ffffff07;
     color: #8291a5;
     font-size: 9px;
@@ -337,7 +337,7 @@ import PromptForm from "../components/PromptForm.astro";
   }
   .shortcut-management-panel { margin-top:22px; }
   .shortcut-toolbar { grid-template-columns:minmax(220px,1fr) 170px; }
-  .shortcut-table-head,.admin-shortcut-row { grid-template-columns:minmax(280px,1fr) 130px 170px 220px; min-width:800px; }
+  .shortcut-table-head,.admin-shortcut-row { grid-template-columns:minmax(240px,1fr) 90px 110px 130px 190px; min-width:850px; }
   .admin-shortcut-row { display:grid; align-items:center; gap:14px; padding:14px 16px; border-top:1px solid #ffffff0d; }
   .admin-shortcut-row.is-selected { background:#22d3ee0b; }
   .admin-shortcut-name-wrap { display:flex; align-items:center; gap:11px; min-width:0; }
@@ -345,7 +345,7 @@ import PromptForm from "../components/PromptForm.astro";
   .admin-shortcut-row > * { min-width:0; }
   .admin-shortcut-name { color:#e2e8f0; font-size:12px; font-weight:680; overflow-wrap:anywhere; }
   .shortcut-date { color:#a5b4c5; font-size:11px; white-space:nowrap; }
-  .admin-prompt-row { min-width:800px; border-top:1px solid #ffffff0d; transition:background .16s ease; }
+  .admin-prompt-row { min-width:850px; border-top:1px solid #ffffff0d; transition:background .16s ease; }
   .admin-prompt-row.is-selected { background: #22d3ee0b; }
   .admin-prompt-name-wrap { display:flex; align-items:center; gap:11px; min-width:0; }
   .prompt-select-checkbox { width:15px; height:15px; flex:0 0 auto; accent-color:#22d3ee; cursor:pointer; }
@@ -439,7 +439,7 @@ import PromptForm from "../components/PromptForm.astro";
     .toolbar input { grid-column: 1 / -1; }
     .shortcut-toolbar { grid-template-columns: 1fr 1fr; }
     .shortcut-toolbar input { grid-column: 1 / -1; }
-    .admin-table-head, .admin-prompt-row { grid-template-columns: minmax(280px, 1fr) 110px 130px 220px; }
+    .admin-table-head, .admin-prompt-row { grid-template-columns: minmax(260px, 1fr) 90px 110px 120px 190px; }
     .dash-header { align-items: flex-start; }
     .admin-shell { padding: 28px 14px 80px; }
   }
@@ -558,6 +558,10 @@ import PromptForm from "../components/PromptForm.astro";
       statusBadge.className = `admin-status-pill admin-status-${prompt.status}`;
       statusBadge.textContent = prompt.status;
 
+      const created = document.createElement("span");
+      created.className = "shortcut-date";
+      created.textContent = prompt.created_at ? new Date(prompt.created_at).toLocaleDateString() : "—";
+
       const actions = document.createElement("div");
       actions.className = "admin-row-actions";
 
@@ -613,7 +617,7 @@ import PromptForm from "../components/PromptForm.astro";
       });
 
       actions.append(edit, toggle, remove);
-      row.append(titleWrap, type, statusBadge, actions);
+      row.append(titleWrap, type, statusBadge, created, actions);
       promptList.append(row);
     });
 
@@ -705,6 +709,9 @@ import PromptForm from "../components/PromptForm.astro";
       name.className = "admin-shortcut-name";
       name.textContent = shortcut.name || "(unnamed shortcut)";
       nameWrap.append(checkbox, name);
+      const type = document.createElement("span");
+      type.className = "admin-prompt-meta";
+      type.textContent = "Shortcut";
       const statusBadge = document.createElement("span");
       statusBadge.className = `admin-status-pill admin-status-${shortcut.status}`;
       statusBadge.textContent = shortcut.status;
@@ -747,7 +754,7 @@ import PromptForm from "../components/PromptForm.astro";
         }
       });
       actions.append(toggle, remove);
-      row.append(nameWrap, statusBadge, created, actions);
+      row.append(nameWrap, type, statusBadge, created, actions);
       list.append(row);
     });
     $("#shortcut-total-label").textContent = `${filtered.length} ${filtered.length === 1 ? "shortcut" : "shortcuts"}`;
@@ -1070,13 +1077,13 @@ import PromptForm from "../components/PromptForm.astro";
         const title = get("title"), name = get("name"), content = get("content");
         const label = itemType === "shortcut" ? name : title;
         const promptType = get("prompt_type").toLowerCase();
-        const status = (get("status") || "draft").toLowerCase();
+        // Import is intentionally draft-only. CSV status values are ignored.
+        const status = "draft";
         const categoryNames = splitList(get("categories")), tagNames = splitList(get("tags"));
         const aiTools = splitList(get("ai_tools"));
         const issues: string[] = [];
         if (cells.length !== headers.length) issues.push(`expected ${headers.length} columns, found ${cells.length}`);
         if (!["prompt", "shortcut"].includes(itemType)) issues.push("item_type must be prompt or shortcut");
-        if (!["draft", "published"].includes(status)) issues.push("status must be draft or published");
         if (itemType === "prompt") {
           if (!title) issues.push("title is required for prompts");
           if (!content) issues.push("content is required for prompts");
@@ -1203,13 +1210,13 @@ import PromptForm from "../components/PromptForm.astro";
           const { data, error } = await supabase.from("prompts").insert({
             slug, title: item.title, content: item.content,
             description: item.description || null, prompt_type: item.prompt_type,
-            status: item.status, ai_tools: item.ai_tools
+            status: "draft", ai_tools: item.ai_tools
           }).select("id").single();
           if (error) throw new Error(getSupabaseError(error));
           inserted = data;
         } else {
           const { data, error } = await supabase.from("shortcuts").insert({
-            slug, name: item.name, description: item.description, status: item.status
+            slug, name: item.name, description: item.description, status: "draft"
           }).select("id").single();
           if (error) throw new Error(getSupabaseError(error));
           inserted = data;
@@ -1263,7 +1270,7 @@ import PromptForm from "../components/PromptForm.astro";
 
     validatedRows.forEach((item) => {
       if (importedItems.has(item)) {
-        item.state = "imported"; item.selected = false; item.reason = `Successfully imported as ${item.status}`;
+        item.state = "imported"; item.selected = false; item.reason = "Successfully imported as draft";
       } else if (failedItems.has(item)) {
         item.state = "invalid"; item.selected = false; item.reason = "Import failed. See the detailed error above.";
       }
