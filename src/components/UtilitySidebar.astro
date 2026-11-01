@@ -1,292 +1,160 @@
-
-<div class="utility-dock">
-  <div class="utility-layout">
-    <section id="utility-panel" class="utility-panel hidden">
-      <div class="utility-panel-header">
-        <h2 id="utility-title">Utilities</h2>
-        <button id="utility-close" class="close-button" aria-label="Close panel">✕</button>
-      </div>
-      <div id="utility-content" class="utility-panel-content">
-        <p>Select a utility.</p>
+<div class="pv-utility-dock">
+  <div class="pv-utility-layout">
+    <section id="utility-panel" class="pv-utility-panel" hidden aria-live="polite">
+      <header class="pv-utility-header">
+        <div class="pv-utility-heading">
+          <span class="pv-utility-kicker">PROMPTVAULT</span>
+          <h2 id="utility-title">Utilities</h2>
+        </div>
+        <button id="utility-close" class="pv-utility-close" type="button" aria-label="Close utilities">×</button>
+      </header>
+      <div id="utility-content" class="pv-utility-content">
+        <p class="pv-utility-empty">Choose a utility to get started.</p>
       </div>
     </section>
 
-    <nav aria-label="Utilities" class="utility-nav">
-      <button data-utility="favorites" aria-label="Favourites" title="Favourites" class="utility-button utility-purple">
+    <nav class="pv-utility-nav" aria-label="Utilities">
+      <button type="button" data-utility="favorites" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-purple" aria-label="Favourites" title="Favourites">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
       </button>
-
-      <button data-utility="recent" aria-label="Recently viewed" title="Recently viewed" class="utility-button utility-cyan">
+      <button type="button" data-utility="recent" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-cyan" aria-label="Recently viewed" title="Recently viewed">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
       </button>
-
-      <button data-utility="random" aria-label="Random discovery" title="Random discovery" class="utility-button utility-orange">
+      <button type="button" data-utility="random" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-orange" aria-label="Random discovery" title="Random discovery">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20l6-6M16 16l5 5M21 16v5h-5M4 4l5 5"/><path d="M14 5h2a5 5 0 0 1 5 5M4 14a5 5 0 0 0 5 5h2"/></svg>
       </button>
-
-      <div class="utility-divider"></div>
-
-      <button data-utility="settings" aria-label="Settings" title="Settings" class="utility-button utility-green">
+      <span class="pv-utility-separator" aria-hidden="true"></span>
+      <button type="button" data-utility="settings" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-green" aria-label="Settings" title="Settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.9l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.8Z"/></svg>
       </button>
     </nav>
   </div>
 </div>
 
-<div class="utility-mobile">
-  <nav aria-label="Mobile utilities" class="utility-mobile-nav">
-    <button data-utility="favorites" aria-label="Favourites" class="utility-button utility-purple">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg>
-    </button>
-    <button data-utility="recent" aria-label="Recently viewed" class="utility-button utility-cyan">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-    </button>
-    <button data-utility="random" aria-label="Random discovery" class="utility-button utility-orange">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20l6-6M16 16l5 5M21 16v5h-5M4 4l5 5"/><path d="M14 5h2a5 5 0 0 1 5 5M4 14a5 5 0 0 0 5 5h2"/></svg>
-    </button>
-    <button data-utility="settings" aria-label="Settings" class="utility-button utility-green">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.9l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.8Z"/></svg>
-    </button>
+<div class="pv-utility-mobile">
+  <nav class="pv-utility-mobile-nav" aria-label="Mobile utilities">
+    <button type="button" data-utility="favorites" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-purple" aria-label="Favourites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"/></svg></button>
+    <button type="button" data-utility="recent" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-cyan" aria-label="Recently viewed"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></button>
+    <button type="button" data-utility="random" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-orange" aria-label="Random discovery"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20l6-6M16 16l5 5M21 16v5h-5M4 4l5 5"/><path d="M14 5h2a5 5 0 0 1 5 5M4 14a5 5 0 0 0 5 5h2"/></svg></button>
+    <button type="button" data-utility="settings" aria-controls="utility-panel mobile-utility-panel" class="pv-utility-button pv-green" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.6.9l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.6-.9l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.9l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.6-.9l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.6.9l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.8Z"/></svg></button>
   </nav>
 </div>
 
-<div id="mobile-utility-panel" class="mobile-utility-panel hidden">
-  <div class="mobile-panel-header">
-    <h2 id="mobile-utility-title">Utilities</h2>
-    <button id="mobile-utility-close" class="close-button" aria-label="Close panel">✕</button>
-  </div>
-  <div id="mobile-utility-content" class="utility-panel-content"></div>
-</div>
+<section id="mobile-utility-panel" class="pv-utility-panel pv-utility-mobile-panel" hidden aria-live="polite">
+  <header class="pv-utility-header">
+    <div class="pv-utility-heading">
+      <span class="pv-utility-kicker">PROMPTVAULT</span>
+      <h2 id="mobile-utility-title">Utilities</h2>
+    </div>
+    <button id="mobile-utility-close" class="pv-utility-close" type="button" aria-label="Close utilities">×</button>
+  </header>
+  <div id="mobile-utility-content" class="pv-utility-content"></div>
+</section>
 
-<style>
-  .utility-dock {
-    position: fixed;
-    right: 24px;
-    bottom: 26px;
-    z-index: 60;
-    display: none;
+<style is:global>
+  .pv-utility-dock,.pv-utility-mobile,.pv-utility-panel,
+  .pv-utility-dock *,.pv-utility-mobile *,.pv-utility-panel * { box-sizing:border-box; }
+  .pv-utility-dock { position:fixed; right:24px; bottom:24px; z-index:1000; display:none; }
+  .pv-utility-layout { display:flex; align-items:flex-end; gap:14px; }
+  .pv-utility-nav,.pv-utility-mobile-nav {
+    display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px;
+    border:1px solid rgba(255,255,255,.14); border-radius:24px;
+    background:linear-gradient(155deg,rgba(22,28,35,.96),rgba(10,13,19,.97));
+    box-shadow:0 18px 55px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.07);
+    -webkit-backdrop-filter:blur(22px); backdrop-filter:blur(22px);
   }
-
-  .utility-layout {
-    display: flex;
-    align-items: flex-end;
-    gap: 13px;
+  .pv-utility-button {
+    display:grid !important; place-items:center; flex:0 0 44px; width:44px !important; height:44px !important;
+    margin:0 !important; padding:0 !important; border:1px solid transparent; border-radius:15px;
+    background:rgba(255,255,255,.055); color:#aeb6c4; cursor:pointer;
+    transition:transform .18s ease,background .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease;
   }
-
-  .utility-nav,
-  .utility-mobile-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 9px;
-    border: 1px solid rgba(255,255,255,.13);
-    border-radius: 19px;
+  .pv-utility-button svg { display:block; width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .pv-utility-button:hover { transform:translateY(-2px); }
+  .pv-purple:hover { color:#d8c5ff; border-color:#a78bfa80; background:#8b5cf626; box-shadow:0 0 22px #8b5cf62b; }
+  .pv-cyan:hover { color:#9af3ff; border-color:#67e8f980; background:#06b6d426; box-shadow:0 0 22px #06b6d42b; }
+  .pv-orange:hover { color:#ffd0a3; border-color:#fb923c80; background:#f9731626; box-shadow:0 0 22px #f973162b; }
+  .pv-green:hover { color:#a7f3c1; border-color:#4ade8080; background:#22c55e26; box-shadow:0 0 22px #22c55e2b; }
+  .pv-utility-separator { width:26px; height:1px; margin:3px 0; background:rgba(255,255,255,.15); }
+  .pv-utility-panel {
+    width:min(390px,calc(100vw - 104px)); max-height:min(570px,calc(100dvh - 40px)); overflow:hidden;
+    border:1px solid rgba(255,255,255,.15); border-radius:23px;
     background:
-      radial-gradient(circle at 15% 0%, rgba(34,211,238,.09), transparent 45%),
-      linear-gradient(145deg, rgba(27,29,34,.96), rgba(10,11,15,.97));
-    box-shadow: 0 18px 55px rgba(0,0,0,.52), inset 0 1px 0 rgba(255,255,255,.07);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+      radial-gradient(ellipse at 100% 0%,rgba(249,115,22,.13),transparent 42%),
+      radial-gradient(ellipse at 0% 100%,rgba(34,211,238,.10),transparent 48%),
+      linear-gradient(145deg,rgba(25,28,36,.985),rgba(10,12,18,.99));
+    box-shadow:0 28px 85px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.07);
+    -webkit-backdrop-filter:blur(28px); backdrop-filter:blur(28px);
   }
-
-  .utility-button {
-    position: relative;
-    display: grid;
-    width: 41px;
-    height: 41px;
-    place-items: center;
-    border: 1px solid transparent;
-    border-radius: 13px;
-    background: rgba(255,255,255,.035);
-    color: #a7a9b4;
-    cursor: pointer;
-    transition: transform .2s ease, border-color .2s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
+  .pv-utility-panel[hidden] { display:none !important; }
+  .pv-utility-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:19px 21px; border-bottom:1px solid rgba(255,255,255,.09); }
+  .pv-utility-heading { min-width:0; }
+  .pv-utility-kicker { display:block; margin:0 0 5px; color:#67e8f9; font:700 9px/1.2 ui-monospace,SFMono-Regular,monospace; letter-spacing:.19em; }
+  .pv-utility-header h2 { margin:0 !important; color:#f5f6fa; font:700 16px/1.3 system-ui,sans-serif; letter-spacing:-.025em; }
+  .pv-utility-close { display:grid !important; flex:0 0 36px; width:36px !important; height:36px !important; place-items:center; margin:0 !important; padding:0 !important; border:1px solid rgba(255,255,255,.13); border-radius:12px; background:rgba(255,255,255,.05); color:#aeb6c4; font:400 23px/1 system-ui,sans-serif; cursor:pointer; transition:.18s ease; }
+  .pv-utility-close:hover { color:#fff; border-color:#fb718580; background:#fb71851a; }
+  .pv-utility-content { display:block; width:100%; max-height:470px; overflow-y:auto; padding:19px 21px 21px; color:#c1c7d2; font:400 13px/1.6 system-ui,sans-serif; }
+  .pv-utility-content::-webkit-scrollbar { width:6px; }
+  .pv-utility-content::-webkit-scrollbar-thumb { border-radius:9px; background:rgba(255,255,255,.18); }
+  .pv-utility-list { display:flex; flex-direction:column; gap:9px; width:100%; }
+  .pv-utility-item { display:flex !important; align-items:center; justify-content:space-between; gap:14px; width:100%; min-width:0; margin:0 !important; padding:13px 14px !important; border:1px solid rgba(255,255,255,.09); border-radius:14px; background:rgba(255,255,255,.035); color:#e5e7eb !important; text-decoration:none !important; transition:border-color .18s ease,background .18s ease,transform .18s ease; }
+  .pv-utility-item:hover { transform:translateY(-1px); border-color:rgba(103,232,249,.32); background:rgba(34,211,238,.07); }
+  .pv-utility-item-details { display:flex; flex:1 1 auto; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; }
+  .pv-utility-item-details strong { display:block; width:100%; margin:0 !important; color:#f4f5f8; font-size:13px; font-weight:650; line-height:1.45; overflow-wrap:anywhere; }
+  .pv-utility-item-details small { display:block; margin:0 !important; color:#8d9aaa; font:700 9px/1.4 ui-monospace,SFMono-Regular,monospace; letter-spacing:.13em; }
+  .pv-utility-item-arrow { flex:0 0 auto; color:#a78bfa; font-size:17px; }
+  .pv-utility-empty { margin:0 !important; padding:14px; border:1px dashed rgba(255,255,255,.13); border-radius:13px; color:#9ca7b7; font-size:12px; line-height:1.7; }
+  .pv-random-result { display:flex; flex-direction:column; align-items:stretch; gap:11px; width:100%; min-width:0; }
+  .pv-random-eyebrow { margin:0; color:#67e8f9; font:700 9px/1.4 ui-monospace,SFMono-Regular,monospace; letter-spacing:.17em; }
+  .pv-random-result h3 { margin:0 !important; color:#f7f8fb; font:700 clamp(18px,4vw,22px)/1.25 system-ui,sans-serif; letter-spacing:-.035em; overflow-wrap:anywhere; }
+  .pv-random-type { margin:0 !important; color:#a3aab8; font-size:11px; }
+  .pv-random-actions { display:flex; flex-wrap:wrap; align-items:center; gap:9px; margin-top:5px; }
+  .pv-utility-action,.pv-utility-secondary { display:inline-flex !important; align-items:center; justify-content:center; width:auto !important; min-height:38px; margin:0 !important; padding:0 14px !important; border:1px solid rgba(251,146,60,.32); border-radius:11px; background:rgba(249,115,22,.11); color:#fed7aa !important; font-size:11px; font-weight:700; line-height:1; text-decoration:none !important; cursor:pointer; white-space:nowrap; }
+  .pv-utility-secondary { border-color:rgba(255,255,255,.13); background:rgba(255,255,255,.05); color:#d7dce5 !important; }
+  .pv-utility-action:hover,.pv-utility-secondary:hover { filter:brightness(1.15); }
+  .pv-utility-settings { display:flex; flex-direction:column; gap:15px; width:100%; }
+  .pv-utility-setting { display:grid; grid-template-columns:minmax(0,1fr) 18px; align-items:start; gap:13px; width:100%; margin:0 !important; padding:0 0 14px !important; border-bottom:1px solid rgba(255,255,255,.08); cursor:pointer; }
+  .pv-utility-setting-copy { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; }
+  .pv-utility-setting strong { color:#eef0f5; font-size:12px; line-height:1.4; }
+  .pv-utility-setting small { color:#98a2b2; font-size:11px; line-height:1.55; }
+  .pv-utility-setting input { width:16px !important; height:16px !important; margin:2px 0 0 !important; accent-color:#a78bfa; }
+  .pv-utility-note { margin:0 !important; color:#8e99aa; font-size:10px; line-height:1.6; }
+  .pv-utility-mobile { position:fixed; left:50%; bottom:14px; z-index:1000; display:block; transform:translateX(-50%); }
+  .pv-utility-mobile-nav { flex-direction:row; gap:7px; padding:8px; border-radius:19px; }
+  .pv-utility-mobile-nav .pv-utility-button { width:43px !important; height:43px !important; flex-basis:43px; }
+  .pv-utility-mobile-panel { position:fixed; right:14px; bottom:80px; left:14px; z-index:1001; width:auto; max-width:480px; max-height:min(65dvh,520px); margin:0 auto; }
+  .pv-utility-mobile-panel .pv-utility-content { max-height:calc(65dvh - 145px); }
+  @supports not (height:100dvh) {
+    .pv-utility-panel { max-height:calc(100vh - 40px); }
+    .pv-utility-mobile-panel { max-height:min(65vh,520px); }
+    .pv-utility-mobile-panel .pv-utility-content { max-height:calc(65vh - 145px); }
   }
-
-  .utility-button svg {
-    width: 18px;
-    height: 18px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .utility-purple:hover { border-color:#b69aff80; background:#8b5cf626; color:#c4b5fd; box-shadow:0 0 20px #8b5cf62b; }
-  .utility-cyan:hover { border-color:#67e8f980; background:#06b6d426; color:#67e8f9; box-shadow:0 0 20px #06b6d42b; }
-  .utility-orange:hover { border-color:#fb923c80; background:#f9731626; color:#fdba74; box-shadow:0 0 20px #f973162b; }
-  .utility-green:hover { border-color:#4ade8080; background:#22c55e26; color:#86efac; box-shadow:0 0 20px #22c55e2b; }
-  .utility-button:hover { transform: translateY(-2px); }
-
-  .utility-divider {
-    height: 1px;
-    margin: 5px 5px;
-    background: linear-gradient(90deg, transparent, #ffffff35, transparent);
-  }
-
-  .utility-panel,
-  .mobile-utility-panel {
-    width: 292px;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,.15);
-    border-radius: 19px;
-    background:
-      radial-gradient(ellipse at 100% 0%, rgba(249,115,22,.10), transparent 45%),
-      radial-gradient(ellipse at 0% 100%, rgba(34,211,238,.08), transparent 50%),
-      linear-gradient(145deg, rgba(25,27,32,.98), rgba(10,11,15,.98));
-    box-shadow: 0 24px 70px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.06);
-    backdrop-filter: blur(26px);
-    -webkit-backdrop-filter: blur(26px);
-  }
-
-  .utility-panel-header,
-  .mobile-panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 18px;
-    border-bottom: 1px solid rgba(255,255,255,.09);
-  }
-
-  .utility-panel-header h2,
-  .mobile-panel-header h2 {
-    color: #f4f4f5;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: -.01em;
-  }
-
-  .close-button {
-    display: grid;
-    width: 30px;
-    height: 30px;
-    place-items: center;
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 9px;
-    background: rgba(255,255,255,.045);
-    color: #a7a9b4;
-    cursor: pointer;
-    transition: .2s ease;
-  }
-
-  .close-button:hover {
-    border-color: #fb718580;
-    background: #fb71851a;
-    color: #fda4af;
-  }
-
-  .utility-panel-content {
-    padding: 18px;
-    color: #a7a9b4;
-    font-size: 12px;
-    line-height: 1.75;
-  }
-
-  .utility-mobile {
-    position: fixed;
-    bottom: 13px;
-    left: 50%;
-    z-index: 60;
-    display: block;
-    transform: translateX(-50%);
-  }
-
-  .utility-mobile-nav {
-    flex-direction: row;
-    gap: 6px;
-    padding: 8px;
-    border-radius: 17px;
-  }
-
-  .utility-mobile-nav .utility-button {
-    width: 44px;
-    height: 42px;
-  }
-
-  .mobile-utility-panel {
-    position: fixed;
-    right: 13px;
-    bottom: 78px;
-    left: 13px;
-    z-index: 59;
-    width: auto;
-  }
-
-  .mobile-panel-header { padding: 13px 16px; }
-  .mobile-utility-panel .utility-panel-content { padding: 15px 16px; }
-  /* Isolate utility panel layout from global typography and form styles. */
-  .utility-dock, .utility-mobile, .utility-panel, .mobile-utility-panel,
-  .utility-panel *, .mobile-utility-panel * { box-sizing:border-box !important; }
-  .utility-panel, .mobile-utility-panel { width: min(360px, calc(100vw - 104px)) !important; min-width:0 !important; }
-  .utility-panel-content { display:block !important; width:100% !important; min-width:0 !important; overflow-wrap:anywhere; }
-  .utility-list { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; gap:9px !important; }
-  .utility-item { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:row !important; align-items:center !important; justify-content:space-between !important; gap:14px !important; padding:12px 13px !important; border:1px solid rgba(255,255,255,.09); border-radius:11px; background:rgba(255,255,255,.035); color:#e5e7eb; text-decoration:none; }
-  .utility-item-details { display:flex !important; min-width:0 !important; flex:1 1 auto !important; flex-direction:column !important; align-items:flex-start !important; justify-content:center !important; gap:5px !important; }
-  .utility-item-details strong { display:block !important; width:100% !important; margin:0 !important; color:#f4f4f5; font-size:12px; font-weight:600; line-height:1.45 !important; overflow-wrap:anywhere; }
-  .utility-item-details small { display:block !important; width:100% !important; margin:0 !important; color:#9294a1; font-family:"JetBrains Mono",monospace; font-size:9px; letter-spacing:.08em; line-height:1.4 !important; }
-  .utility-item-arrow { display:block !important; flex:0 0 auto !important; margin-left:auto !important; color:#a78bfa; }
-  .utility-empty,.utility-note { display:block !important; margin:0; color:#a7a9b4; font-size:11px; line-height:1.7; }
-  .random-result { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; align-items:stretch !important; gap:10px !important; }
-  .random-result h3 { display:block !important; margin:0 !important; color:#f4f4f5; font-family:"Space Grotesk",sans-serif; font-size:17px; line-height:1.4 !important; overflow-wrap:anywhere; }
-  .utility-random-type,.utility-eyebrow { display:block !important; margin:0 !important; color:#9294a1; font-family:"JetBrains Mono",monospace; font-size:9px; letter-spacing:.08em; line-height:1.5 !important; }
-  .utility-random-actions { display:flex !important; width:100% !important; flex-wrap:wrap !important; align-items:center !important; gap:8px !important; margin-top:3px !important; }
-  .utility-action,.utility-secondary { display:inline-flex !important; width:auto !important; min-height:36px; flex:0 0 auto !important; align-items:center; justify-content:center; margin:0 !important; padding:0 13px; border:1px solid rgba(251,146,60,.3); border-radius:9px; background:rgba(249,115,22,.09); color:#fed7aa; font-size:11px; font-weight:600; line-height:1 !important; text-decoration:none; cursor:pointer; white-space:nowrap; }
-  .utility-secondary { border-color:rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#d4d4d8; }
-  .utility-settings { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; align-items:stretch !important; gap:17px !important; }
-  .utility-setting { display:grid !important; width:100% !important; min-width:0 !important; grid-template-columns:minmax(0,1fr) 18px !important; align-items:start !important; justify-content:initial !important; gap:12px !important; margin:0 !important; padding:0 !important; cursor:pointer; }
-  .utility-setting > span { display:flex !important; width:100% !important; min-width:0 !important; flex-direction:column !important; align-items:flex-start !important; gap:5px !important; }
-  .utility-setting strong { display:block !important; width:100% !important; margin:0 !important; color:#e5e7eb; font-size:12px; line-height:1.45 !important; }
-  .utility-setting small { display:block !important; width:100% !important; max-width:100% !important; margin:0 !important; color:#9294a1; font-size:10px; line-height:1.65 !important; white-space:normal !important; }
-  .utility-setting input { display:block !important; position:static !important; width:16px !important; height:16px !important; margin:2px 0 0 !important; padding:0 !important; accent-color:#a78bfa; flex-shrink:0 !important; }
-  .utility-note { width:100% !important; margin:0 !important; padding-top:12px !important; border-top:1px solid rgba(255,255,255,.08); }
-  .utility-panel-header,.mobile-panel-header { min-width:0 !important; }
-  .utility-panel-header h2,.mobile-panel-header h2 { min-width:0 !important; margin:0 !important; }
-  @media (max-width:767px) {
-    .mobile-utility-panel { width:auto !important; max-height:min(65vh,520px) !important; overflow-y:auto !important; }
-    .mobile-utility-panel .utility-panel-content { width:100% !important; }
-  }
-  .pv-reduced-motion *, .pv-reduced-motion *::before, .pv-reduced-motion *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
-  .hidden { display: none !important; }
-
-  @media (min-width: 768px) {
-    .utility-dock { display: block; }
-    .utility-mobile { display: none; }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .utility-button,
-    .close-button { transition: none; }
-  }
+  @media (min-width:768px) { .pv-utility-dock { display:block; } .pv-utility-mobile { display:none; } }
+  @media (max-width:767px) { .pv-utility-dock { display:none; } .pv-utility-panel:not(.pv-utility-mobile-panel) { display:none !important; } }
+  @media (prefers-reduced-motion:reduce) { .pv-utility-button,.pv-utility-item,.pv-utility-close { transition:none !important; } }
+  html.pv-reduced-motion *,html.pv-reduced-motion *::before,html.pv-reduced-motion *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 </style>
 
 <script>
   import { supabase } from "../lib/supabase.js";
 
-  type SavedItem = {
-    type: "prompt" | "shortcut";
-    id: string;
-    title: string;
-    url: string;
-  };
-
-  type UtilitySettings = {
-    reducedMotion: boolean;
-    reopenLastPanel: boolean;
-  };
+  type ItemType = "prompt" | "shortcut";
   type UtilityName = "favorites" | "recent" | "random" | "settings";
-  type DatabaseItem = { id: string; title?: string; name?: string };
+  type SavedItem = { type: ItemType; id: string; title: string; url: string };
+  type UtilitySettings = { reducedMotion: boolean; reopenLastPanel: boolean };
+  type PromptRow = { id: string; title: string | null };
+  type ShortcutRow = { id: string; name: string | null };
 
   const FAVORITES_KEY = "promptvault:favourites";
   const RECENT_KEY = "promptvault:recent";
   const SETTINGS_KEY = "promptvault:settings";
   const LAST_PANEL_KEY = "promptvault:last-utility";
 
-  const utilityData: Record<UtilityName, { title: string }> = {
-    favorites: { title: "Favourites" },
-    recent: { title: "Recently viewed" },
-    random: { title: "Random discovery" },
-    settings: { title: "Settings" }
+  const utilityTitles: Record<UtilityName, string> = {
+    favorites: "Favourites",
+    recent: "Recently viewed",
+    random: "Random discovery",
+    settings: "Settings"
   };
 
   const desktopPanel = document.querySelector<HTMLElement>("#utility-panel");
@@ -296,261 +164,245 @@
   const mobileTitle = document.querySelector<HTMLElement>("#mobile-utility-title");
   const mobileContent = document.querySelector<HTMLElement>("#mobile-utility-content");
 
+  function isUtilityName(value: string | null): value is UtilityName {
+    return value === "favorites" || value === "recent" || value === "random" || value === "settings";
+  }
+
+  type StorageArea = "local" | "session";
+
+  function getStorage(area: StorageArea): Storage | null {
+    try {
+      return area === "local" ? window.localStorage : window.sessionStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  function safeStorageGet(area: StorageArea, key: string): string | null {
+    try { return getStorage(area)?.getItem(key) ?? null; } catch { return null; }
+  }
+
+  function safeStorageSet(area: StorageArea, key: string, value: string): void {
+    try { getStorage(area)?.setItem(key, value); } catch (error) {
+      console.warn("PromptVault utility preference could not be saved.", error);
+    }
+  }
+
+  function safeStorageRemove(area: StorageArea, key: string): void {
+    try { getStorage(area)?.removeItem(key); } catch { /* Storage may be unavailable. */ }
+  }
+
   function readList(key: string): SavedItem[] {
     try {
-      const value = JSON.parse(localStorage.getItem(key) || "[]");
-      if (!Array.isArray(value)) return [];
-      return value.filter((item): item is SavedItem =>
-        item && (item.type === "prompt" || item.type === "shortcut") &&
-        typeof item.id === "string" && typeof item.title === "string" &&
-        typeof item.url === "string"
-      );
-    } catch {
-      return [];
-    }
+      const parsed: unknown = JSON.parse(safeStorageGet("local", key) ?? "[]");
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((value: unknown): value is SavedItem => {
+        if (!value || typeof value !== "object") return false;
+        const item = value as Record<string, unknown>;
+        if (!((item.type === "prompt" || item.type === "shortcut") &&
+          typeof item.id === "string" && typeof item.title === "string" && typeof item.url === "string")) return false;
+        try {
+          const destination = new URL(item.url, window.location.origin);
+          return destination.origin === window.location.origin && destination.protocol === window.location.protocol;
+        } catch {
+          return false;
+        }
+      });
+    } catch { return []; }
   }
 
   function readSettings(): UtilitySettings {
     try {
-      const value = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
-      return {
-        reducedMotion: Boolean(value.reducedMotion),
-        reopenLastPanel: Boolean(value.reopenLastPanel)
-      };
-    } catch {
-      return { reducedMotion: false, reopenLastPanel: false };
-    }
+      const parsed: unknown = JSON.parse(safeStorageGet("local", SETTINGS_KEY) ?? "{}");
+      const value = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+      return { reducedMotion: value.reducedMotion === true, reopenLastPanel: value.reopenLastPanel === true };
+    } catch { return { reducedMotion: false, reopenLastPanel: false }; }
   }
 
   let settings = readSettings();
 
-  function saveSettings() {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  function saveSettings(): void {
+    safeStorageSet("local", SETTINGS_KEY, JSON.stringify(settings));
     document.documentElement.classList.toggle("pv-reduced-motion", settings.reducedMotion);
   }
 
-  function makeElement<K extends keyof HTMLElementTagNameMap>(
-    tag: K, className?: string, text?: string
+  function element<K extends keyof HTMLElementTagNameMap>(
+    tag: K, className = "", text = ""
   ): HTMLElementTagNameMap[K] {
     const node = document.createElement(tag);
     if (className) node.className = className;
-    if (text !== undefined) node.textContent = text;
+    if (text) node.textContent = text;
     return node;
   }
 
-  function renderSavedItems(items: SavedItem[], emptyText: string): HTMLElement {
-    const wrapper = makeElement("div", "utility-list");
-    if (!items.length) {
-      wrapper.append(makeElement("p", "utility-empty", emptyText));
-      return wrapper;
+  function closePanels(): void {
+    if (desktopPanel) desktopPanel.hidden = true;
+    if (mobilePanel) mobilePanel.hidden = true;
+    document.querySelectorAll<HTMLButtonElement>("[data-utility]").forEach((button) => {
+      button.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  function showContent(name: UtilityName, content: HTMLElement): HTMLElement | null {
+    closePanels();
+    document.querySelectorAll<HTMLButtonElement>(`[data-utility="${name}"]`).forEach((button) => {
+      button.setAttribute("aria-expanded", "true");
+    });
+    if (settings.reopenLastPanel) safeStorageSet("session", LAST_PANEL_KEY, name);
+
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      if (mobileTitle) mobileTitle.textContent = utilityTitles[name];
+      mobileContent?.replaceChildren(content);
+      if (mobilePanel) mobilePanel.hidden = false;
+      return mobileContent ?? null;
     }
 
-    items.forEach((item) => {
-      const row = makeElement("a", "utility-item");
-      row.href = item.url;
-      const details = makeElement("span", "utility-item-details");
-      details.append(makeElement("strong", "", item.title));
-      details.append(makeElement("small", "", item.type === "prompt" ? "PROMPT" : "SHORTCUT"));
-      row.append(details);
-      row.append(makeElement("span", "utility-item-arrow", "↗"));
-      wrapper.append(row);
-    });
-    return wrapper;
+    if (desktopTitle) desktopTitle.textContent = utilityTitles[name];
+    desktopContent?.replaceChildren(content);
+    if (desktopPanel) desktopPanel.hidden = false;
+    return desktopContent ?? null;
+  }
+
+  function renderSavedItems(items: SavedItem[], emptyMessage: string): HTMLElement {
+    const list = element("div", "pv-utility-list");
+    if (items.length === 0) {
+      list.append(element("p", "pv-utility-empty", emptyMessage));
+      return list;
+    }
+
+    for (const item of items) {
+      const link = element("a", "pv-utility-item");
+      link.href = item.url;
+      const details = element("span", "pv-utility-item-details");
+      details.append(element("strong", "", item.title));
+      details.append(element("small", "", item.type === "prompt" ? "PROMPT" : "SHORTCUT"));
+      link.append(details, element("span", "pv-utility-item-arrow", "↗"));
+      list.append(link);
+    }
+    return list;
   }
 
   function renderSettings(): HTMLElement {
-    const wrapper = makeElement("div", "utility-settings");
+    const wrapper = element("div", "pv-utility-settings");
 
-    const motionLabel = makeElement("label", "utility-setting");
-    motionLabel.style.cssText = "display:grid;grid-template-columns:minmax(0,1fr) 18px;align-items:start;gap:12px;width:100%;margin:0;cursor:pointer;";
-    const motionText = makeElement("span");
-    motionText.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;width:100%;";
-    const motionHeading = makeElement("strong", "", "Reduced motion");
-    motionHeading.style.cssText = "display:block;width:100%;color:#e5e7eb;font-size:12px;line-height:1.4;";
-    const motionDescription = makeElement("small", "", "Disable interface transitions and movement.");
-    motionDescription.style.cssText = "display:block;width:100%;margin:0;color:#9294a1;font-size:10px;line-height:1.6;white-space:normal;";
-    motionText.append(motionHeading, motionDescription);
-    const motion = makeElement("input");
-    motion.type = "checkbox";
-    motion.style.cssText = "display:block;position:static;width:16px;height:16px;margin:2px 0 0;padding:0;accent-color:#a78bfa;flex-shrink:0;";
-    motion.checked = settings.reducedMotion;
-    motion.addEventListener("change", () => {
-      settings.reducedMotion = motion.checked;
+    const addSetting = (title: string, description: string, checked: boolean, onChange: (value: boolean) => void): void => {
+      const label = element("label", "pv-utility-setting");
+      const copy = element("span", "pv-utility-setting-copy");
+      copy.append(element("strong", "", title), element("small", "", description));
+      const input = element("input");
+      input.type = "checkbox";
+      input.checked = checked;
+      input.addEventListener("change", () => onChange(input.checked));
+      label.append(copy, input);
+      wrapper.append(label);
+    };
+
+    addSetting("Reduced motion", "Reduce interface movement and transitions.", settings.reducedMotion, (value) => {
+      settings.reducedMotion = value;
       saveSettings();
     });
-    motionLabel.append(motionText, motion);
-    wrapper.append(motionLabel);
-
-    const reopenLabel = makeElement("label", "utility-setting");
-    reopenLabel.style.cssText = "display:grid;grid-template-columns:minmax(0,1fr) 18px;align-items:start;gap:12px;width:100%;margin:0;cursor:pointer;";
-    const reopenText = makeElement("span");
-    reopenText.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;width:100%;";
-    const reopenHeading = makeElement("strong", "", "Reopen last utility");
-    reopenHeading.style.cssText = "display:block;width:100%;color:#e5e7eb;font-size:12px;line-height:1.4;";
-    const reopenDescription = makeElement("small", "", "Restore the last opened panel after navigation.");
-    reopenDescription.style.cssText = "display:block;width:100%;margin:0;color:#9294a1;font-size:10px;line-height:1.6;white-space:normal;";
-    reopenText.append(reopenHeading, reopenDescription);
-    const reopen = makeElement("input");
-    reopen.type = "checkbox";
-    reopen.style.cssText = "display:block;position:static;width:16px;height:16px;margin:2px 0 0;padding:0;accent-color:#a78bfa;flex-shrink:0;";
-    reopen.checked = settings.reopenLastPanel;
-    reopen.addEventListener("change", () => {
-      settings.reopenLastPanel = reopen.checked;
+    addSetting("Reopen last utility", "Restore the last utility panel when you return.", settings.reopenLastPanel, (value) => {
+      settings.reopenLastPanel = value;
       saveSettings();
-      if (!reopen.checked) sessionStorage.removeItem(LAST_PANEL_KEY);
+      if (!value) safeStorageRemove("session", LAST_PANEL_KEY);
     });
-    reopenLabel.append(reopenText, reopen);
-    wrapper.append(reopenLabel);
-
-    const note = makeElement("p", "utility-note", "Preferences are stored in this browser.");
-    note.style.cssText = "display:block;width:100%;margin:2px 0 0;padding-top:12px;border-top:1px solid rgba(255,255,255,.08);color:#a7a9b4;font-size:11px;line-height:1.7;";
-    wrapper.append(note);
+    wrapper.append(element("p", "pv-utility-note", "Your preferences are saved in this browser."));
     return wrapper;
   }
 
-  function closePanels() {
-    desktopPanel?.classList.add("hidden");
-    mobilePanel?.classList.add("hidden");
-  }
-
-  function showContent(name: UtilityName, content: HTMLElement) {
-    const item = utilityData[name];
-    if (!item) return;
-
-    closePanels();
-    if (settings.reopenLastPanel) sessionStorage.setItem(LAST_PANEL_KEY, name);
-
-    if (window.matchMedia("(max-width: 767px)").matches) {
-      if (mobileTitle) mobileTitle.textContent = item.title;
-      mobileContent?.replaceChildren(content);
-      mobilePanel?.classList.remove("hidden");
-    } else {
-      if (desktopTitle) desktopTitle.textContent = item.title;
-      desktopContent?.replaceChildren(content);
-      desktopPanel?.classList.remove("hidden");
-    }
-  }
-
-  function openUtility(name: string) {
-    if (!(name in utilityData)) return;
-    const utilityName = name as UtilityName;
-
-    if (name === "favorites") {
-      showContent(utilityName, renderSavedItems(readList(FAVORITES_KEY), "No saved items yet. Use the star on a prompt or shortcut to save it."));
-      return;
-    }
-
-    if (name === "recent") {
-      showContent(utilityName, renderSavedItems(readList(RECENT_KEY), "No recently viewed items yet."));
-      return;
-    }
-
-    if (name === "settings") {
-      showContent(utilityName, renderSettings());
-      return;
-    }
-
-    showContent(utilityName, makeElement("div", "utility-list"));
-    loadRandomItem();
-  }
-
-  async function loadRandomItem() {
-    const desktop = desktopContent;
-    const mobile = mobileContent;
-    const target = window.matchMedia("(max-width: 767px)").matches ? mobile : desktop;
-    if (!target || target.querySelector(".random-result")) return;
-
-    const loading = makeElement("p", "utility-empty", "Finding something to explore...");
+  async function loadRandomItem(target: HTMLElement): Promise<void> {
+    const loading = element("p", "pv-utility-empty", "Finding something to explore…");
     target.replaceChildren(loading);
 
     try {
-      const [promptsResult, shortcutsResult] = await Promise.all([
-        supabase.from("prompts").select("id, title").eq("status", "published"),
-        supabase.from("shortcuts").select("id, name").eq("status", "published")
+      const [promptResult, shortcutResult] = await Promise.all([
+        supabase.from("prompts").select("id,title").eq("status", "published").limit(500),
+        supabase.from("shortcuts").select("id,name").eq("status", "published").limit(500)
       ]);
-      if (promptsResult.error) throw promptsResult.error;
-      if (shortcutsResult.error) throw shortcutsResult.error;
 
-      const promptRows = (promptsResult.data || []) as DatabaseItem[];
-      const shortcutRows = (shortcutsResult.data || []) as DatabaseItem[];
+      if (promptResult.error) throw promptResult.error;
+      if (shortcutResult.error) throw shortcutResult.error;
+
+      const prompts = (promptResult.data ?? []) as PromptRow[];
+      const shortcuts = (shortcutResult.data ?? []) as ShortcutRow[];
       const candidates: SavedItem[] = [
-        ...promptRows.filter((item) => item.id && item.title).map((item) => ({
-          type: "prompt" as const, id: item.id, title: item.title as string,
-          url: `/prompts#prompt-${encodeURIComponent(item.id)}`
+        ...prompts.filter((row) => typeof row.id === "string" && typeof row.title === "string" && row.title.trim()).map((row) => ({
+          type: "prompt" as const, id: row.id, title: row.title as string,
+          url: `/prompts#prompt-${encodeURIComponent(row.id)}`
         })),
-        ...shortcutRows.filter((item) => item.id && item.name).map((item) => ({
-          type: "shortcut" as const, id: item.id, title: item.name as string,
-          url: `/shortcuts#shortcut-${encodeURIComponent(item.id)}`
+        ...shortcuts.filter((row) => typeof row.id === "string" && typeof row.name === "string" && row.name.trim()).map((row) => ({
+          type: "shortcut" as const, id: row.id, title: row.name as string,
+          url: `/shortcuts#shortcut-${encodeURIComponent(row.id)}`
         }))
       ];
 
-      const result = makeElement("div", "random-result");
-      if (!candidates.length) {
-        result.append(makeElement("p", "utility-empty", "No published prompts or shortcuts are available yet."));
+      const result = element("div", "pv-random-result");
+      if (candidates.length === 0) {
+        result.append(element("p", "pv-utility-empty", "There are no published prompts or shortcuts to discover yet."));
       } else {
         const chosen = candidates[Math.floor(Math.random() * candidates.length)];
-        result.append(makeElement("span", "utility-eyebrow", "YOUR RANDOM PICK"));
-        result.append(makeElement("h3", "", chosen.title));
-        result.append(makeElement("p", "utility-random-type", chosen.type === "prompt" ? "PROMPT" : "SHORTCUT"));
-        const actions = makeElement("div", "utility-random-actions");
-        const link = makeElement("a", "utility-action", "Open item ↗");
-        link.href = chosen.url;
-        actions.append(link);
-        const another = makeElement("button", "utility-secondary", "Try another");
+        result.append(element("p", "pv-random-eyebrow", "YOUR RANDOM PICK"));
+        result.append(element("h3", "", chosen.title));
+        result.append(element("p", "pv-random-type", chosen.type === "prompt" ? "PROMPT" : "SHORTCUT"));
+        const actions = element("div", "pv-random-actions");
+        const openLink = element("a", "pv-utility-action", "Open item ↗");
+        openLink.href = chosen.url;
+        const another = element("button", "pv-utility-secondary", "Try another");
         another.type = "button";
-        another.addEventListener("click", () => {
-          result.remove();
-          loadRandomItem();
-        });
-        actions.append(another);
+        another.addEventListener("click", () => { void loadRandomItem(target); });
+        actions.append(openLink, another);
         result.append(actions);
       }
-      target.replaceChildren(result);
+
+      if (target.isConnected) target.replaceChildren(result);
     } catch (error) {
-      console.error("Random discovery failed:", error);
-      target.replaceChildren(makeElement("p", "utility-empty", "Random discovery could not load. Please try again."));
+      console.error("PromptVault random discovery error:", error);
+      if (target.isConnected) target.replaceChildren(element("p", "pv-utility-empty", "Could not load a random item. Please try again."));
     }
   }
 
-  function refreshOpenUtility() {
-    const activeName = sessionStorage.getItem(LAST_PANEL_KEY);
-    if (!activeName) return;
-    const isOpen = !desktopPanel?.classList.contains("hidden") || !mobilePanel?.classList.contains("hidden");
-    if (isOpen) openUtility(activeName);
+  function openUtility(name: UtilityName): void {
+    let content: HTMLElement;
+    if (name === "favorites") {
+      content = renderSavedItems(readList(FAVORITES_KEY), "No favourites saved yet. Use the star on a prompt or shortcut to save it.");
+    } else if (name === "recent") {
+      content = renderSavedItems(readList(RECENT_KEY), "Nothing viewed recently. Open a prompt or shortcut and it will appear here.");
+    } else if (name === "settings") {
+      content = renderSettings();
+    } else {
+      content = element("div", "pv-utility-list");
+    }
+
+    const target = showContent(name, content);
+    if (name === "random" && target) void loadRandomItem(target);
   }
 
-  document.querySelectorAll<HTMLButtonElement>(".utility-button").forEach((button) => {
+  document.querySelectorAll<HTMLButtonElement>("[data-utility]").forEach((button) => {
     button.addEventListener("click", () => {
-      const name = button.dataset.utility;
-      if (name && name in utilityData) openUtility(name);
+      const name = button.dataset.utility ?? null;
+      if (isUtilityName(name)) openUtility(name);
     });
   });
 
   document.querySelector("#utility-close")?.addEventListener("click", closePanels);
   document.querySelector("#mobile-utility-close")?.addEventListener("click", closePanels);
-
-  document.addEventListener("keydown", (event) => {
+  document.addEventListener("keydown", (event: KeyboardEvent) => {
     if (event.key === "Escape") closePanels();
   });
 
   window.addEventListener("promptvault:favourites-updated", () => {
-    if (!desktopPanel?.classList.contains("hidden")) {
-      const title = desktopTitle?.textContent;
-      if (title === "Favourites") openUtility("favorites");
-    }
-    if (!mobilePanel?.classList.contains("hidden") && mobileTitle?.textContent === "Favourites") {
-      openUtility("favorites");
-    }
+    if (desktopPanel && !desktopPanel.hidden && desktopTitle?.textContent === utilityTitles.favorites) openUtility("favorites");
+    if (mobilePanel && !mobilePanel.hidden && mobileTitle?.textContent === utilityTitles.favorites) openUtility("favorites");
   });
 
   window.addEventListener("promptvault:recent-updated", () => {
-    if (!desktopPanel?.classList.contains("hidden") && desktopTitle?.textContent === "Recently viewed") openUtility("recent");
-    if (!mobilePanel?.classList.contains("hidden") && mobileTitle?.textContent === "Recently viewed") openUtility("recent");
+    if (desktopPanel && !desktopPanel.hidden && desktopTitle?.textContent === utilityTitles.recent) openUtility("recent");
+    if (mobilePanel && !mobilePanel.hidden && mobileTitle?.textContent === utilityTitles.recent) openUtility("recent");
   });
 
   saveSettings();
   if (settings.reopenLastPanel) {
-    const last = sessionStorage.getItem(LAST_PANEL_KEY);
-    if (last && utilityData[last]) openUtility(last);
+    const lastPanel = safeStorageGet("session", LAST_PANEL_KEY);
+    if (isUtilityName(lastPanel)) openUtility(lastPanel);
   }
 </script>
