@@ -1,7 +1,6 @@
 ---
 import "../styles/global.css";
 import Header from "../components/Header.astro";
-import UtilitySidebar from "../components/UtilitySidebar.astro";
 
 interface Props {
   title?: string;
@@ -61,7 +60,6 @@ const robotsContent = isPrivatePage
       <slot />
     </main>
 
-    <UtilitySidebar />
   </body>
 </html>
 
