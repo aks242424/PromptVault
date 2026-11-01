@@ -79,7 +79,8 @@ import MainLayout from "../layouts/MainLayout.astro";
     const typeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".type-button"));
 
     let prompts: any[] = [];
-    let activeType = "all";\n    let activeCategory = "all";
+    let activeType = "all";
+    let activeCategory = "all";
 
     function element<K extends keyof HTMLElementTagNameMap>(
       tag: K,
