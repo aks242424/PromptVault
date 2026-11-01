@@ -83,7 +83,7 @@ import PromptForm from "../components/PromptForm.astro";
               <p><strong>Shortcut required:</strong> <code>name</code>, <code>description</code>.</p>
             </div>
             <ul>
-              <li><code>item_type</code>: <code>prompt</code> or <code>shortcut</code> (defaults to <code>prompt</code> for older CSV files).</li>
+              <li><code>item_type</code>: required on every row; use <code>prompt</code> or <code>shortcut</code>. Missing values are rejected.</li>
               <li><code>status</code>: <code>draft</code> or <code>published</code> for each row (defaults to <code>draft</code>).</li>
               <li><code>prompt_type</code> for prompts: <code>image</code>, <code>video</code>, or <code>other</code>.</li>
               <li>Separate multiple categories, tags, or AI tools with <code>|</code>. Missing categories and tags are created.</li>
@@ -827,8 +827,8 @@ import PromptForm from "../components/PromptForm.astro";
       const unknownHeaders = headers.filter((header) => !allowedHeaders.includes(header));
       if (unknownHeaders.length) throw new Error(`Unknown CSV columns: ${unknownHeaders.join(", ")}`);
       const index = Object.fromEntries(headers.map((header, i) => [header, i]));
-      if (!headers.includes("item_type") && !(headers.includes("title") && headers.includes("content") && headers.includes("prompt_type"))) {
-        throw new Error("Add item_type, or use the legacy prompt columns title, content, and prompt_type.");
+      if (!headers.includes("item_type")) {
+        throw new Error("Missing required column: item_type. Every row must explicitly be marked prompt or shortcut. Download the updated CSV template.");
       }
       const [promptResult, shortcutResult] = await Promise.all([
         supabase.from("prompts").select("id, title, content, normalized_content"),
@@ -845,7 +845,7 @@ import PromptForm from "../components/PromptForm.astro";
       rawRows.slice(1).forEach((cells, rowIndex) => {
         const line = rowIndex + 2;
         const get = (key: string) => index[key] === undefined ? "" : (cells[index[key]] || "").trim();
-        const itemType = (get("item_type") || "prompt").toLowerCase();
+        const itemType = get("item_type").toLowerCase();
         const title = get("title"), name = get("name"), content = get("content");
         const label = itemType === "shortcut" ? name : title;
         const promptType = get("prompt_type").toLowerCase();
