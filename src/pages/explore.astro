@@ -229,7 +229,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       errorMessage?.classList.add("hidden");
       try {
         const [promptResult, shortcutResult] = await Promise.all([
-          supabase.from("prompts").select("id, title, description, prompt_type, created_at").eq("status", "published").order("created_at", { ascending: false }),
+          supabase.from("prompts").select("id, title, description, prompt_type, thumbnail_path, created_at").eq("status", "published").order("created_at", { ascending: false }),
           supabase.from("shortcuts").select("id, name, description, created_at").eq("status", "published").order("created_at", { ascending: false }),
         ]);
         if (promptResult.error) throw new Error(`Prompts: ${promptResult.error.message}`);
@@ -258,30 +258,43 @@ import MainLayout from "../layouts/MainLayout.astro";
         const categoryNames = new Map(((categoryResult.data || []) as { id: string; name: string }[]).map((row) => [row.id, row.name]));
         const tagNames = new Map(((tagResult.data || []) as { id: string; name: string }[]).map((row) => [row.id, row.name]));
 
-        let thumbnailRows: { id: string; thumbnail_path: string | null }[] = [];
-        if (promptIds.length) {
-          const thumbResult = await supabase.from("prompts").select("id, thumbnail_path").in("id", promptIds);
-          if (!thumbResult.error) thumbnailRows = (thumbResult.data || []) as typeof thumbnailRows;
-          else console.info("Prompt thumbnails are unavailable:", thumbResult.error.message);
+        const categoryByPrompt = new Map<string, string[]>();
+        const tagsByPrompt = new Map<string, string[]>();
+        const categoriesByShortcut = new Map<string, string[]>();
+        const tagsByShortcut = new Map<string, string[]>();
+        for (const relation of promptCategories) {
+          const name = relation.category_id ? categoryNames.get(relation.category_id) : undefined;
+          if (relation.prompt_id && name) categoryByPrompt.set(relation.prompt_id, [...(categoryByPrompt.get(relation.prompt_id) || []), name]);
         }
-        const thumbnails = new Map(thumbnailRows.map((row) => [row.id, row.thumbnail_path]));
+        for (const relation of promptTags) {
+          const name = relation.tag_id ? tagNames.get(relation.tag_id) : undefined;
+          if (relation.prompt_id && name) tagsByPrompt.set(relation.prompt_id, [...(tagsByPrompt.get(relation.prompt_id) || []), name]);
+        }
+        for (const relation of shortcutCategories) {
+          const name = relation.category_id ? categoryNames.get(relation.category_id) : undefined;
+          if (relation.shortcut_id && name) categoriesByShortcut.set(relation.shortcut_id, [...(categoriesByShortcut.get(relation.shortcut_id) || []), name]);
+        }
+        for (const relation of shortcutTags) {
+          const name = relation.tag_id ? tagNames.get(relation.tag_id) : undefined;
+          if (relation.shortcut_id && name) tagsByShortcut.set(relation.shortcut_id, [...(tagsByShortcut.get(relation.shortcut_id) || []), name]);
+        }
 
         const promptItems: ExploreItem[] = prompts.map((row) => {
-          const path = thumbnails.get(row.id);
+          const path = (row as PromptRow & { thumbnail_path?: string | null }).thumbnail_path;
           const thumbnailUrl = path ? supabase.storage.from("prompt-thumbnails").getPublicUrl(path).data?.publicUrl || null : null;
           const promptType = String(row.prompt_type || "other").toLowerCase();
           const type: ExploreItem["type"] = promptType === "image" || promptType === "video" ? promptType : "other";
           return {
             id: row.id, title: row.title, description: row.description || "", type, thumbnailUrl,
-            categories: promptCategories.filter((r) => r.prompt_id === row.id).map((r) => r.category_id ? categoryNames.get(r.category_id) : undefined).filter((v): v is string => Boolean(v)),
-            tags: promptTags.filter((r) => r.prompt_id === row.id).map((r) => r.tag_id ? tagNames.get(r.tag_id) : undefined).filter((v): v is string => Boolean(v)),
+            categories: categoryByPrompt.get(row.id) || [],
+            tags: tagsByPrompt.get(row.id) || [],
             href: "/prompts",
           };
         });
         const shortcutItems: ExploreItem[] = shortcuts.map((row) => ({
           id: row.id, title: row.name, description: row.description || "", type: "shortcut",
-          categories: shortcutCategories.filter((r) => r.shortcut_id === row.id).map((r) => r.category_id ? categoryNames.get(r.category_id) : undefined).filter((v): v is string => Boolean(v)),
-          tags: shortcutTags.filter((r) => r.shortcut_id === row.id).map((r) => r.tag_id ? tagNames.get(r.tag_id) : undefined).filter((v): v is string => Boolean(v)),
+          categories: categoriesByShortcut.get(row.id) || [],
+          tags: tagsByShortcut.get(row.id) || [],
           href: "/shortcuts",
         }));
 
@@ -626,6 +639,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .content-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 360px;
     --accent: #b69aff;
     --accent-rgb: 167,139,250;
     position: relative;
