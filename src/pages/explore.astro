@@ -10,7 +10,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     <section class="recommend-hero">
       <span class="eyebrow"><i></i> PROMPTVAULT RECOMMENDS</span>
       <h1>Fresh ideas.<br /><span>Randomly discovered.</span></h1>
-      <p>Explore 40 randomly selected published prompts and shortcuts.</p>
+      <p>Explore every published prompt and shortcut in a fresh random order.</p>
     </section>
 
     <section class="recommend-section" aria-labelledby="recommend-title">
@@ -21,7 +21,7 @@ import MainLayout from "../layouts/MainLayout.astro";
           <p id="recommend-summary" aria-live="polite">Finding something inspiring…</p>
         </div>
         <button id="shuffle-recommendations" class="shuffle-button" type="button">
-          <span aria-hidden="true">⟳</span> Shuffle picks
+          <span aria-hidden="true">⟳</span> Shuffle order
         </button>
       </div>
 
@@ -66,8 +66,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       href: string;
     };
 
-    const PICK_COUNT = 40;
-    const grid = document.querySelector<HTMLElement>("#recommend-grid");
+        const grid = document.querySelector<HTMLElement>("#recommend-grid");
     const summary = document.querySelector<HTMLElement>("#recommend-summary");
     const errorBox = document.querySelector<HTMLElement>("#recommend-error");
     const shuffleButton = document.querySelector<HTMLButtonElement>("#shuffle-recommendations");
@@ -111,7 +110,6 @@ import MainLayout from "../layouts/MainLayout.astro";
           .select(`${foreignKey},${target}`)
           .in(foreignKey, batch);
 
-        // Category and tag relationships are optional for the recommendation feed.
         if (error) {
           console.warn(`${table} could not be loaded:`, error.message);
           continue;
@@ -172,7 +170,7 @@ import MainLayout from "../layouts/MainLayout.astro";
 
     function renderRandomPicks(): void {
       if (!grid) return;
-      const picks = shuffle(allRecommendations).slice(0, PICK_COUNT);
+      const picks = shuffle(allRecommendations);
       grid.replaceChildren();
 
       if (!picks.length) {
@@ -186,7 +184,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       grid.append(fragment);
 
       if (summary) {
-        summary.textContent = `Showing ${picks.length} random picks from ${allRecommendations.length.toLocaleString()} published prompts and shortcuts.`;
+        summary.textContent = `Showing all ${picks.length.toLocaleString()} published prompts and shortcuts in a random order.`;
       }
     }
 
@@ -201,8 +199,6 @@ import MainLayout from "../layouts/MainLayout.astro";
         const shortcuts: ShortcutRow[] = [];
         const pageSize = 1000;
 
-        // Supabase may cap a response at 1,000 rows, so page through the full
-        // published library before choosing the random recommendations.
         for (let offset = 0; ; offset += pageSize) {
           const { data, error } = await supabase
             .from("prompts")
@@ -266,7 +262,6 @@ import MainLayout from "../layouts/MainLayout.astro";
           ((tagResult.data || []) as { id: string; name: string }[]).map((row) => [row.id, row.name]),
         );
 
-        // Thumbnail support is optional; a missing column or file must not block recommendations.
         const thumbnailMap = new Map<string, string>();
         for (let offset = 0; offset < promptIds.length; offset += 150) {
           const thumbResult = await supabase
@@ -341,6 +336,9 @@ import MainLayout from "../layouts/MainLayout.astro";
     }
 
     shuffleButton?.addEventListener("click", renderRandomPicks);
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted && allRecommendations.length) renderRandomPicks();
+    });
     loadRecommendations();
   </script>
 </MainLayout>
