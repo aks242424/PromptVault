@@ -11,9 +11,9 @@ import MainLayout from "../layouts/MainLayout.astro";
       <div class="hero-light hero-light-cyan"></div>
       <div class="hero-light hero-light-orange"></div>
       <div class="hero-inner">
-        <span class="eyebrow"><i></i> THE PROMPT COLLECTION</span>
-        <h1>Explore <span>the library.</span></h1>
-        <p id="explore-subtitle" class="hero-subtitle">Loading published resources...</p>
+        <span class="eyebrow"><i></i> THE CREATIVE DISCOVERY FEED</span>
+        <h1>Ideas meet <span>inspiration.</span></h1>
+        <p id="explore-subtitle" class="hero-subtitle">Loading prompts and shortcuts...</p>
         <label class="search-field">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="11" cy="11" r="7"></circle>
@@ -30,9 +30,10 @@ import MainLayout from "../layouts/MainLayout.astro";
       <div class="toolbar">
         <div id="type-filters" class="filter-list" aria-label="Filter by content type">
           <button data-filter="all" class="filter-button active" aria-pressed="true">All <span id="all-total">0</span></button>
+          <button data-filter="prompt" class="filter-button" aria-pressed="false">Prompts</button>
           <button data-filter="shortcut" class="filter-button" aria-pressed="false">Shortcuts</button>
-          <button data-filter="image" class="filter-button" aria-pressed="false">Image prompts</button>
-          <button data-filter="video" class="filter-button" aria-pressed="false">Video prompts</button>
+          <button data-filter="image" class="filter-button" aria-pressed="false">Image</button>
+          <button data-filter="video" class="filter-button" aria-pressed="false">Video</button>
         </div>
         <label class="category-select-wrap">
           <span>CATEGORY</span>
@@ -51,7 +52,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       </div>
 
       <div id="content-grid" class="content-grid" aria-live="polite">
-        <p class="load-state">Loading published resources...</p>
+        <p class="load-state">Loading prompts and shortcuts...</p>
       </div>
       <div id="empty-state" class="empty-state hidden">
         <div class="empty-symbol">⌕</div>
@@ -81,6 +82,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       shortcut: "Shortcut",
       image: "Image prompt",
       video: "Video prompt",
+      other: "Prompt",
     };
 
     let items: any[] = [];
@@ -98,10 +100,11 @@ import MainLayout from "../layouts/MainLayout.astro";
     }
 
     function renderCard(item: any, index: number) {
-      const accent = item.type === "shortcut" ? "violet" : item.type === "image" ? "cyan" : "orange";
+      const accent = item.type === "shortcut" ? "orange" : item.type === "image" ? "cyan" : item.type === "video" ? "violet" : "mint";
       const card = makeElement("article", `content-card accent-${accent}`);
       const searchable = [
         item.title,
+        item.type === "shortcut" ? "shortcut command" : "prompt",
         item.description,
         item.categories.join(" "),
         item.tags.join(" "),
@@ -112,7 +115,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       card.dataset.search = searchable;
 
       const top = makeElement("div", "card-topline");
-      top.append(makeElement("span", "type-mark", item.type === "shortcut" ? "/" : item.type === "image" ? "✳" : "▶"));
+      top.append(makeElement("span", "type-mark", item.type === "shortcut" ? "/" : item.type === "image" ? "✳" : item.type === "video" ? "▶" : "✦"));
       top.append(makeElement("span", "card-number", String(index + 1).padStart(2, "0")));
       card.append(top);
 
@@ -172,9 +175,14 @@ import MainLayout from "../layouts/MainLayout.astro";
 
       Array.from(grid?.querySelectorAll<HTMLElement>(".content-card") || []).forEach((card) => {
         const categories = JSON.parse(card.dataset.categories || "[]");
+        const itemType = card.dataset.type || "other";
+        const typeMatches = activeType === "all" ||
+          (activeType === "prompt" && itemType !== "shortcut") ||
+          (activeType === "shortcut" && itemType === "shortcut") ||
+          itemType === activeType;
         const visible =
           (card.dataset.search || "").includes(query) &&
-          (activeType === "all" || card.dataset.type === activeType) &&
+          typeMatches &&
           (category === "all" || categories.includes(category));
         card.classList.toggle("hidden", !visible);
         if (visible) visibleCount++;
@@ -195,7 +203,7 @@ import MainLayout from "../layouts/MainLayout.astro";
 
     async function loadExploreItems() {
       if (!grid) return;
-      grid.replaceChildren(makeElement("p", "load-state", "Loading published resources..."));
+      grid.replaceChildren(makeElement("p", "load-state", "Loading prompts and shortcuts..."));
       errorMessage?.classList.add("hidden");
 
       try {
@@ -305,7 +313,13 @@ import MainLayout from "../layouts/MainLayout.astro";
           href: "/shortcuts",
         }));
 
-        items = [...shortcutItems, ...promptItems];
+        // Mix both published collections and reshuffle on every page load/refresh.
+        const mixedItems = [...promptItems, ...shortcutItems];
+        for (let i = mixedItems.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [mixedItems[i], mixedItems[j]] = [mixedItems[j], mixedItems[i]];
+        }
+        items = mixedItems;
         populateCategories();
         renderItems();
       } catch (error) {
@@ -313,7 +327,7 @@ import MainLayout from "../layouts/MainLayout.astro";
         grid.replaceChildren();
         emptyState?.classList.add("hidden");
         if (errorMessage) {
-          errorMessage.textContent = "The library is temporarily unavailable. Please try again later.";
+          errorMessage.textContent = "Explore is temporarily unavailable. Please try again later.";
           errorMessage.classList.remove("hidden");
         }
         if (subtitle) subtitle.textContent = "Published resources could not be loaded.";
@@ -359,8 +373,9 @@ import MainLayout from "../layouts/MainLayout.astro";
     padding: 78px 24px 65px;
     border-bottom: 1px solid rgba(255,255,255,.07);
     background:
-      linear-gradient(180deg,rgba(10,11,15,.35),rgba(8,9,12,.94)),
-      radial-gradient(ellipse at 50% 0%,rgba(24,135,153,.15),transparent 48%);
+      linear-gradient(180deg,rgba(10,11,18,.28),rgba(8,9,14,.94)),
+      radial-gradient(ellipse at 18% 0%,rgba(124,58,237,.19),transparent 42%),
+      radial-gradient(ellipse at 82% 8%,rgba(249,115,22,.15),transparent 40%);
     text-align: center;
   }
 
@@ -437,7 +452,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .explore-hero h1 span {
-    background: linear-gradient(100deg,#83e3ee,#a9a0ff 60%,#ffc08a);
+    background: linear-gradient(100deg,#78e6d0,#8ca7ff 48%,#ffad77);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -664,6 +679,11 @@ import MainLayout from "../layouts/MainLayout.astro";
   .accent-cyan {
     --accent: #67e8f9;
     --accent-rgb: 34,211,238;
+  }
+
+  .accent-mint {
+    --accent: #6ee7b7;
+    --accent-rgb: 110,231,183;
   }
 
   .accent-orange {
