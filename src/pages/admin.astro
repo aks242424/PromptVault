@@ -69,6 +69,29 @@ import PromptForm from "../components/PromptForm.astro";
         </section>
 
 
+
+        <section class="management-panel shortcut-management-panel">
+          <div class="section-top">
+            <div><span class="eyebrow">SHORTCUT LIBRARY</span><h2>Manage shortcuts</h2></div>
+            <span id="shortcut-total-label" class="muted"></span>
+          </div>
+          <div class="toolbar shortcut-toolbar">
+            <input id="shortcut-search" type="search" placeholder="Search shortcuts..." aria-label="Search shortcuts" />
+            <select id="shortcut-status-filter" aria-label="Filter shortcuts by status">
+              <option value="all">All statuses</option><option value="draft">Drafts</option><option value="published">Published</option>
+            </select>
+          </div>
+          <div class="admin-table-wrap">
+            <div class="admin-table-head shortcut-table-head"><span>Shortcut</span><span>Status</span><span>Created</span><span>Actions</span></div>
+            <div id="shortcut-list"><p class="empty-row">Loading shortcuts...</p></div>
+          </div>
+          <div class="pagination">
+            <span id="shortcut-page-label" class="muted">Page 1</span>
+            <div><button id="shortcut-prev-page" class="btn btn-quiet" type="button">Previous</button><button id="shortcut-next-page" class="btn btn-quiet" type="button">Next</button></div>
+          </div>
+          <p id="shortcut-message" role="status" class="status-message"></p>
+        </section>
+
         <section class="bulk-panel" aria-labelledby="bulk-heading">
           <div class="bulk-heading">
             <div><span class="eyebrow bulk-eyebrow">BULK IMPORT</span><h2 id="bulk-heading">Import prompts and shortcuts from CSV</h2></div>
@@ -302,7 +325,15 @@ import PromptForm from "../components/PromptForm.astro";
     letter-spacing: .15em;
     text-transform: uppercase;
   }
-  .admin-prompt-row { min-width: 800px; border-top: 1px solid #ffffff0d; transition: background .16s ease; }
+  .shortcut-management-panel { margin-top:22px; }
+  .shortcut-toolbar { grid-template-columns:minmax(220px,1fr) 170px; }
+  .shortcut-table-head,.admin-shortcut-row { grid-template-columns:minmax(280px,1fr) 130px 170px 220px; min-width:800px; }
+  .admin-shortcut-row { display:grid; align-items:center; gap:14px; padding:14px 16px; border-top:1px solid #ffffff0d; }
+  .admin-shortcut-row:hover { background:#ffffff06; }
+  .admin-shortcut-row > * { min-width:0; }
+  .admin-shortcut-name { color:#e2e8f0; font-size:12px; font-weight:680; overflow-wrap:anywhere; }
+  .shortcut-date { color:#a5b4c5; font-size:11px; white-space:nowrap; }
+  .admin-prompt-row { min-width:800px; border-top:1px solid #ffffff0d; transition:background .16s ease; }
   .admin-prompt-row.is-selected { background: #22d3ee0b; }
   .admin-prompt-name-wrap { display:flex; align-items:center; gap:11px; min-width:0; }
   .prompt-select-checkbox { width:15px; height:15px; flex:0 0 auto; accent-color:#22d3ee; cursor:pointer; }
@@ -394,6 +425,8 @@ import PromptForm from "../components/PromptForm.astro";
     .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .toolbar { grid-template-columns: 1fr 1fr; }
     .toolbar input { grid-column: 1 / -1; }
+    .shortcut-toolbar { grid-template-columns: 1fr 1fr; }
+    .shortcut-toolbar input { grid-column: 1 / -1; }
     .admin-table-head, .admin-prompt-row { grid-template-columns: minmax(280px, 1fr) 110px 130px 220px; }
     .dash-header { align-items: flex-start; }
     .admin-shell { padding: 28px 14px 80px; }
@@ -406,6 +439,8 @@ import PromptForm from "../components/PromptForm.astro";
     .admin-table-head, .admin-prompt-row { gap: 10px; padding: 12px 14px; }
     .toolbar { grid-template-columns: 1fr; }
     .toolbar input { grid-column: auto; }
+    .shortcut-toolbar { grid-template-columns: 1fr; }
+    .shortcut-toolbar input { grid-column: auto; }
     .header-actions { flex-direction: column; }
     .csv-columns { grid-template-columns:1fr; }
     .bulk-heading { align-items:flex-start; flex-direction:column; }
@@ -429,6 +464,9 @@ import PromptForm from "../components/PromptForm.astro";
   const dashboardMessage = $<HTMLElement>("#dashboard-message");
 
   let allPrompts = [];
+  let allShortcuts: any[] = [];
+  let shortcutPage = 1;
+  const shortcutPageSize = 10;
   let currentPage = 1;
   const pageSize = 10;
   const selectedPromptIds = new Set<string>();
@@ -574,34 +612,106 @@ import PromptForm from "../components/PromptForm.astro";
 
   async function loadDashboard() {
     dashboardMessage.textContent = "Refreshing...";
-    const [promptsResult, shortcutsResult, categoriesResult, draftsResult] = await Promise.all([
+    $("#shortcut-message").textContent = "Refreshing shortcuts...";
+    const [promptsResult, shortcutsResult, categoriesResult, promptDraftsResult, shortcutDraftsResult, promptsDataResult, shortcutsDataResult] = await Promise.all([
       supabase.from("prompts").select("id", { count: "exact", head: true }),
       supabase.from("shortcuts").select("id", { count: "exact", head: true }),
       supabase.from("categories").select("id", { count: "exact", head: true }),
       supabase.from("prompts").select("id", { count: "exact", head: true }).eq("status", "draft"),
+      supabase.from("shortcuts").select("id", { count: "exact", head: true }).eq("status", "draft"),
+      supabase.from("prompts").select("id, title, prompt_type, status, created_at").order("created_at", { ascending: false }),
+      supabase.from("shortcuts").select("id, name, description, status, created_at").order("created_at", { ascending: false })
     ]);
-    const errors = [promptsResult.error, shortcutsResult.error, categoriesResult.error, draftsResult.error].filter(Boolean);
+    const errors = [promptsResult.error, shortcutsResult.error, categoriesResult.error, promptDraftsResult.error, shortcutDraftsResult.error, promptsDataResult.error, shortcutsDataResult.error].filter(Boolean);
     if (errors.length) {
-      dashboardMessage.textContent = errors[0].message;
+      const message = errors[0]?.message || "Could not load dashboard data.";
+      dashboardMessage.textContent = message;
+      $("#shortcut-message").textContent = message;
       return;
     }
     $("#total-prompts").textContent = String(promptsResult.count ?? 0);
     $("#total-shortcuts").textContent = String(shortcutsResult.count ?? 0);
     $("#total-categories").textContent = String(categoriesResult.count ?? 0);
-    $("#total-drafts").textContent = String(draftsResult.count ?? 0);
-
-    const { data, error } = await supabase.from("prompts")
-      .select("id, title, prompt_type, status, created_at")
-      .order("created_at", { ascending: false });
-    if (error) {
-      dashboardMessage.textContent = error.message;
-      return;
-    }
-    allPrompts = data || [];
+    $("#total-drafts").textContent = String((promptDraftsResult.count ?? 0) + (shortcutDraftsResult.count ?? 0));
+    allPrompts = promptsDataResult.data || [];
+    allShortcuts = shortcutsDataResult.data || [];
     renderPrompts();
+    renderShortcuts();
     dashboardMessage.textContent = "";
+    $("#shortcut-message").textContent = "";
   }
 
+  function renderShortcuts() {
+    const list = $<HTMLElement>("#shortcut-list");
+    const query = $<HTMLInputElement>("#shortcut-search").value.trim().toLowerCase();
+    const status = $<HTMLSelectElement>("#shortcut-status-filter").value;
+    const filtered = allShortcuts.filter((item) => (item.name || "").toLowerCase().includes(query) && (status === "all" || item.status === status));
+    const pages = Math.max(1, Math.ceil(filtered.length / shortcutPageSize));
+    shortcutPage = Math.min(shortcutPage, pages);
+    const visible = filtered.slice((shortcutPage - 1) * shortcutPageSize, shortcutPage * shortcutPageSize);
+    list.replaceChildren();
+    if (!visible.length) {
+      const empty = document.createElement("p");
+      empty.className = "empty-row";
+      empty.textContent = "No matching shortcuts.";
+      list.append(empty);
+    }
+    visible.forEach((shortcut) => {
+      const row = document.createElement("div");
+      row.className = "admin-shortcut-row";
+      const name = document.createElement("span");
+      name.className = "admin-shortcut-name";
+      name.textContent = shortcut.name || "(unnamed shortcut)";
+      const statusBadge = document.createElement("span");
+      statusBadge.className = `admin-status-pill admin-status-${shortcut.status}`;
+      statusBadge.textContent = shortcut.status;
+      const created = document.createElement("span");
+      created.className = "shortcut-date";
+      created.textContent = shortcut.created_at ? new Date(shortcut.created_at).toLocaleDateString() : "—";
+      const actions = document.createElement("div");
+      actions.className = "admin-row-actions";
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.textContent = shortcut.status === "published" ? "Unpublish" : "Publish";
+      toggle.addEventListener("click", async () => {
+        toggle.disabled = true;
+        const nextStatus = shortcut.status === "published" ? "draft" : "published";
+        try {
+          const { error } = await supabase.from("shortcuts").update({ status: nextStatus, updated_at: new Date().toISOString() }).eq("id", shortcut.id);
+          if (error) throw error;
+          $("#shortcut-message").textContent = `Shortcut ${nextStatus === "published" ? "published" : "moved to drafts"}.`;
+          await loadDashboard();
+        } catch (error) {
+          $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not update shortcut.";
+          toggle.disabled = false;
+        }
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "delete-action";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", async () => {
+        if (!window.confirm(`Permanently delete shortcut "${shortcut.name}"? This cannot be undone.`)) return;
+        remove.disabled = true;
+        try {
+          const { error } = await supabase.from("shortcuts").delete().eq("id", shortcut.id);
+          if (error) throw error;
+          $("#shortcut-message").textContent = "Shortcut deleted.";
+          await loadDashboard();
+        } catch (error) {
+          $("#shortcut-message").textContent = error instanceof Error ? error.message : "Could not delete shortcut.";
+          remove.disabled = false;
+        }
+      });
+      actions.append(toggle, remove);
+      row.append(name, statusBadge, created, actions);
+      list.append(row);
+    });
+    $("#shortcut-total-label").textContent = `${filtered.length} ${filtered.length === 1 ? "shortcut" : "shortcuts"}`;
+    $("#shortcut-page-label").textContent = `Page ${shortcutPage} of ${pages}`;
+    $<HTMLButtonElement>("#shortcut-prev-page").disabled = shortcutPage <= 1;
+    $<HTMLButtonElement>("#shortcut-next-page").disabled = shortcutPage >= pages;
+  }
 
   $("#select-filtered-prompts").addEventListener("click", () => {
     filteredPromptIds.forEach((id) => selectedPromptIds.add(id));
@@ -1053,6 +1163,11 @@ import PromptForm from "../components/PromptForm.astro";
     csvImportButton.textContent = "2. Import selected";
   });
 
+  $("#shortcut-search").addEventListener("input", () => { shortcutPage = 1; renderShortcuts(); });
+  $("#shortcut-status-filter").addEventListener("change", () => { shortcutPage = 1; renderShortcuts(); });
+  $("#shortcut-prev-page").addEventListener("click", () => { shortcutPage--; renderShortcuts(); });
+  $("#shortcut-next-page").addEventListener("click", () => { shortcutPage++; renderShortcuts(); });
+
   $("#refresh-button").addEventListener("click", loadDashboard);
   $("#logout-button").addEventListener("click", async () => {
     await supabase.auth.signOut();
@@ -1064,6 +1179,7 @@ import PromptForm from "../components/PromptForm.astro";
   $("#prev-page").addEventListener("click", () => { currentPage--; renderPrompts(); });
   $("#next-page").addEventListener("click", () => { currentPage++; renderPrompts(); });
   window.addEventListener("promptvault:prompt-saved", loadDashboard);
+  window.addEventListener("promptvault:shortcut-saved", loadDashboard);
 
   async function initializeDashboard() {
     const { data: { user }, error } = await supabase.auth.getUser();
