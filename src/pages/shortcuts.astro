@@ -342,8 +342,11 @@ import MainLayout from "../layouts/MainLayout.astro";
   </script>
 </MainLayout>
 
-<style>
+<style is:global>
+  .shortcuts-page, .shortcuts-page * { box-sizing: border-box; }
+  .shortcuts-page button { cursor: pointer; }
   .shortcuts-page {
+    width: 100%;
     min-height: 100vh;
     padding-bottom: 100px;
     color: #f3f2f7;
@@ -605,7 +608,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   .shortcut-grid {
     display: grid;
     grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 16px;
+    align-items: stretch;
+    gap: 18px;
   }
 
   .shortcut-card {
@@ -614,7 +618,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     position: relative;
     display: flex;
     min-width: 0;
-    min-height: 275px;
+    min-height: 290px;
     flex-direction: column;
     overflow: hidden;
     padding: 21px;
@@ -741,7 +745,8 @@ import MainLayout from "../layouts/MainLayout.astro";
     margin: 13px 0 0;
     color: var(--accent);
     font-family: "Space Grotesk",sans-serif;
-    font-size: 27px;
+    font-size: clamp(19px,2vw,24px);
+    line-height: 1.2;
     font-weight: 600;
     letter-spacing: -.04em;
     overflow-wrap: anywhere;
@@ -753,8 +758,8 @@ import MainLayout from "../layouts/MainLayout.astro";
     flex: 1;
     margin: 10px 0 0;
     color: #a0a0ac;
-    font-size: 12px;
-    line-height: 1.75;
+    font-size: 13px;
+    line-height: 1.65;
     overflow-wrap: anywhere;
   }
 
@@ -858,6 +863,23 @@ import MainLayout from "../layouts/MainLayout.astro";
   .empty-state button span {
     margin-left: 5px;
   }
+
+
+  .load-state, .load-error {
+    grid-column: 1 / -1;
+    padding: 22px 24px;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 14px;
+    background: rgba(18,20,27,.82);
+    color: #a8aab6;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .load-error { margin: 18px 0 0; border-color: rgba(248,113,113,.28); color: #fca5a5; }
+  .shortcut-collection { position: relative; z-index: 1; }
+  .shortcut-card h3 { max-width: 100%; }
+  .card-meta { flex-wrap: wrap; }
+  .tag-list { max-height: 58px; overflow: hidden; }
 
   .hidden {
     display: none !important;
