@@ -298,16 +298,20 @@ import MainLayout from "../layouts/MainLayout.astro";
           categoryRows = categoryResult.data || [];
           tagRows = tagResult.data || [];
 
+          const categoriesByPrompt = new Map<string, string[]>();
+          const tagsByPrompt = new Map<string, string[]>();
+          categoryRows.forEach((row) => {
+            const name = categoryNames.get(row.category_id);
+            if (name) categoriesByPrompt.set(row.prompt_id, [...(categoriesByPrompt.get(row.prompt_id) || []), name]);
+          });
+          tagRows.forEach((row) => {
+            const name = tagNames.get(row.tag_id);
+            if (name) tagsByPrompt.set(row.prompt_id, [...(tagsByPrompt.get(row.prompt_id) || []), name]);
+          });
           prompts = (promptRows || []).map((prompt: any) => ({
             ...prompt,
-            categories: categoryRows
-              .filter((row) => row.prompt_id === prompt.id)
-              .map((row) => categoryNames.get(row.category_id))
-              .filter(Boolean),
-            tags: tagRows
-              .filter((row) => row.prompt_id === prompt.id)
-              .map((row) => tagNames.get(row.tag_id))
-              .filter(Boolean),
+            categories: categoriesByPrompt.get(prompt.id) || [],
+            tags: tagsByPrompt.get(prompt.id) || [],
           }));
         } else {
           prompts = [];
@@ -704,6 +708,8 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   .prompt-card {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 390px;
     --accent: #fbbf24;
     --accent-rgb: 245,158,11;
     position: relative;
