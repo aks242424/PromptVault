@@ -8,7 +8,7 @@
   </div>
 
   <form id="prompt-form" class="space-y-8 p-5 sm:p-8">
-        <section class="space-y-5">
+    <section class="space-y-5">
       <div class="section-heading">
         <span class="section-number">01</span>
         <div>
@@ -28,16 +28,31 @@
       </div>
 
       <div>
-        <div class="mb-2 flex items-center justify-between">
-          <label for="prompt-content" class="field-label">Full prompt <span>*</span></label>
-          <span class="text-xs text-gray-500">Required</span>
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <label for="prompt-content" class="field-label !mb-0">Full prompt <span>*</span></label>
+          <div class="flex items-center gap-2">
+            <span id="prompt-txt-filename" class="text-xs text-gray-400"></span>
+            <label
+              for="prompt-txt-file"
+              class="inline-flex cursor-pointer items-center rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-1 text-xs font-medium text-cyan-300 transition hover:bg-cyan-500/20"
+            >
+              Upload .txt
+            </label>
+            <input
+              id="prompt-txt-file"
+              type="file"
+              accept=".txt,text/plain"
+              class="hidden"
+            />
+            <span class="text-xs text-gray-500">Required</span>
+          </div>
         </div>
         <textarea
           id="prompt-content"
           required
           rows="9"
           class="form-control resize-y leading-6"
-          placeholder="Paste your complete AI prompt here..."
+          placeholder="Paste your complete AI prompt here or upload a .txt file..."
         ></textarea>
       </div>
 
@@ -139,7 +154,6 @@
 
     <div class="section-divider"></div>
 
-
     <section class="space-y-5">
       <div class="section-heading">
         <span class="section-number">03</span>
@@ -149,7 +163,6 @@
       </div>
 
       <div class="grid gap-5 lg:grid-cols-2">
-
         <div class="selection-panel">
           <div class="mb-3 flex items-center justify-between">
             <label class="field-label">Categories <span>*</span></label>
@@ -179,7 +192,6 @@
             </button>
           </div>
         </div>
-
 
         <div class="selection-panel">
           <div class="mb-3 flex items-center justify-between">
@@ -215,21 +227,17 @@
 
     <div class="section-divider"></div>
 
-
     <section class="space-y-5">
       <div class="section-heading">
         <span class="section-number">04</span>
         <div>
           <h3>Additional information</h3>
-
         </div>
       </div>
 
       <div>
         <label class="field-label">AI tools</label>
-        <p class="mb-3 text-xs text-gray-500">
-
-        </p>
+        <p class="mb-3 text-xs text-gray-500"></p>
 
         <div id="tool-options" class="grid grid-cols-2 gap-2 sm:grid-cols-3"></div>
         <div class="mt-4 flex flex-wrap gap-2">
@@ -238,11 +246,9 @@
         </div>
         <p class="mt-2 text-xs text-gray-500">Use Edit or Delete beside a tool to manage the shared list. Most-used tools appear first.</p>
       </div>
-
     </section>
 
     <div class="section-divider"></div>
-
 
     <section
       id="duplicate-warning"
@@ -266,7 +272,6 @@
         </span>
       </label>
     </section>
-
 
     <div class="flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
       <p
@@ -618,6 +623,11 @@
   const message = document.querySelector("#prompt-form-message");
   const saveButton = document.querySelector("#save-prompt");
 
+  const promptTitleInput = document.querySelector("#prompt-title");
+  const promptContentInput = document.querySelector("#prompt-content");
+  const promptTxtInput = document.querySelector("#prompt-txt-file");
+  const promptTxtFilename = document.querySelector("#prompt-txt-filename");
+
   const categoryList = document.querySelector("#category-options");
   const tagList = document.querySelector("#tag-options");
 
@@ -682,6 +692,59 @@
       message.classList.add("text-gray-400");
     }
   }
+
+  promptTxtInput.addEventListener("change", async () => {
+    const file = promptTxtInput.files?.[0];
+    if (!file) return;
+
+    const isTxt = file.name.toLowerCase().endsWith(".txt") || file.type === "text/plain";
+    if (!isTxt) {
+      promptTxtInput.value = "";
+      setMessage("Please select a valid .txt file.", "error");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      promptTxtInput.value = "";
+      setMessage("Text file must be under 2 MB.", "error");
+      return;
+    }
+
+    try {
+      const rawText = await file.text();
+      const content = rawText.replace(/^\uFEFF/, "").trim();
+
+      if (!content) {
+        promptTxtInput.value = "";
+        setMessage("The selected .txt file is empty.", "error");
+        return;
+      }
+
+      if (
+        promptContentInput.value.trim() &&
+        !window.confirm("Replace the current prompt text with the contents of this .txt file?")
+      ) {
+        promptTxtInput.value = "";
+        return;
+      }
+
+      promptContentInput.value = content;
+
+      if (!promptTitleInput.value.trim()) {
+        const titleFromFile = file.name.replace(/\.txt$/i, "").trim().slice(0, 160);
+        promptTitleInput.value = titleFromFile;
+      }
+
+      promptTxtFilename.textContent = file.name;
+      approvedFingerprint = "";
+      clearDuplicateWarning();
+      setMessage(`Loaded prompt from "${file.name}".`, "success");
+    } catch {
+      setMessage("Could not read the selected .txt file.", "error");
+    } finally {
+      promptTxtInput.value = "";
+    }
+  });
 
   function renderChips(map, container, countElement) {
     container.replaceChildren();
@@ -894,7 +957,6 @@
     renderAll();
     setMessage(`Tag "${data.name}" created and selected.`, "success");
   }
-
 
   async function createAiTool() {
     const input=document.querySelector("#new-ai-tool"); const name=input.value.trim();
@@ -1116,9 +1178,10 @@
       setMessage(wasEditing ? "Prompt updated." : status === "published" ? "Prompt published." : "Draft saved.", "success");
 
       form.reset();
+      promptTxtFilename.textContent = "";
       selectedCategories.clear();
       selectedTags.clear();
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = null;
       thumbnailPreview.removeAttribute("src");
       thumbnailPreview.hidden = true;
@@ -1138,13 +1201,13 @@
     }
   }
 
-    async function savePrompt(event) {
+  async function savePrompt(event) {
     event.preventDefault();
 
     if (saving) return;
 
-    const title = document.querySelector("#prompt-title").value.trim();
-    const content = document.querySelector("#prompt-content").value.trim();
+    const title = promptTitleInput.value.trim();
+    const content = promptContentInput.value.trim();
     const description = document.querySelector("#prompt-description").value.trim();
     const promptType = document.querySelector("#prompt-type").value;
     const status = event.submitter?.dataset.submitStatus || document.querySelector("#prompt-status").value;
@@ -1227,7 +1290,6 @@
     }
   }
 
-
   window.addEventListener("promptvault:edit-prompt", async (event) => {
     const id = event.detail?.id;
     if (!id) return;
@@ -1244,8 +1306,9 @@
 
     editingPromptId = id;
     currentThumbnailPath = prompt.thumbnail_path || null;
-    document.querySelector("#prompt-title").value = prompt.title || "";
-    document.querySelector("#prompt-content").value = prompt.content || "";
+    promptTitleInput.value = prompt.title || "";
+    promptContentInput.value = prompt.content || "";
+    promptTxtFilename.textContent = "";
     document.querySelector("#prompt-description").value = prompt.description || "";
     document.querySelector("#prompt-type").value = prompt.prompt_type || "image";
     document.querySelector("#prompt-status").value = prompt.status || "draft";
@@ -1288,6 +1351,7 @@
     editingPromptId = null;
     currentThumbnailPath = null;
     form.reset();
+    promptTxtFilename.textContent = "";
     selectedCategories.clear();
     selectedTags.clear();
     renderAll();
@@ -1329,7 +1393,7 @@
 
       selectedCategories.clear();
       selectedTags.clear();
-  
+
       renderAll();
       setMessage("Sign in as an administrator to load categories and tags.");
     }
