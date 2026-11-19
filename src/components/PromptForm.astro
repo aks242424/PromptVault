@@ -52,7 +52,7 @@
           required
           rows="9"
           class="form-control resize-y leading-6"
-          placeholder="Paste your complete AI prompt here or upload a .txt file..."
+          placeholder="Paste your complete AI prompt here or upload a .txt file (supports metadata header separated by ---)..."
         ></textarea>
       </div>
 
@@ -118,7 +118,7 @@
                 stroke-width="1.5"
               >
                 <rect x="3" y="3" width="18" height="18" rx="3"></rect>
-                <circle cx="85" cy="8.5" r="1.5"></circle>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
                 <path d="m21 15-5-5L5 21"></path>
               </svg>
             </div>
@@ -184,8 +184,7 @@
             <input
               id="new-category"
               class="form-control min-w-0 flex-1"
-              placeholder="New category name"
-              maxlength="60"
+              placeholder="New category or bulk (comma-separated)"
             />
             <button type="button" id="add-category" class="secondary-button">
               Add
@@ -214,8 +213,7 @@
             <input
               id="new-tag"
               class="form-control min-w-0 flex-1"
-              placeholder="New tag name"
-              maxlength="60"
+              placeholder="New tag or bulk (comma-separated)"
             />
             <button type="button" id="add-tag" class="secondary-button">
               Add
@@ -625,6 +623,9 @@
 
   const promptTitleInput = document.querySelector("#prompt-title");
   const promptContentInput = document.querySelector("#prompt-content");
+  const promptDescriptionInput = document.querySelector("#prompt-description");
+  const promptTypeInput = document.querySelector("#prompt-type");
+  const promptStatusInput = document.querySelector("#prompt-status");
   const promptTxtInput = document.querySelector("#prompt-txt-file");
   const promptTxtFilename = document.querySelector("#prompt-txt-filename");
 
@@ -680,6 +681,84 @@
   const normalize = (value) =>
     value.toLowerCase().trim().replace(/\s+/g, " ");
 
+  function splitBulkValues(value) {
+    const seen = new Set();
+    return String(value || "")
+      .split(/[,|;\n\r]+/)
+      .map((part) => part.trim().slice(0, 60))
+      .filter((part) => {
+        const key = part.toLowerCase();
+        if (!part || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
+  function parsePromptTxt(rawText) {
+    const cleaned = rawText.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+    const match = cleaned.match(/^---\s*$/m);
+
+    if (!match || match.index === undefined) {
+      return { meta: null, content: cleaned.trim() };
+    }
+
+    const headerText = cleaned.slice(0, match.index).trim();
+    const bodyText = cleaned.slice(match.index + match[0].length).trim();
+    const meta = {
+      title: "",
+      description: "",
+      type: "",
+      status: "",
+      categories: [],
+      tags: [],
+      aiTools: [],
+    };
+
+    let matchedKey = false;
+    for (const line of headerText.split("\n")) {
+      const idx = line.indexOf(":");
+      if (idx === -1) continue;
+      const key = line.slice(0, idx).trim().toLowerCase();
+      const val = line.slice(idx + 1).trim();
+      if (!val) continue;
+
+      if (key === "title" || key === "name" || key === "prompt name") {
+        meta.title = val.slice(0, 160);
+        matchedKey = true;
+      } else if (key === "description" || key === "short description") {
+        meta.description = val;
+        matchedKey = true;
+      } else if (key === "type" || key === "prompt type") {
+        const lower = val.toLowerCase();
+        if (["image", "video", "other"].includes(lower)) {
+          meta.type = lower;
+          matchedKey = true;
+        }
+      } else if (key === "status" || key === "publishing status") {
+        const lower = val.toLowerCase();
+        if (["draft", "published"].includes(lower)) {
+          meta.status = lower;
+          matchedKey = true;
+        }
+      } else if (key === "categories" || key === "category") {
+        meta.categories = splitBulkValues(val);
+        matchedKey = true;
+      } else if (key === "tags" || key === "tag") {
+        meta.tags = splitBulkValues(val);
+        matchedKey = true;
+      } else if (key === "ai tools" || key === "ai_tools" || key === "tools") {
+        meta.aiTools = splitBulkValues(val);
+        matchedKey = true;
+      }
+    }
+
+    if (!matchedKey) {
+      return { meta: null, content: cleaned.trim() };
+    }
+
+    return { meta, content: bodyText };
+  }
+
   function setMessage(text, type = "normal") {
     message.textContent = text;
     message.className = "text-sm";
@@ -691,6 +770,110 @@
     } else {
       message.classList.add("text-gray-400");
     }
+  }
+
+  async function ensureCategories(names) {
+    let created = 0;
+    let existingCount = 0;
+    const failed = [];
+
+    for (const name of names) {
+      const existing = categories.find(
+        (item) => item.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existing) {
+        selectedCategories.set(existing.id, existing.name);
+        existingCount++;
+        continue;
+      }
+
+      const slug = slugify(name);
+      if (!slug) {
+        failed.push(name);
+        continue;
+      }
+
+      const { data, error } = await supabase
+        .from("categories")
+        .insert({ name, slug, applies_to: "prompt" })
+        .select("id, name")
+        .single();
+
+      if (error) {
+        failed.push(name);
+        continue;
+      }
+
+      categories.push({ ...data, usage_count: 0 });
+      selectedCategories.set(data.id, data.name);
+      created++;
+    }
+
+    categories.sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0) || a.name.localeCompare(b.name));
+    return { created, existingCount, failed };
+  }
+
+  async function ensureTags(names) {
+    let created = 0;
+    let existingCount = 0;
+    const failed = [];
+
+    for (const name of names) {
+      const existing = tags.find(
+        (item) => item.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existing) {
+        selectedTags.set(existing.id, existing.name);
+        existingCount++;
+        continue;
+      }
+
+      const { data, error } = await supabase
+        .from("tags")
+        .insert({ name })
+        .select("id, name")
+        .single();
+
+      if (error) {
+        failed.push(name);
+        continue;
+      }
+
+      tags.push({ ...data, usage_count: 0 });
+      selectedTags.set(data.id, data.name);
+      created++;
+    }
+
+    tags.sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0) || a.name.localeCompare(b.name));
+    return { created, existingCount, failed };
+  }
+
+  async function ensureAiTools(names) {
+    const matchedNames = new Set();
+
+    for (const name of names) {
+      const existing = aiTools.find(
+        (item) => item.name.toLowerCase() === name.toLowerCase()
+      );
+      if (existing) {
+        matchedNames.add(existing.name);
+        continue;
+      }
+
+      const { data, error } = await supabase
+        .from("ai_tools")
+        .insert({ name })
+        .select("id, name")
+        .single();
+
+      if (!error && data) {
+        aiTools.push({ ...data, usage_count: 0 });
+        matchedNames.add(data.name);
+      }
+    }
+
+    aiTools.sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0) || a.name.localeCompare(b.name));
+    return matchedNames;
   }
 
   promptTxtInput.addEventListener("change", async () => {
@@ -712,11 +895,11 @@
 
     try {
       const rawText = await file.text();
-      const content = rawText.replace(/^\uFEFF/, "").trim();
+      const { meta, content } = parsePromptTxt(rawText);
 
       if (!content) {
         promptTxtInput.value = "";
-        setMessage("The selected .txt file is empty.", "error");
+        setMessage("The selected .txt file has no prompt content.", "error");
         return;
       }
 
@@ -730,15 +913,40 @@
 
       promptContentInput.value = content;
 
-      if (!promptTitleInput.value.trim()) {
-        const titleFromFile = file.name.replace(/\.txt$/i, "").trim().slice(0, 160);
-        promptTitleInput.value = titleFromFile;
+      if (meta) {
+        if (meta.title) {
+          promptTitleInput.value = meta.title;
+        } else if (!promptTitleInput.value.trim()) {
+          promptTitleInput.value = file.name.replace(/\.txt$/i, "").trim().slice(0, 160);
+        }
+
+        if (meta.description) promptDescriptionInput.value = meta.description;
+        if (meta.type) promptTypeInput.value = meta.type;
+        if (meta.status) promptStatusInput.value = meta.status;
+
+        if (optionsLoaded) {
+          if (meta.categories.length) await ensureCategories(meta.categories);
+          if (meta.tags.length) await ensureTags(meta.tags);
+          if (meta.aiTools.length) {
+            const matchedTools = await ensureAiTools(meta.aiTools);
+            renderAll(matchedTools);
+          } else {
+            renderAll();
+          }
+        }
+      } else if (!promptTitleInput.value.trim()) {
+        promptTitleInput.value = file.name.replace(/\.txt$/i, "").trim().slice(0, 160);
       }
 
       promptTxtFilename.textContent = file.name;
       approvedFingerprint = "";
       clearDuplicateWarning();
-      setMessage(`Loaded prompt from "${file.name}".`, "success");
+      setMessage(
+        meta
+          ? `Autofilled prompt and details from "${file.name}".`
+          : `Loaded prompt from "${file.name}".`,
+        "success"
+      );
     } catch {
       setMessage("Could not read the selected .txt file.", "error");
     } finally {
@@ -796,12 +1004,14 @@
     });
   }
 
-  function renderToolOptions() {
+  function renderToolOptions(overrideSelected = null) {
+    const selected = overrideSelected || new Set(
+      Array.from(document.querySelectorAll('input[name="ai-tool"]:checked')).map((x) => x.value)
+    );
     toolOptions.replaceChildren();
     aiTools.forEach((tool) => {
       const label=document.createElement("label"); label.className="check-card";
       const checkbox=document.createElement("input"); checkbox.type="checkbox"; checkbox.name="ai-tool"; checkbox.value=tool.name;
-      const selected = new Set(Array.from(document.querySelectorAll('input[name="ai-tool"]:checked')).map(x=>x.value));
       checkbox.checked=selected.has(tool.name);
       const name=document.createElement("span"); name.textContent=tool.name;
       const actions=document.createElement("span"); actions.className="choice-actions";
@@ -813,12 +1023,12 @@
     });
   }
 
-  function renderAll() {
+  function renderAll(overrideTools = null) {
     renderChoiceList(categories, categoryList, selectedCategories, categorySearch, "category");
     renderChoiceList(tags, tagList, selectedTags, tagSearch, "tag");
     renderChips(selectedCategories, categoryChips, categoryCount);
     renderChips(selectedTags, tagChips, tagCount);
-    renderToolOptions();
+    renderToolOptions(overrideTools);
   }
 
   async function renameOption(kind,item,name) {
@@ -869,93 +1079,44 @@
 
   async function createCategory() {
     const input = document.querySelector("#new-category");
-    const name = input.value.trim();
+    const names = splitBulkValues(input.value);
 
-    if (!name) {
-      setMessage("Enter a category name first.", "error");
+    if (!names.length) {
+      setMessage("Enter one or more category names first.", "error");
       input.focus();
       return;
     }
 
-    const existing = categories.find(
-      (item) => item.name.toLowerCase() === name.toLowerCase()
-    );
-
-    if (existing) {
-      selectedCategories.set(existing.id, existing.name);
-      input.value = "";
-      renderAll();
-      setMessage(`"${existing.name}" already exists and has been selected.`);
-      return;
-    }
-
-    const slug = slugify(name);
-
-    if (!slug) {
-      setMessage("Enter a valid category name.", "error");
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("categories")
-      .insert({ name, slug, applies_to: "prompt" })
-      .select("id, name")
-      .single();
-
-    if (error) {
-      setMessage(`Category creation failed: ${error.message}`, "error");
-      return;
-    }
-
-    categories.push({...data,usage_count:0});
-    categories.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
-    selectedCategories.set(data.id, data.name);
-
+    const { created, existingCount, failed } = await ensureCategories(names);
     input.value = "";
     renderAll();
-    setMessage(`Category "${data.name}" created and selected.`, "success");
+
+    const parts = [];
+    if (created) parts.push(`${created} created`);
+    if (existingCount) parts.push(`${existingCount} existing selected`);
+    if (failed.length) parts.push(`${failed.length} failed`);
+    setMessage(`Categories: ${parts.join(", ")}.`, failed.length && !created && !existingCount ? "error" : "success");
   }
 
   async function createTag() {
     const input = document.querySelector("#new-tag");
-    const name = input.value.trim();
+    const names = splitBulkValues(input.value);
 
-    if (!name) {
-      setMessage("Enter a tag name first.", "error");
+    if (!names.length) {
+      setMessage("Enter one or more tag names first.", "error");
       input.focus();
       return;
     }
 
-    const existing = tags.find(
-      (item) => item.name.toLowerCase() === name.toLowerCase()
-    );
-
-    if (existing) {
-      selectedTags.set(existing.id, existing.name);
-      input.value = "";
-      renderAll();
-      setMessage(`"${existing.name}" already exists and has been selected.`);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from("tags")
-      .insert({ name })
-      .select("id, name")
-      .single();
-
-    if (error) {
-      setMessage(`Tag creation failed: ${error.message}`, "error");
-      return;
-    }
-
-    tags.push({...data,usage_count:0});
-    tags.sort((a,b)=>b.usage_count-a.usage_count||a.name.localeCompare(b.name));
-    selectedTags.set(data.id, data.name);
-
+    const { created, existingCount, failed } = await ensureTags(names);
     input.value = "";
     renderAll();
-    setMessage(`Tag "${data.name}" created and selected.`, "success");
+
+    const parts = [];
+    if (created) parts.push(`${created} created`);
+    if (existingCount) parts.push(`${existingCount} existing selected`);
+    if (failed.length) parts.push(`${failed.length} failed`);
+    setMessage(`Tags: ${parts.join(", ")}.`, failed.length && !created && !existingCount ? "error" : "success");
   }
 
   async function createAiTool() {
@@ -973,8 +1134,8 @@
   document.querySelector("#add-category").addEventListener("click", createCategory);
   document.querySelector("#add-tag").addEventListener("click", createTag);
 
-  categorySearch.addEventListener("input", renderAll);
-  tagSearch.addEventListener("input", renderAll);
+  categorySearch.addEventListener("input", () => renderAll());
+  tagSearch.addEventListener("input", () => renderAll());
 
   document.querySelector("#new-category").addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -1189,9 +1350,9 @@
       thumbnailFilename.textContent = "No image selected";
       approvedFingerprint = "";
       clearDuplicateWarning();
-      renderAll();
+      renderAll(new Set());
       document.querySelector("#form-heading").textContent = "Add new prompt";
-      saveButton.textContent = editingPromptId ? "Update prompt" : "Publish prompt";
+      saveButton.textContent = "Publish prompt";
       document.querySelector("#save-draft").hidden = false;
       document.querySelector("#cancel-edit").hidden = true;
       window.dispatchEvent(new CustomEvent("promptvault:prompt-saved"));
@@ -1208,9 +1369,9 @@
 
     const title = promptTitleInput.value.trim();
     const content = promptContentInput.value.trim();
-    const description = document.querySelector("#prompt-description").value.trim();
-    const promptType = document.querySelector("#prompt-type").value;
-    const status = event.submitter?.dataset.submitStatus || document.querySelector("#prompt-status").value;
+    const description = promptDescriptionInput.value.trim();
+    const promptType = promptTypeInput.value;
+    const status = event.submitter?.dataset.submitStatus || promptStatusInput.value;
     const file = thumbnailInput.files[0];
 
     const categoryIds = [...selectedCategories.keys()];
@@ -1309,9 +1470,9 @@
     promptTitleInput.value = prompt.title || "";
     promptContentInput.value = prompt.content || "";
     promptTxtFilename.textContent = "";
-    document.querySelector("#prompt-description").value = prompt.description || "";
-    document.querySelector("#prompt-type").value = prompt.prompt_type || "image";
-    document.querySelector("#prompt-status").value = prompt.status || "draft";
+    promptDescriptionInput.value = prompt.description || "";
+    promptTypeInput.value = prompt.prompt_type || "image";
+    promptStatusInput.value = prompt.status || "draft";
 
     selectedCategories.clear();
     selectedTags.clear();
@@ -1323,9 +1484,6 @@
       const item = tags.find((x) => x.id === row.tag_id);
       if (item) selectedTags.set(item.id, item.name);
     }
-    document.querySelectorAll('input[name="ai-tool"]').forEach((input) => {
-      input.checked = (prompt.ai_tools || []).includes(input.value);
-    });
 
     if (currentThumbnailPath) {
       const { data } = supabase.storage.from("prompt-thumbnails").getPublicUrl(currentThumbnailPath);
@@ -1339,7 +1497,7 @@
       thumbnailFilename.textContent = "No image selected";
     }
 
-    renderAll();
+    renderAll(new Set(prompt.ai_tools || []));
     document.querySelector("#form-heading").textContent = "Edit prompt";
     saveButton.textContent = "Update prompt";
     document.querySelector("#save-draft").hidden = true;
@@ -1354,7 +1512,7 @@
     promptTxtFilename.textContent = "";
     selectedCategories.clear();
     selectedTags.clear();
-    renderAll();
+    renderAll(new Set());
     document.querySelector("#form-heading").textContent = "Add new prompt";
     saveButton.textContent = "Publish prompt";
     document.querySelector("#save-draft").hidden = false;
@@ -1394,7 +1552,7 @@
       selectedCategories.clear();
       selectedTags.clear();
 
-      renderAll();
+      renderAll(new Set());
       setMessage("Sign in as an administrator to load categories and tags.");
     }
   });
