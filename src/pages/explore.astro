@@ -71,7 +71,9 @@ import MainLayout from "../layouts/MainLayout.astro";
       title: string;
       description: string | null;
       prompt_type: string | null;
+      thumbnail_path?: string | null;
       created_at?: string;
+      [key: string]: unknown;
     };
     type ShortcutRow = {
       id: string;
@@ -86,6 +88,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       description: string;
       type: "shortcut" | "image" | "video" | "other";
       thumbnailUrl?: string | null;
+      copyText?: string;
       categories: string[];
       tags: string[];
       href: string;
@@ -122,6 +125,40 @@ import MainLayout from "../layouts/MainLayout.astro";
       return node;
     }
 
+    function extractPromptText(row: PromptRow): string {
+      const keys = ["prompt_text", "prompt", "content", "body", "template", "text"];
+      for (const key of keys) {
+        const value = row[key];
+        if (typeof value === "string" && value.trim()) return value;
+      }
+      return "";
+    }
+
+    async function copyToClipboard(text: string): Promise<boolean> {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch {
+        // Fallback below
+      }
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        return copied;
+      } catch {
+        return false;
+      }
+    }
+
     function renderCard(item: ExploreItem, index: number): HTMLElement {
       const card = el("article", `content-card accent-${accents[index % accents.length]}`);
       const searchText = [item.title, item.type, item.description, ...item.categories, ...item.tags].join(" ").toLowerCase();
@@ -156,10 +193,34 @@ import MainLayout from "../layouts/MainLayout.astro";
         card.append(tagList);
       }
 
+      const footer = el("div", "card-footer");
+
       const link = el("a", "card-link") as HTMLAnchorElement;
       link.href = item.href;
       link.append(el("span", "", item.type === "shortcut" ? "Browse shortcuts" : "Browse prompts"), el("span", "link-arrow", "↗"));
-      card.append(link);
+      footer.append(link);
+
+      if (item.type !== "shortcut" && item.copyText) {
+        const copyBtn = el("button", "copy-prompt-btn", "Copy prompt") as HTMLButtonElement;
+        copyBtn.type = "button";
+        copyBtn.setAttribute("aria-label", `Copy prompt: ${item.title}`);
+
+        let resetTimer: number | undefined;
+        copyBtn.addEventListener("click", async () => {
+          const ok = await copyToClipboard(item.copyText || "");
+          window.clearTimeout(resetTimer);
+          copyBtn.classList.toggle("copied", ok);
+          copyBtn.textContent = ok ? "Copied ✓" : "Copy failed";
+          resetTimer = window.setTimeout(() => {
+            copyBtn.classList.remove("copied");
+            copyBtn.textContent = "Copy prompt";
+          }, 1800);
+        });
+
+        footer.append(copyBtn);
+      }
+
+      card.append(footer);
       return card;
     }
 
@@ -229,7 +290,7 @@ import MainLayout from "../layouts/MainLayout.astro";
       errorMessage?.classList.add("hidden");
       try {
         const [promptResult, shortcutResult] = await Promise.all([
-          supabase.from("prompts").select("id, title, description, prompt_type, thumbnail_path, created_at").eq("status", "published").order("created_at", { ascending: false }),
+          supabase.from("prompts").select("*").eq("status", "published").order("created_at", { ascending: false }),
           supabase.from("shortcuts").select("id, name, description, created_at").eq("status", "published").order("created_at", { ascending: false }),
         ]);
         if (promptResult.error) throw new Error(`Prompts: ${promptResult.error.message}`);
@@ -280,19 +341,27 @@ import MainLayout from "../layouts/MainLayout.astro";
         }
 
         const promptItems: ExploreItem[] = prompts.map((row) => {
-          const path = (row as PromptRow & { thumbnail_path?: string | null }).thumbnail_path;
+          const path = row.thumbnail_path;
           const thumbnailUrl = path ? supabase.storage.from("prompt-thumbnails").getPublicUrl(path).data?.publicUrl || null : null;
           const promptType = String(row.prompt_type || "other").toLowerCase();
           const type: ExploreItem["type"] = promptType === "image" || promptType === "video" ? promptType : "other";
           return {
-            id: row.id, title: row.title, description: row.description || "", type, thumbnailUrl,
+            id: row.id,
+            title: row.title,
+            description: row.description || "",
+            type,
+            thumbnailUrl,
+            copyText: extractPromptText(row),
             categories: categoryByPrompt.get(row.id) || [],
             tags: tagsByPrompt.get(row.id) || [],
             href: "/prompts",
           };
         });
         const shortcutItems: ExploreItem[] = shortcuts.map((row) => ({
-          id: row.id, title: row.name, description: row.description || "", type: "shortcut",
+          id: row.id,
+          title: row.name,
+          description: row.description || "",
+          type: "shortcut",
           categories: categoriesByShortcut.get(row.id) || [],
           tags: tagsByShortcut.get(row.id) || [],
           href: "/shortcuts",
@@ -722,7 +791,7 @@ import MainLayout from "../layouts/MainLayout.astro";
     opacity: .9;
   }
 
-  .card-topline,.card-meta,.card-link {
+  .card-topline,.card-meta {
     position: relative;
     z-index: 1;
     display: flex;
@@ -828,17 +897,30 @@ import MainLayout from "../layouts/MainLayout.astro";
     font-size: 9px;
   }
 
-  .card-link {
+  .card-footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     margin-top: 18px;
     padding-top: 13px;
     border-top: 1px solid rgba(255,255,255,.09);
+  }
+
+  .card-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: var(--accent);
     font-size: 11px;
     font-weight: 600;
+    text-decoration: none;
   }
 
   .link-arrow {
-    font-size: 16px;
+    font-size: 15px;
     transition: transform .2s ease;
   }
 
@@ -848,6 +930,31 @@ import MainLayout from "../layouts/MainLayout.astro";
 
   .card-link:hover .link-arrow {
     transform: translate(3px,-3px);
+  }
+
+  .copy-prompt-btn {
+    padding: 6px 11px;
+    border: 1px solid rgba(var(--accent-rgb),.32);
+    border-radius: 8px;
+    background: rgba(var(--accent-rgb),.10);
+    color: var(--accent);
+    font-family: "JetBrains Mono",monospace;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+  }
+
+  .copy-prompt-btn:hover {
+    border-color: rgba(var(--accent-rgb),.65);
+    background: rgba(var(--accent-rgb),.20);
+    color: #fff;
+  }
+
+  .copy-prompt-btn.copied {
+    border-color: rgba(110,231,183,.55);
+    background: rgba(110,231,183,.16);
+    color: #6ee7b7;
   }
 
   .empty-state {
@@ -955,7 +1062,7 @@ import MainLayout from "../layouts/MainLayout.astro";
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .content-card,.card-link,.link-arrow,.filter-button,.search-field {
+    .content-card,.card-link,.link-arrow,.copy-prompt-btn,.filter-button,.search-field {
       transition: none;
     }
   }
